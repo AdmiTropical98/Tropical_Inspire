@@ -1,0 +1,91 @@
+body.inventory-bg {
+  background:
+    linear-gradient(rgba(2, 12, 24, 0.92), rgba(2, 12, 24, 0.96)),
+    url('Dinvetario.png?v=20260514b');
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+.inventario-theme {
+  position: relative;
+}
+
+.inventario-theme::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 5% 18%, rgba(80, 255, 220, 0.15), transparent 22%),
+    radial-gradient(circle at 92% 82%, rgba(80, 255, 220, 0.15), transparent 24%);
+}
+
+.dashboard-container {
+  background: rgba(3, 16, 32, 0.88);
+  border: 1px solid rgba(80, 255, 220, 0.12);
+  border-radius: 28px;
+  backdrop-filter: blur(2px);
+  box-shadow: inset 0 1px 0 rgba(147, 189, 213, 0.18);
+}
+
+.inventario-theme > * {
+  position: relative;
+  z-index: 1;
+}
+
+.inventario-theme .inventory-nav {
+  scrollbar-width: none;
+}
+
+.inventario-theme .inventory-nav::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.inventario-theme .border-slate-100,
+.inventario-theme .border-slate-200,
+.inventario-theme .border-slate-200\/70,
+.inventario-theme .border-slate-200\/80,
+.inventario-theme .border-slate-300 {
+  border-color: rgba(184, 216, 235, 0.52) !important;
+}
+
+.inventario-theme .bg-white,
+.inventario-theme .bg-white\/80,
+.inventario-theme .bg-white\/95,
+.inventario-theme .bg-slate-50,
+.inventario-theme .bg-slate-100 {
+  background-color: rgba(7, 31, 53, 0.84) !important;
+}
+
+.inventario-theme .text-slate-900,
+.inventario-theme .text-slate-800,
+.inventario-theme .text-slate-700 {
+  color: #f8fafc !important;
+}
+
+.inventario-theme .text-slate-600,
+.inventario-theme .text-slate-500 {
+  color: #cbd5e1 !important;
+}
+
+.inventario-theme .text-slate-400,
+.inventario-theme .text-slate-300 {
+  color: #94a3b8 !important;
+}
+
+.inventario-theme .placeholder\:text-slate-400::placeholder,
+.inventario-theme .placeholder\:text-slate-500::placeholder {
+  color: #64748b !important;
+}
+
+.inventario-theme .hover\:bg-slate-50:hover,
+.inventario-theme .hover\:bg-slate-100:hover {
+  background-color: rgba(13, 42, 67, 0.95) !important;
+}
+
+.inventario-theme .hover\:text-slate-900:hover {
+  color: #ffffff !important;
+}

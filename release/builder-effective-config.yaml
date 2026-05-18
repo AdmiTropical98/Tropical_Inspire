@@ -1,0 +1,33 @@
+directories:
+  output: release
+  buildResources: build
+appId: com.algartempo.programa
+productName: ALGARTEMPO
+asar: true
+icon: build/exeicon.ico
+extraMetadata:
+  main: electron/main.cjs
+  type: commonjs
+files:
+  - filter:
+      - dist/**/*
+      - electron/**/*
+win:
+  target:
+    - nsis
+  icon: build/exeicon.ico
+  signAndEditExecutable: false
+  artifactName: ${productName}-Setup-${version}.${ext}
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  installerSidebar: build/installer/sidebar.bmp
+  uninstallerSidebar: build/installer/sidebar-uninstall.bmp
+  installerHeader: build/installer/header.bmp
+  include: build/installer/installer.nsh
+  installerIcon: build/exeicon.ico
+  uninstallerIcon: build/exeicon.ico
+  installerHeaderIcon: build/exeicon.ico
+electronVersion: 42.1.0

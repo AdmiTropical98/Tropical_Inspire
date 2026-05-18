@@ -1,0 +1,186 @@
+html.android-auto-root,
+html.android-auto-root body,
+html.android-auto-root #root,
+body.android-auto-root,
+#root.android-auto-root {
+  width: 100vw !important;
+  min-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background: #06101f !important;
+  background-image: none !important;
+}
+
+.driver-mode {
+  min-height: 100vh;
+  width: 100vw;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(17, 92, 168, 0.5), transparent 28%),
+    linear-gradient(180deg, #081526 0%, #0b1f3a 56%, #07111f 100%);
+  color: #f8fbff;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  font-size: 22px;
+}
+
+.driver-mode__hero,
+.driver-mode__panel,
+.driver-mode__footer-actions {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 24px;
+  background: rgba(8, 18, 33, 0.84);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.24);
+}
+
+.driver-mode__hero {
+  padding: 24px;
+}
+
+.driver-mode__hero h1 {
+  margin: 8px 0;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1;
+}
+
+.driver-mode__hero p,
+.driver-mode__empty,
+.driver-mode__list-item span,
+.driver-mode__inline-card span,
+.driver-mode__alert span,
+.driver-mode__metric span,
+.driver-mode__label,
+.driver-mode__eyebrow {
+  color: rgba(232, 241, 251, 0.76);
+}
+
+.driver-mode__eyebrow,
+.driver-mode__label {
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.driver-mode__grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+.driver-mode__panel {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.driver-mode__panel--primary {
+  background: linear-gradient(180deg, rgba(15, 62, 116, 0.96), rgba(8, 21, 38, 0.92));
+}
+
+.driver-mode__panel--warning {
+  background: linear-gradient(180deg, rgba(113, 36, 28, 0.94), rgba(39, 10, 8, 0.92));
+}
+
+.driver-mode__panel-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.driver-mode__panel-header h2 {
+  margin: 4px 0 0;
+  font-size: clamp(1.4rem, 2.5vw, 2rem);
+}
+
+.driver-mode__icon {
+  width: 28px;
+  height: 28px;
+}
+
+.driver-mode__metric,
+.driver-mode__list-item,
+.driver-mode__inline-card,
+.driver-mode__alert {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  border-radius: 18px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.driver-mode__metric strong,
+.driver-mode__list-item strong,
+.driver-mode__inline-card strong,
+.driver-mode__alert strong {
+  display: block;
+  color: #ffffff;
+}
+
+.driver-mode__list,
+.driver-mode__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.driver-mode__alert {
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.driver-mode__alert svg {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  color: #ffd4c7;
+}
+
+.driver-mode__button {
+  width: 100%;
+  min-height: 72px;
+  border: 0;
+  border-radius: 18px;
+  padding: 18px 20px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.driver-mode__button svg {
+  width: 24px;
+  height: 24px;
+}
+
+.driver-mode__button--accent {
+  background: #ffcc3d;
+  color: #132238;
+}
+
+.driver-mode__button--secondary {
+  background: #d6362f;
+  color: #ffffff;
+}
+
+.driver-mode__button:disabled {
+  opacity: 0.48;
+}
+
+@media (max-width: 768px) {
+  .driver-mode {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .driver-mode__grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,300 @@
+
+import React, { useState, useMemo } from 'react';
+import { useFinancial } from '../../contexts/FinancialContext';
+import { Search, Filter, Plus, FileText, ArrowUpRight, ArrowDownRight, Calendar } from 'lucide-react';
+import { formatCurrency } from '../../utils/format';
+
+export default function ExpensesList() {
+    const { expenses, isLoading, addExpense, deleteExpense } = useFinancial();
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterCategory, setFilterCategory] = useState<string>('all');
+
+    // New Expense State
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [newExpense, setNewExpense] = useState({
+        description: '',
+        amount: 0,
+        category: 'variavel',
+        date: new Date().toISOString().split('T')[0],
+        paid: false,
+        recurring: false,
+        cost_center_id: ''
+    });
+
+    const handleAdd = async () => {
+        try {
+            await addExpense({
+                description: newExpense.description,
+                amount: Number(newExpense.amount),
+                category: newExpense.category as any,
+                date: newExpense.date,
+                paid: newExpense.paid,
+                recurring: newExpense.recurring,
+                cost_center_id: newExpense.cost_center_id || undefined
+            });
+            setIsModalOpen(false);
+            setNewExpense({
+                description: '',
+                amount: 0,
+                category: 'variavel',
+                date: new Date().toISOString().split('T')[0],
+                paid: false,
+                recurring: false,
+                cost_center_id: ''
+            });
+        } catch (error) {
+            alert('Erro ao adicionar despesa');
+        }
+    };
+
+    const handleExport = () => {
+        alert('Funcionalidade de exportação em breve.');
+    };
+
+    // Sort logic
+    const [sortField, setSortField] = useState<'date' | 'amount'>('date');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+    const filteredExpenses = useMemo(() => {
+        return expenses.filter(expense => {
+            const matchesSearch = expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                expense.cost_center_id?.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesCategory = filterCategory === 'all' || expense.category === filterCategory;
+
+            return matchesSearch && matchesCategory;
+        }).sort((a, b) => {
+            const multiplier = sortDirection === 'asc' ? 1 : -1;
+            if (sortField === 'date') return multiplier * (new Date(a.date).getTime() - new Date(b.date).getTime());
+            if (sortField === 'amount') return multiplier * (a.amount - b.amount);
+            return 0;
+        });
+    }, [expenses, searchTerm, filterCategory, sortField, sortDirection]);
+
+    if (isLoading) return <div className="p-8 text-slate-500">Loading expenses...</div>;
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                        <ArrowDownRight className="w-6 h-6 text-red-500" />
+                        Despesas e Custos
+                    </h2>
+                    <p className="text-slate-600 text-sm mt-1">Registo unificado de todas as saídas (Combustível, Manutenção, Salários, Fixos)</p>
+                </div>
+
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-lg shadow-emerald-900/20 transition-all"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Nova Despesa
+                    </button>
+                    <button
+                        onClick={handleExport}
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg flex items-center gap-2 transition-all border border-slate-200"
+                    >
+                        <FileText className="w-4 h-4" />
+                        Exportar
+                    </button>
+                </div>
+            </div>
+
+            {/* Filters */}
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="relative col-span-2">
+                    <Search className="absolute left-3 top-2.5 w-5 h-5 text-slate-400" />
+                    <input
+                        type="text"
+                        placeholder="Pesquisar despesa..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full bg-white border border-slate-300 text-slate-900 pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:border-indigo-500"
+                    />
+                </div>
+
+                <div>
+                    <select
+                        value={filterCategory}
+                        onChange={(e) => setFilterCategory(e.target.value)}
+                        className="w-full bg-white border border-slate-300 text-slate-900 px-4 py-2 rounded-lg focus:outline-none focus:border-indigo-500 appearance-none"
+                    >
+                        <option value="all">Todas as Categorias</option>
+                        <option value="variavel">Variáveis (Combustível/Manut.)</option>
+                        <option value="fixo">Custos Fixos</option>
+                        <option value="salario">Salários</option>
+                        <option value="imposto">Impostos</option>
+                        <option value="outro">Outros</option>
+                    </select>
+                </div>
+
+                <div>
+                    {/* Date Filter Placeholder - could be improved with DateRangePicker */}
+                    <button className="w-full bg-white border border-slate-300 text-slate-900 px-4 py-2 rounded-lg flex items-center justify-between hover:bg-slate-50 transition-colors">
+                        <span className="text-slate-500">Este Mês</span>
+                        <Calendar className="w-4 h-4 text-slate-400" />
+                    </button>
+                </div>
+            </div>
+
+            {/* Table */}
+            <div className="bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+                <table className="w-full text-left border-collapse">
+                    <thead>
+                        <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
+                            <th className="px-6 py-4 font-semibold">Data</th>
+                            <th className="px-6 py-4 font-semibold">Descrição</th>
+                            <th className="px-6 py-4 font-semibold">Categoria</th>
+                            <th className="px-6 py-4 font-semibold">C. Custo</th>
+                            <th className="px-6 py-4 font-semibold text-right">Valor</th>
+                            <th className="px-6 py-4 font-semibold text-center">Status</th>
+                            <th className="px-6 py-4 font-semibold text-right">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                        {filteredExpenses.map((expense) => (
+                            <tr key={expense.id} className="hover:bg-slate-50 transition-colors group">
+                                <td className="px-6 py-4 text-slate-700 font-medium">
+                                    {new Date(expense.date).toLocaleDateString()}
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="flex flex-col">
+                                        <span className="text-slate-900 font-medium">{expense.description}</span>
+                                        {expense.recurring && <span className="text-xs text-indigo-400 flex items-center gap-1">Recorrente ({expense.recurrence_period})</span>}
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <Badge category={expense.category} />
+                                </td>
+                                <td className="px-6 py-4 text-slate-500 text-sm">
+                                    {expense.cost_center_id || '-'}
+                                </td>
+                                <td className="px-6 py-4 text-right font-medium text-red-400">
+                                    - {formatCurrency(expense.amount)}
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                    {expense.paid ? (
+                                        <span className="px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-bold uppercase">Pago</span>
+                                    ) : (
+                                        <span className="px-2 py-1 rounded-full bg-amber-500/10 text-amber-500 text-xs font-bold uppercase">Pendente</span>
+                                    )}
+                                </td>
+                                <td className="px-6 py-4 text-right opacity-0 group-hover:opacity-100 transition-opacity flex justify-end gap-2">
+                                    <button
+                                        onClick={() => {
+                                            if (window.confirm('Eliminar esta despesa?')) deleteExpense(expense.id);
+                                        }}
+                                        className="text-red-400 hover:text-red-300 text-sm transition-colors"
+                                    >
+                                        Remover
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+
+                {filteredExpenses.length === 0 && (
+                    <div className="p-12 text-center text-slate-500 bg-slate-50">
+                        <ArrowDownRight className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                        <p>Nenhuma despesa encontrada.</p>
+                    </div>
+                )}
+            </div>
+
+            {/* Modal */}
+            {isModalOpen && (
+                <div className="fixed inset-0 bg-slate-50/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl border border-slate-200 w-full max-w-md p-6 shadow-2xl">
+                        <h3 className="text-xl font-bold text-slate-900 mb-4">Nova Despesa</h3>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm text-slate-600 mb-1">Descrição</label>
+                                <input
+                                    type="text"
+                                    value={newExpense.description}
+                                    onChange={(e) => setNewExpense({ ...newExpense, description: e.target.value })}
+                                    className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm text-slate-600 mb-1">Valor (€)</label>
+                                    <input
+                                        type="number"
+                                        value={newExpense.amount}
+                                        onChange={(e) => setNewExpense({ ...newExpense, amount: Number(e.target.value) })}
+                                        className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-slate-600 mb-1">Data</label>
+                                    <input
+                                        type="date"
+                                        value={newExpense.date}
+                                        onChange={(e) => setNewExpense({ ...newExpense, date: e.target.value })}
+                                        className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm text-slate-600 mb-1">Categoria</label>
+                                <select
+                                    value={newExpense.category}
+                                    onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}
+                                    className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900"
+                                >
+                                    <option value="variavel">Variável</option>
+                                    <option value="salario">Salário</option>
+                                    <option value="imposto">Imposto</option>
+                                    <option value="outro">Outro</option>
+                                </select>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    checked={newExpense.paid}
+                                    onChange={(e) => setNewExpense({ ...newExpense, paid: e.target.checked })}
+                                    id="paid-check"
+                                    className="rounded border-slate-300"
+                                />
+                                <label htmlFor="paid-check" className="text-slate-700 text-sm">Despesa já paga?</label>
+                            </div>
+                            <div className="flex items-center gap-4 mt-6">
+                                <button
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-lg border border-slate-200"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleAdd}
+                                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg"
+                                >
+                                    Salvar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function Badge({ category }: { category: string }) {
+    const styles: Record<string, string> = {
+        fixo: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+        variavel: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+        imposto: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+        salario: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        outro: 'bg-slate-500/20 text-slate-400 border-slate-500/30'
+    };
+
+    return (
+        <span className={`px-2.5 py-0.5 rounded border text-xs font-medium uppercase tracking-wide ${styles[category] || styles.outro}`}>
+            {category}
+        </span>
+    );
+}

@@ -1,0 +1,1046 @@
+import React, { useEffect, useState, lazy, Suspense } from 'react';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
+import {
+  LayoutDashboard, Car, MessageSquare,
+  Building2, Briefcase,
+  BarChart3, MapPin, Award,
+  UserCheck, Activity,
+  Settings2, UserCog as UserCogIcon, LogOut,
+  Navigation, AlertTriangle, ClipboardCheck, Fuel, BatteryCharging,
+  History, IdCard, Settings
+} from 'lucide-react';
+
+import { useAuth } from './contexts/AuthContext';
+import { usePermissions } from './contexts/PermissionsContext';
+import { useChat } from './contexts/ChatContext';
+
+// Components
+import Login from './pages/Auth/Login';
+import InventoryLogin from './pages/Auth/InventoryLogin';
+import ResetPassword from './pages/Auth/ResetPassword';
+import Dashboard from './pages/Dashboard';
+import AlertsPage from './pages/Alerts';
+import Viaturas from './pages/Viaturas';
+import VehicleProfile from './pages/Viaturas/VehicleProfile';
+import Drivers from './pages/Motoristas';
+import Requisicoes from './pages/Requisicoes';
+import EscalasHistory from './pages/Escalas/EscalasHistory';
+import Horas from './pages/Horas';
+import FuelManager from './pages/Combustivel';
+import UserManagementTab from './pages/Users';
+import GestoresTab from './pages/Gestores';
+import EquipaOficinaTab from './pages/EquipaOficina';
+import PermissoesTab from './pages/Permissoes';
+import AvaliacaoDriversTab from './pages/Avaliacao';
+import ContabilidadeTab from './pages/Contabilidade';
+import SupplierInvoiceDocumentPage from './pages/Contabilidade/SupplierInvoiceDocumentPage';
+import NovaFaturaPage from './pages/Finance/NovaFaturaPage';
+import ControloOperacionalTab from './pages/ControloOperacional';
+import Fornecedores from './pages/Fornecedores';
+import SupplierProfile from './pages/Fornecedores/SupplierProfile';
+import ViaVerde from './pages/ViaVerde';
+import Carregamentos from './pages/Carregamentos';
+import EficienciaFrota from './pages/EficienciaFrota';
+import ClientProfile from './pages/Clientes/ClientProfile';
+import StockParts from './pages/Workshop/StockParts';
+import StockMovements from './pages/Workshop/StockMovements';
+import StockAlerts from './pages/Workshop/StockAlerts';
+import WorkshopAssets from './pages/Workshop/WorkshopAssets';
+import AssignedTools from './pages/Workshop/AssignedTools';
+import LayoutMobile from './components/layout/LayoutMobile';
+import LayoutDesktop from './components/layout/LayoutDesktop';
+import DriverMode from './pages/DriverMode';
+import InventoryModule from './pages/Inventario/InventoryModule';
+import OperacoesModule from './pages/Operacoes/OperacoesModule';
+import OperacoesLogin from './pages/Auth/OperacoesLogin';
+import DashboardLanding from './pages/Auth/DashboardLanding';
+import { isAndroidAuto } from './utils/isAndroidAuto';
+
+// Lazy loading backoffice
+const Backoffice = lazy(() => import('./pages/Backoffice/index'));
+const CentralMotorista = lazy(() => import('./pages/CentralMotorista'));
+const Supervisores = lazy(() => import('./pages/Supervisores'));
+const CentrosCustos = lazy(() => import('./pages/CentrosCustos'));
+const Clientes = lazy(() => import('./pages/Clientes'));
+const Relatorios = lazy(() => import('./pages/Relatorios'));
+const Mensagens = lazy(() => import('./pages/Chat'));
+const Profile = lazy(() => import('./pages/Profile/MyProfile'));
+const ColaboradorApp = lazy(() => import('./pages/Colaborador'));
+
+const LegacySupplierActionRedirect: React.FC = () => {
+  const location = useLocation();
+
+  React.useEffect(() => {
+    const redirectUrl = `https://algartempo-frota.com/api/action.php${location.search || ''}`;
+    window.location.replace(redirectUrl);
+  }, [location.search]);
+
+  return (
+    <div className="p-6 text-slate-300">A redirecionar para a confirmação da requisição...</div>
+  );
+};
+
+const LegacySupplierDownloadRedirect: React.FC = () => {
+  const location = useLocation();
+
+  React.useEffect(() => {
+    const redirectUrl = `https://algartempo-frota.com/api/download-requisicao.php${location.search || ''}`;
+    window.location.replace(redirectUrl);
+  }, [location.search]);
+
+  return (
+    <div className="p-6 text-slate-300">A redirecionar para o download da requisição...</div>
+  );
+};
+
+// TAB_LABELS removed (unused)
+
+interface NavItem {
+  key: string;
+  label: string;
+  icon: any;
+  path: string;
+  active: boolean;
+  badge?: number;
+}
+
+interface NavGroup {
+  key: string;
+  label: string;
+  items: NavItem[];
+}
+
+
+
+
+const UserProfileMenu: React.FC<{ onNavigate: (path: string) => void; showName?: boolean; compact?: boolean }> = ({ onNavigate, showName = true, compact = false }) => {
+  const { currentUser, userPhoto, logout } = useAuth();
+  const [showMenu, setShowMenu] = useState(false);
+  const [navbarAvatarSrc, setNavbarAvatarSrc] = useState('');
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const [spriteUrl, setSpriteUrl] = useState<string | null>(null);
+  const avatarSrc = userPhoto || (currentUser as any)?.avatar || (currentUser as any)?.avatar_url || (currentUser as any)?.foto || '';
+
+  const spritePositions: Record<string, string> = {
+    OFICINA: '0% 0%',
+    GESTOR: '50% 0%',
+    ADMINISTRADOR: '100% 0%',
+    SUPERVISOR: '0% 100%',
+    MOTORISTA: '50% 100%',
+    COLABORADOR: '100% 100%'
+  };
+
+  const isSpriteAvatar = (value: string) => value.startsWith('sprite:');
+  const getSpriteRole = (value: string) => value.replace('sprite:', '').toUpperCase();
+  const spriteCandidates = [
+    'AVATARES.PNG',
+    'avatares.png',
+    'assets/img/avatars/AVATARES.PNG',
+    'assets/img/avatars/avatares.png',
+    'avatars/AVATARES.PNG',
+    'avatars/avatares.png'
+  ];
+
+  useEffect(() => {
+    setNavbarAvatarSrc(avatarSrc);
+  }, [avatarSrc]);
+
+  const hasAvatar = Boolean(navbarAvatarSrc);
+  const isSpriteNavbarAvatar = hasAvatar && isSpriteAvatar(navbarAvatarSrc);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const resolveSprite = async () => {
+      for (const candidate of spriteCandidates) {
+        const exists = await new Promise<boolean>((resolve) => {
+          const image = new Image();
+          image.onload = () => resolve(true);
+          image.onerror = () => resolve(false);
+          image.src = `${candidate}?v=1`;
+        });
+
+        if (exists) {
+          if (mounted) setSpriteUrl(candidate);
+          return;
+        }
+      }
+
+      if (mounted) setSpriteUrl(null);
+    };
+
+    void resolveSprite();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!showMenu) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!containerRef.current) return;
+      if (containerRef.current.contains(event.target as Node)) return;
+      setShowMenu(false);
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [showMenu]);
+
+  const isAvatarOnly = compact && !showName;
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        onClick={() => setShowMenu(!showMenu)}
+        className={isAvatarOnly
+          ? 'flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200/80 bg-white/90 p-0 shadow-sm transition-all hover:bg-white hover:border-slate-300'
+          : 'flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/80 px-3 py-2 transition-all hover:bg-white hover:border-slate-300'}
+      >
+        <div className={`avatar-3d overflow-hidden rounded-full bg-blue-600 text-center text-white shadow-md ring-2 ring-slate-200 ${isAvatarOnly ? 'h-8 w-8' : 'h-9 w-9'}`}>
+          {isSpriteNavbarAvatar && spriteUrl ? (
+            <div
+              id="navbarAvatar"
+              className="h-full w-full"
+              style={{
+                backgroundImage: `url('${spriteUrl}')`,
+                backgroundSize: '300% 200%',
+                backgroundPosition: spritePositions[getSpriteRole(navbarAvatarSrc)] || spritePositions.COLABORADOR,
+                backgroundRepeat: 'no-repeat'
+              }}
+            />
+          ) : hasAvatar ? (
+            <img
+              id="navbarAvatar"
+              src={navbarAvatarSrc}
+              alt={currentUser?.nome || 'Avatar'}
+              className="h-full w-full object-cover"
+              onError={() => setNavbarAvatarSrc('./assets/img/avatars/avatar_colaborador.svg')}
+            />
+          ) : (
+            <span>{currentUser?.nome ? currentUser.nome.charAt(0).toUpperCase() : 'M'}</span>
+          )}
+        </div>
+        {showName && (
+          <div className="text-left">
+            <p className="max-w-36 truncate text-sm font-bold text-slate-900">{currentUser?.nome || 'Utilizador'}</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{(currentUser as any)?.role || 'ADMIN MANAGER'}</p>
+          </div>
+        )}
+      </button>
+
+      {showMenu && (
+        <div className={`absolute right-0 top-full z-50 mt-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-200/60 backdrop-blur-xl animate-in slide-in-from-top-2 duration-200 ${isAvatarOnly ? 'w-36' : 'w-56'}`}>
+          <button
+            onClick={() => { onNavigate('meu-perfil'); setShowMenu(false); }}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-600 transition-all hover:bg-slate-50 hover:text-slate-900"
+          >
+            <UserCogIcon className="w-4 h-4" /> Perfil
+          </button>
+          <button
+            onClick={logout}
+            className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-red-500 transition-all hover:bg-red-50"
+          >
+            <LogOut className="w-4 h-4" /> Sair
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+function App() {
+  const MOBILE_MAX_WIDTH = 768;
+  const SIDEBAR_LOGO = `${import.meta.env.BASE_URL}LOGO.png`;
+  const { isAuthenticated, userRole, authEntryModule, logout } = useAuth();
+  const { hasAccess } = usePermissions();
+  const { unreadCount } = useChat();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [viewportWidth, setViewportWidth] = useState(
+    typeof window === 'undefined' ? 1440 : window.innerWidth
+  );
+
+  useEffect(() => {
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    handleResize();
+    window.addEventListener('resize', handleResize, { passive: true });
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isCapacitorNative = Capacitor.isNativePlatform();
+  const isCapacitorAndroid = isCapacitorNative && Capacitor.getPlatform() === 'android';
+  const androidAutoMode = isAndroidAuto();
+  const isMobileViewport = viewportWidth < MOBILE_MAX_WIDTH;
+  const isMobileLayout = isCapacitorNative || isMobileViewport;
+
+  useEffect(() => {
+    const root = document.getElementById('root');
+
+    if (!isCapacitorAndroid) {
+      document.documentElement.classList.remove('android-native-root');
+      document.body.classList.remove('android-native-root');
+      root?.classList.remove('android-native-root');
+      document.documentElement.style.removeProperty('width');
+      document.documentElement.style.removeProperty('max-width');
+      document.documentElement.style.removeProperty('overflow-x');
+      document.body.style.removeProperty('width');
+      document.body.style.removeProperty('max-width');
+      document.body.style.removeProperty('overflow-x');
+      root?.style.removeProperty('width');
+      root?.style.removeProperty('max-width');
+      root?.style.removeProperty('margin');
+      root?.style.removeProperty('padding');
+      root?.style.removeProperty('overflow-x');
+      return;
+    }
+
+    document.documentElement.classList.add('android-native-root');
+    document.body.classList.add('android-native-root');
+    root?.classList.add('android-native-root');
+    document.documentElement.style.width = '100vw';
+    document.documentElement.style.maxWidth = '100vw';
+    document.documentElement.style.overflowX = 'hidden';
+    document.body.style.width = '100vw';
+    document.body.style.maxWidth = '100vw';
+    document.body.style.overflowX = 'hidden';
+
+    if (root) {
+      root.style.width = '100vw';
+      root.style.maxWidth = '100vw';
+      root.style.margin = '0';
+      root.style.padding = '0';
+      root.style.overflowX = 'hidden';
+    }
+
+    return () => {
+      document.documentElement.classList.remove('android-native-root');
+      document.body.classList.remove('android-native-root');
+      root?.classList.remove('android-native-root');
+      document.documentElement.style.removeProperty('width');
+      document.documentElement.style.removeProperty('max-width');
+      document.documentElement.style.removeProperty('overflow-x');
+      document.body.style.removeProperty('width');
+      document.body.style.removeProperty('max-width');
+      document.body.style.removeProperty('overflow-x');
+      root?.style.removeProperty('width');
+      root?.style.removeProperty('max-width');
+      root?.style.removeProperty('margin');
+      root?.style.removeProperty('padding');
+      root?.style.removeProperty('overflow-x');
+    };
+  }, [isCapacitorAndroid]);
+
+  useEffect(() => {
+    const root = document.getElementById('root');
+
+    if (!androidAutoMode) {
+      document.documentElement.classList.remove('android-auto-root');
+      document.body.classList.remove('android-auto-root');
+      root?.classList.remove('android-auto-root');
+      return;
+    }
+
+    document.documentElement.classList.add('android-auto-root');
+    document.body.classList.add('android-auto-root');
+    root?.classList.add('android-auto-root');
+
+    return () => {
+      document.documentElement.classList.remove('android-auto-root');
+      document.body.classList.remove('android-auto-root');
+      root?.classList.remove('android-auto-root');
+    };
+  }, [androidAutoMode]);
+
+  // Derive activeTab from current path
+  const activeTab = location.pathname.split('/')[1] || 'dashboard';
+  const isFleetRoute = activeTab === 'viaturas' || activeTab === 'vehicles';
+  const fuelTab = new URLSearchParams(location.search).get('tab') || 'overview';
+  const handleNavigate = (target: string) => {
+    const path = target.startsWith('/') ? target : `/${target}`;
+    navigate(path);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const navigateFromAnchor = (event: React.MouseEvent<HTMLAnchorElement>, target: string) => {
+    event.preventDefault();
+    handleNavigate(target);
+  };
+
+  const isMapPage = location.pathname === '/roteirizacao' || location.pathname === '/geofences';
+  const isFullScreenPage = isMapPage;
+  const useDesktopLayoutForNativeRouting = isCapacitorAndroid && location.pathname === '/roteirizacao';
+
+  const isColaboradorArea =
+    location.pathname === '/colaborador' ||
+    location.pathname.startsWith('/colaborador/') ||
+    location.pathname === '/operacoes/colaborador' ||
+    location.pathname.startsWith('/operacoes/colaborador/');
+  const isFrotaLoginArea =
+    location.pathname === '/frota/login' ||
+    location.pathname.startsWith('/frota/login/');
+  const isInventoryLoginArea =
+    location.pathname === '/inventario/login' ||
+    location.pathname.startsWith('/inventario/login/');
+  const isOperacoesLoginArea =
+    location.pathname === '/operacoes/login' ||
+    location.pathname.startsWith('/operacoes/login/');
+  const isInventoryArea =
+    location.pathname === '/inventario' ||
+    location.pathname.startsWith('/inventario/');
+    const isOperacoesArea =
+      location.pathname === '/operacoes' ||
+      location.pathname.startsWith('/operacoes/');
+  const normalizedRole = String(userRole || '').toUpperCase();
+  const isAdminRole = normalizedRole === 'ADMIN' || normalizedRole === 'ADMIN_MASTER';
+  const isGestorRole = normalizedRole === 'GESTOR';
+  const isOperationsOnlyRole = ['SUPERVISOR', 'OFICINA', 'MOTORISTA'].includes(normalizedRole);
+  const canAccessAllModules = isAdminRole || isGestorRole;
+
+  const hasModuleScope = (target: 'frota' | 'inventario' | 'operacoes') => {
+    if (!authEntryModule) return true;
+    // Role policy overrides entry module scope restrictions.
+    if (canAccessAllModules || isOperationsOnlyRole) return true;
+    return authEntryModule === target;
+  };
+
+  const canAccessInventoryModule =
+    hasModuleScope('inventario') &&
+    (
+      canAccessAllModules ||
+      (!isOperationsOnlyRole && hasAccess(userRole, 'inventario', 'ver'))
+    );
+
+  const canAccessOperacoesModule =
+    hasModuleScope('operacoes') &&
+    (
+      canAccessAllModules ||
+      isOperationsOnlyRole ||
+      hasAccess(userRole, 'escalas', 'ver') ||
+      hasAccess(userRole, 'horas', 'ver') ||
+      hasAccess(userRole, 'requisicoes', 'ver') ||
+      hasAccess(userRole, 'dashboard', 'ver')
+    );
+
+  const canAccessFleetModule =
+    hasModuleScope('frota') &&
+    (
+      canAccessAllModules ||
+      (!isOperationsOnlyRole && (hasAccess(userRole, 'frota', 'ver') || hasAccess(userRole, 'dashboard', 'ver')))
+    );
+
+  if (androidAutoMode) {
+    return <DriverMode />;
+  }
+
+  if (isColaboradorArea) {
+    if (location.pathname === '/colaborador' || location.pathname.startsWith('/colaborador/')) {
+      return <Navigate to={location.pathname.replace('/colaborador', '/operacoes/colaborador')} replace />;
+    }
+
+    return (
+      <div className={`app-root min-h-screen bg-transparent text-slate-900 font-sans selection:bg-amber-500/20 ${isCapacitorAndroid ? 'android-native-shell w-screen max-w-[100vw] m-0 p-0' : 'w-full'}`}>
+        <Suspense fallback={
+          <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
+            <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
+            <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">A iniciar Sessão Colaborador...</p>
+          </div>
+        }>
+          <Routes>
+            <Route path="/operacoes/colaborador/*" element={<ColaboradorApp />} />
+          </Routes>
+        </Suspense>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    if (location.pathname === '/reset-password') return <ResetPassword />;
+    if (location.pathname === '/' || location.pathname === '/dashboard') return <DashboardLanding />;
+    if (isFrotaLoginArea) return <Login />;
+    if (isOperacoesLoginArea || isOperacoesArea) return <OperacoesLogin />;
+    if (isInventoryLoginArea || isInventoryArea) return <InventoryLogin />;
+    return <DashboardLanding />;
+  }
+
+  if (isInventoryArea) {
+    if (!canAccessInventoryModule) {
+      return (
+        <div className="min-h-screen flex items-center justify-center px-6 py-10 bg-slate-100">
+          <div className="max-w-lg w-full rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Sem acesso ao Inventário</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              A sua conta não tem permissões para o módulo de Inventário. Contacte o administrador para ativar acesso.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              {canAccessFleetModule && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/dashboard')}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-700 hover:border-slate-300 hover:text-slate-900"
+                >
+                  Ir para Frota
+                </button>
+              )}
+              {canAccessOperacoesModule && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/operacoes/dashboard')}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-700 hover:border-slate-300 hover:text-slate-900"
+                >
+                  Ir para Operações
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={logout}
+                className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold uppercase tracking-wide text-red-700 hover:bg-red-100"
+              >
+                Terminar sessão
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return <InventoryModule />;
+  }
+
+    if (isOperacoesArea) {
+      if (!canAccessOperacoesModule) {
+        return (
+          <div className="min-h-screen flex items-center justify-center px-6 py-10 bg-slate-100">
+            <div className="max-w-lg w-full rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Sem acesso às Operações</h2>
+              <p className="mt-2 text-sm text-slate-600">
+                A sua conta não tem permissões para o módulo de Operações. Contacte o administrador para ativar acesso.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                {canAccessFleetModule && (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/dashboard')}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-700 hover:border-slate-300 hover:text-slate-900"
+                  >
+                    Ir para Frota
+                  </button>
+                )}
+                {canAccessInventoryModule && (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/inventario/dashboard')}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-700 hover:border-slate-300 hover:text-slate-900"
+                  >
+                    Ir para Inventário
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold uppercase tracking-wide text-red-700 hover:bg-red-100"
+                >
+                  Terminar sessão
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return <OperacoesModule />;
+    }
+
+  if (!isInventoryArea && !isOperacoesArea && !canAccessFleetModule) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6 py-10 bg-slate-100">
+        <div className="max-w-lg w-full rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Sem acesso à Frota</h2>
+          <p className="mt-2 text-sm text-slate-600">
+            Esta sessão foi iniciada noutro módulo ou a sua conta não tem permissões para a Frota.
+            Contacte o administrador para ativar o acesso.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            {canAccessOperacoesModule && (
+              <button
+                type="button"
+                onClick={() => navigate('/operacoes/dashboard')}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-700 hover:border-slate-300 hover:text-slate-900"
+              >
+                Ir para Operações
+              </button>
+            )}
+            {canAccessInventoryModule && (
+              <button
+                type="button"
+                onClick={() => navigate('/inventario/dashboard')}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-700 hover:border-slate-300 hover:text-slate-900"
+              >
+                Ir para Inventário
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={logout}
+              className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold uppercase tracking-wide text-red-700 hover:bg-red-100"
+            >
+              Terminar sessão
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+
+  const dashboardItem: NavItem = {
+    key: 'dashboard',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    path: '/dashboard',
+    active: activeTab === 'dashboard',
+  };
+
+  const operationsGroup: NavGroup = {
+    key: 'operacoes',
+    label: 'Operações',
+    items: [
+      {
+        key: 'controlo-operacional',
+        label: 'Centro Operacional',
+        icon: Activity,
+        path: '/controlo-operacional',
+        active: activeTab === 'controlo-operacional',
+      },
+      {
+        key: 'alerts',
+        label: 'Alertas',
+        icon: AlertTriangle,
+        path: '/alerts',
+        active: activeTab === 'alerts',
+      },
+      ...(hasAccess(userRole, 'requisicoes')
+        ? [{
+          key: 'requisicoes',
+          label: 'Requisições',
+          icon: ClipboardCheck,
+          path: '/requisicoes',
+          active: activeTab === 'requisicoes',
+        } as NavItem]
+        : []),
+    ],
+  };
+
+  const fleetGroup: NavGroup = {
+    key: 'frota',
+    label: 'Frota',
+    items: [
+      ...(hasAccess(userRole, 'viaturas')
+        ? [{
+          key: 'viaturas',
+          label: 'Viaturas',
+          icon: Car,
+          path: '/viaturas',
+          active: isFleetRoute,
+        } as NavItem]
+        : []),
+      ...(hasAccess(userRole, 'motoristas')
+        ? [{
+          key: 'motoristas',
+          label: 'Motoristas',
+          icon: UserCogIcon,
+          path: '/motoristas',
+          active: activeTab === 'motoristas',
+        } as NavItem]
+        : []),
+      ...(hasAccess(userRole, 'avaliacao_drivers')
+        ? [{
+          key: 'avaliacao-drivers',
+          label: 'Performance',
+          icon: Award,
+          path: '/avaliacao-drivers',
+          active: activeTab === 'avaliacao-drivers',
+        } as NavItem]
+        : []),
+    ],
+  };
+
+  const fuelGroup: NavGroup = {
+    key: 'combustivel',
+    label: 'Combustível',
+    items: [
+      {
+        key: 'fuel-overview',
+        label: 'Geral',
+        icon: Fuel,
+        path: '/combustivel?tab=overview',
+        active: activeTab === 'combustivel' && fuelTab === 'overview',
+      },
+      {
+        key: 'fuel-abastecer',
+        label: 'Abastecer',
+        icon: Fuel,
+        path: '/combustivel?tab=abastecer',
+        active: activeTab === 'combustivel' && fuelTab === 'abastecer',
+      },
+      {
+        key: 'fuel-tanque',
+        label: 'Tanque',
+        icon: BatteryCharging,
+        path: '/combustivel?tab=tanque',
+        active: activeTab === 'combustivel' && fuelTab === 'tanque',
+      },
+      {
+        key: 'fuel-historico',
+        label: 'Histórico',
+        icon: History,
+        path: '/combustivel?tab=historico',
+        active: activeTab === 'combustivel' && fuelTab === 'historico',
+      },
+      {
+        key: 'fuel-relatorios',
+        label: 'Relatórios',
+        icon: BarChart3,
+        path: '/combustivel?tab=relatorios',
+        active: activeTab === 'combustivel' && fuelTab === 'relatorios',
+      },
+    ],
+  };
+
+  // Grupo próprio para Clientes e Fornecedores
+  const clientesFornecedoresGroup: NavGroup = {
+    key: 'clientes-fornecedores',
+    label: 'Clientes & Fornecedores',
+    items: [
+      {
+        key: 'clientes',
+        label: 'Clientes',
+        icon: Building2,
+        path: '/clientes',
+        active: activeTab === 'clientes',
+      },
+      {
+        key: 'fornecedores',
+        label: 'Fornecedores',
+        icon: Briefcase,
+        path: '/fornecedores',
+        active: activeTab === 'fornecedores',
+      },
+    ],
+  };
+
+  const moreGroup: NavGroup = {
+    key: 'mais',
+    label: 'Mais',
+    items: [
+      ...(hasAccess(userRole, 'utilizadores') ? [{ key: 'utilizadores', label: 'Perfis', icon: UserCheck, path: '/utilizadores', active: activeTab === 'utilizadores' } as NavItem] : []),
+
+      {
+        key: 'mensagens',
+        label: 'Central de Mensagens',
+        icon: MessageSquare,
+        path: '/mensagens',
+        active: activeTab === 'mensagens',
+        badge: unreadCount,
+      },
+    ],
+  };
+
+  const desktopGroups = [operationsGroup, fleetGroup, clientesFornecedoresGroup, fuelGroup, moreGroup].filter(group => group.items.length > 0);
+
+  const bottomNavItems = [
+    {
+      key: 'bottom-dashboard',
+      label: 'Dashboard',
+      icon: LayoutDashboard,
+      active: activeTab === 'dashboard',
+      onClick: () => handleNavigate('/dashboard'),
+    },
+    {
+      key: 'bottom-frota',
+      label: 'Frota',
+      icon: Car,
+      active: ['viaturas', 'vehicles', 'motoristas', 'avaliacao-drivers'].includes(activeTab),
+      onClick: () => handleNavigate('/viaturas'),
+    },
+    {
+      key: 'bottom-combustivel',
+      label: 'Combustível',
+      icon: Fuel,
+      active: activeTab === 'combustivel',
+      onClick: () => handleNavigate('/combustivel'),
+    },
+    {
+      key: 'bottom-mais',
+      label: 'Mais',
+      icon: Settings2,
+      active: moreGroup.items.some(item => item.active),
+      onClick: () => undefined,
+    },
+  ];
+
+  const moreMenuItems = moreGroup.items.map(item => ({
+    key: `more-${item.key}`,
+    label: item.label,
+    icon: item.icon,
+    active: item.active,
+    onClick: () => handleNavigate(item.path),
+  }));
+
+  const appRoutes = (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
+        <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
+        <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">A carregar módulo...</p>
+      </div>
+    }>
+      <Routes>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={<Dashboard setActiveTab={handleNavigate} />} />
+        <Route path="/frota/login" element={<Login />} />
+        <Route path="/inventario/login" element={<InventoryLogin />} />
+        <Route path="/operacoes/login" element={<OperacoesLogin />} />
+        <Route path="/frota/dashboard" element={<Dashboard setActiveTab={handleNavigate} />} />
+        <Route path="/action.php" element={<LegacySupplierActionRedirect />} />
+        <Route path="/public_html_api/action.php" element={<LegacySupplierActionRedirect />} />
+        <Route path="/download-requisicao.php" element={<LegacySupplierDownloadRedirect />} />
+        <Route path="/public_html_api/download-requisicao.php" element={<LegacySupplierDownloadRedirect />} />
+        <Route path="/alerts" element={<AlertsPage />} />
+        <Route path="/backoffice" element={<Suspense fallback={<div className="p-8 text-slate-400">Loading Backoffice...</div>}><Backoffice /></Suspense>} />
+        <Route path="/viaturas" element={<Viaturas />} />
+        <Route path="/viaturas/:viaturaId" element={<VehicleProfile />} />
+        <Route path="/vehicles/:viaturaId" element={<VehicleProfile />} />
+        <Route path="/motoristas" element={<Drivers />} />
+        <Route path="/requisicoes" element={<Requisicoes />} />
+        <Route path="/escalas" element={<Navigate to="/operacoes/escalas" replace />} />
+        <Route path="/escalas-history" element={<EscalasHistory />} />
+        <Route path="/horas" element={<Horas />} />
+        <Route path="/combustivel" element={<FuelManager />} />
+        <Route path="/utilizadores" element={<UserManagementTab />} />
+        <Route path="/gestores" element={<GestoresTab />} />
+        <Route path="/equipa-oficina" element={<EquipaOficinaTab />} />
+        <Route path="/meu-perfil" element={<Suspense fallback={<div>Loading Profile...</div>}><Profile /></Suspense>} />
+        <Route path="/permissoes" element={<PermissoesTab />} />
+        <Route path="/avaliacao-drivers" element={<AvaliacaoDriversTab />} />
+        <Route path="/contabilidade" element={<ContabilidadeTab />} />
+        <Route path="/finance/faturas/nova" element={<NovaFaturaPage />} />
+        <Route path="/finance/faturas/:invoiceId/editar" element={<SupplierInvoiceDocumentPage mode="edit" />} />
+        <Route path="/lancar-escalas" element={<Navigate to="/operacoes/planear-escala" replace />} />
+        <Route path="/controlo-operacional" element={<ControloOperacionalTab />} />
+        <Route path="/fornecedores" element={<Fornecedores />} />
+        <Route path="/fornecedores/:supplierId" element={<SupplierProfile />} />
+        <Route path="/via-verde" element={<ViaVerde />} />
+        <Route path="/carregamentos" element={<Carregamentos />} />
+        <Route path="/eficiencia-frota" element={<EficienciaFrota />} />
+        <Route path="/mensagens" element={<Suspense fallback={<div>Loading Chat...</div>}><Mensagens /></Suspense>} />
+        <Route path="/central-motorista" element={<Suspense fallback={<div>Loading Central...</div>}><CentralMotorista /></Suspense>} />
+        <Route path="/supervisores" element={<Suspense fallback={<div>Loading Supervisores...</div>}><Supervisores /></Suspense>} />
+        <Route path="/centros-custos" element={<Suspense fallback={<div>Loading Centros Custos...</div>}><CentrosCustos /></Suspense>} />
+        <Route path="/clientes" element={<Suspense fallback={<div>Loading Clientes...</div>}><Clientes /></Suspense>} />
+        <Route path="/clientes/:clientId" element={<ClientProfile />} />
+        <Route path="/relatorios" element={<Suspense fallback={<div>Loading Relatórios...</div>}><Relatorios /></Suspense>} />
+        <Route path="/workshop-stock" element={<StockParts />} />
+        <Route path="/workshop-movements" element={<StockMovements />} />
+        <Route path="/workshop-assets" element={<WorkshopAssets />} />
+        <Route path="/assigned-tools" element={<AssignedTools />} />
+        <Route path="/workshop-alerts" element={<StockAlerts />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </Suspense>
+  );
+
+  const allNavItems = [
+    dashboardItem,
+    ...operationsGroup.items,
+    ...fleetGroup.items,
+    ...clientesFornecedoresGroup.items,
+    ...moreGroup.items,
+  ];
+
+  const currentSectionLabel = allNavItems.find(item => item.active)?.label ?? 'Dashboard';
+
+  const frotaSidebarGroups = [
+    { label: 'OPERACOES', items: [dashboardItem, ...operationsGroup.items, ...fleetGroup.items] },
+    { label: 'GESTAO', items: [...clientesFornecedoresGroup.items, ...moreGroup.items.filter(item => item.key === 'utilizadores')] },
+    { label: 'CONFIGURACOES', items: moreGroup.items.filter(item => item.key === 'mensagens') },
+  ].filter(group => group.items.length > 0);
+
+  const frotaDesktopShell = (
+    <div className="frota-shell">
+      <aside className="frota-sidebar">
+        <button className="frota-sidebar-brand" onClick={() => handleNavigate('/dashboard')}>
+          <img src={`${SIDEBAR_LOGO}?v=3`} alt="Algartempo Frota" className="frota-sidebar-logo" />
+        </button>
+
+        <nav className="frota-sidebar-nav">
+          {frotaSidebarGroups.map(group => (
+            <section key={group.label} className="frota-sidebar-group">
+              <p className="frota-sidebar-group-title">{group.label}</p>
+              <div className="frota-sidebar-items">
+                {group.items.map(item => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => handleNavigate(item.path)}
+                      className={`frota-sidebar-item ${item.active ? 'active' : ''}`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </nav>
+      </aside>
+
+      <section className="frota-main">
+        <header className="frota-topbar">
+          <div className="frota-topbar-left">
+            <h1>{currentSectionLabel}</h1>
+          </div>
+          <div className="frota-topbar-right">
+            <UserProfileMenu onNavigate={handleNavigate} showName compact />
+          </div>
+        </header>
+
+        <main className={`frota-content app-content-bg ${isFullScreenPage ? 'frota-content-full' : ''}`}>
+          {appRoutes}
+        </main>
+      </section>
+    </div>
+  );
+
+  const desktopNavbar = (
+    <nav className="navbar navbar-expand-lg custom-navbar sticky top-0 z-[5000]">
+      <div className="container-fluid px-4 sm:px-6 lg:px-8">
+        <a className="navbar-brand" href="/" onClick={(event) => navigateFromAnchor(event, '/dashboard')}>
+          <img src={`${SIDEBAR_LOGO}?v=3`} alt="Algartempo Frota" className="navbar-logo-image" />
+        </a>
+
+        <button
+          className="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#mainNavbar"
+          aria-controls="mainNavbar"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span className="navbar-toggler-icon" />
+        </button>
+
+        <div className="collapse navbar-collapse" id="mainNavbar">
+          <ul className="navbar-nav mx-auto align-items-lg-center">
+            <li className="nav-item">
+              <a
+                className={`nav-link ${dashboardItem.active ? 'active' : ''}`}
+                href={dashboardItem.path}
+                onClick={(event) => navigateFromAnchor(event, dashboardItem.path)}
+              >
+                Dashboard
+              </a>
+            </li>
+
+            {desktopGroups.map(group => {
+              const isActiveGroup = group.items.some(item => item.active);
+              return (
+                <li key={group.key} className="nav-item dropdown">
+                  <a
+                    className={`nav-link dropdown-toggle ${isActiveGroup ? 'active' : ''}`}
+                    href="#"
+                    role="button"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                  >
+                    {group.label}
+                  </a>
+                  <ul className="dropdown-menu">
+                    {group.items.map(item => {
+                      const Icon = item.icon;
+                      return (
+                        <li key={item.key}>
+                          <a
+                            className={`dropdown-item d-flex align-items-center gap-2 ${item.active ? 'active' : ''}`}
+                            href={item.path}
+                            onClick={(event) => navigateFromAnchor(event, item.path)}
+                          >
+                            <Icon className="h-4 w-4" />
+                            <span>{item.label}</span>
+                            {item.badge && item.badge > 0 && (
+                              <span className="ms-auto rounded-pill bg-primary px-2 py-0 text-[10px] fw-bold text-white">{item.badge}</span>
+                            )}
+                          </a>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </li>
+              );
+            })}
+          </ul>
+
+          <div className="navbar-user ms-lg-3 mt-3 mt-lg-0">
+            <UserProfileMenu onNavigate={handleNavigate} showName compact />
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+
+  if (useDesktopLayoutForNativeRouting) {
+    return (
+      <LayoutDesktop isFullScreenPage={isFullScreenPage} navbar={desktopNavbar}>
+        {appRoutes}
+      </LayoutDesktop>
+    );
+  }
+
+  if (isCapacitorAndroid) {
+    return (
+      <LayoutMobile
+        logoSrc={`${SIDEBAR_LOGO}?v=3`}
+        onLogoClick={() => handleNavigate('/dashboard')}
+        userMenu={<UserProfileMenu onNavigate={handleNavigate} compact showName={false} />}
+        isMapPage={isMapPage}
+        bottomNavItems={bottomNavItems}
+        moreMenuItems={moreMenuItems}
+      >
+        {appRoutes}
+      </LayoutMobile>
+    );
+  }
+
+  if (isMobileLayout) {
+    return (
+      <LayoutMobile
+        logoSrc={`${SIDEBAR_LOGO}?v=3`}
+        onLogoClick={() => handleNavigate('/dashboard')}
+        userMenu={<UserProfileMenu onNavigate={handleNavigate} compact />}
+        isMapPage={isMapPage}
+        bottomNavItems={bottomNavItems}
+        moreMenuItems={moreMenuItems}
+      >
+        {appRoutes}
+      </LayoutMobile>
+    );
+  }
+
+  if (!isInventoryArea && !isOperacoesArea) {
+    return frotaDesktopShell;
+  }
+
+  return (
+    <LayoutDesktop isFullScreenPage={isFullScreenPage} navbar={desktopNavbar}>
+      {appRoutes}
+    </LayoutDesktop>
+  );
+}
+
+export default App;

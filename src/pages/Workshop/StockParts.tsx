@@ -1,0 +1,664 @@
+import { useState, useRef, useEffect } from 'react';
+import {
+    Plus, Search, AlertTriangle, Box,
+    ArrowUpRight, MoreHorizontal,
+    Settings, History, Package,
+    Tag, DollarSign, Layers, X, Trash2, Pencil, FileText
+} from 'lucide-react';
+import { useWorkshop } from '../../contexts/WorkshopContext';
+import { formatCurrency } from '../../utils/format';
+import type { StockItem } from '../../types';
+import { generateStockPartsPDF } from '../../utils/workshopInventoryPdf';
+
+type NewPartRow = {
+    id: number;
+    name: string;
+    sku: string;
+    category: string;
+    stock_quantity: number;
+    minimum_stock: number;
+    average_cost: number;
+    location: string;
+};
+
+const blankRow = (id: number): NewPartRow => ({
+    id,
+    name: '',
+    sku: '',
+    category: '',
+    stock_quantity: 0,
+    minimum_stock: 0,
+    average_cost: 0,
+    location: ''
+});
+
+export default function StockParts() {
+    const { stockItems, refreshInventoryData, addStockItem, updateStockItem, deleteStockItem } = useWorkshop();
+    const [searchTerm, setSearchTerm] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('all');
+    const [showLowStockOnly, setShowLowStockOnly] = useState(false);
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [editingItem, setEditingItem] = useState<StockItem | null>(null);
+    const [isEditSaving, setIsEditSaving] = useState(false);
+    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
+    const [rowCounter, setRowCounter] = useState(1);
+    const [newParts, setNewParts] = useState<NewPartRow[]>([blankRow(0)]);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                setOpenMenuId(null);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
+    const categories = Array.from(new Set(stockItems.map(item => item.category).filter(Boolean)));
+
+    const filteredItems = stockItems.filter(item => {
+        const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (item.sku && item.sku.toLowerCase().includes(searchTerm.toLowerCase()));
+        const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
+        const matchesLowStock = !showLowStockOnly || item.stock_quantity <= item.minimum_stock;
+
+        return matchesSearch && matchesCategory && matchesLowStock;
+    });
+
+    const groupedItems = filteredItems.reduce((acc, item) => {
+        const cat = item.category || 'Indefinido';
+        if (!acc[cat]) acc[cat] = [];
+        acc[cat].push(item);
+        return acc;
+    }, {} as Record<string, typeof stockItems>);
+
+    const sortedGroups = Object.keys(groupedItems).sort((a, b) => {
+        if (a === 'Indefinido') return 1;
+        if (b === 'Indefinido') return -1;
+        return a.localeCompare(b);
+    });
+
+    const handleCreateParts = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const validRows = newParts.filter(r => r.name.trim());
+        if (validRows.length === 0) return;
+
+        setIsSaving(true);
+        try {
+            for (const row of validRows) {
+                await addStockItem({
+                    name: row.name.trim(),
+                    sku: row.sku.trim() || undefined,
+                    category: row.category.trim() || undefined,
+                    stock_quantity: Math.max(0, Number(row.stock_quantity) || 0),
+                    minimum_stock: Math.max(0, Number(row.minimum_stock) || 0),
+                    average_cost: Math.max(0, Number(row.average_cost) || 0),
+                    location: row.location.trim() || undefined,
+                    supplier_id: undefined
+                });
+            }
+            setShowCreateModal(false);
+            setNewParts([blankRow(0)]);
+            setRowCounter(1);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const updateRow = (id: number, field: keyof Omit<NewPartRow, 'id'>, value: string | number) => {
+        setNewParts(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
+    };
+
+    const addRow = () => {
+        setNewParts(prev => [...prev, blankRow(rowCounter)]);
+        setRowCounter(c => c + 1);
+    };
+
+    const removeRow = (id: number) => {
+        setNewParts(prev => prev.length > 1 ? prev.filter(r => r.id !== id) : prev);
+    };
+
+    const handleEditPart = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingItem || !editingItem.name.trim()) return;
+        setIsEditSaving(true);
+        try {
+            await updateStockItem({
+                ...editingItem,
+                name: editingItem.name.trim(),
+                sku: editingItem.sku?.trim() || undefined,
+                category: editingItem.category?.trim() || undefined,
+                location: editingItem.location?.trim() || undefined,
+                stock_quantity: Math.max(0, Number(editingItem.stock_quantity) || 0),
+                minimum_stock: Math.max(0, Number(editingItem.minimum_stock) || 0),
+                average_cost: Math.max(0, Number(editingItem.average_cost) || 0),
+            });
+            setEditingItem(null);
+        } finally {
+            setIsEditSaving(false);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!window.confirm('Tem a certeza que quer apagar esta peça?')) return;
+        setOpenMenuId(null);
+        await deleteStockItem(id);
+    };
+
+    return (
+        <div className="space-y-6 animate-in fade-in duration-500">
+            {/* Header Panel */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                        <div className="p-2 bg-blue-600 rounded-xl shadow-lg shadow-blue-600/20">
+                            <Box className="w-6 h-6 text-slate-900" />
+                        </div>
+                        Stock de Peças
+                    </h1>
+                    <p className="text-slate-400 mt-1 flex items-center gap-2">
+                        <Layers className="w-4 h-4" />
+                        Peças consumíveis e consumos de oficina
+                    </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={refreshInventoryData}
+                        title="Atualizar dados"
+                        className="h-11 w-11 inline-flex items-center justify-center bg-slate-100 hover:bg-slate-700 text-slate-300 rounded-xl transition-all border border-slate-200"
+                    >
+                        <History className="w-5 h-5" />
+                    </button>
+                    <button
+                        onClick={() => generateStockPartsPDF(filteredItems)}
+                        className="h-11 px-5 inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-700 text-slate-200 rounded-xl font-bold transition-all border border-slate-200"
+                    >
+                        <FileText className="w-5 h-5" />
+                        <span className="hidden sm:inline">Exportar Relatório</span>
+                    </button>
+                    <button
+                        onClick={() => setShowCreateModal(true)}
+                        className="h-11 px-5 inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg shadow-blue-600/25 transition-all"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Nova Peça
+                    </button>
+                </div>
+            </div>
+
+            {/* Stats Quick View */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {[
+                    {
+                        label: 'Total de Peças',
+                        count: stockItems.length,
+                        icon: Package,
+                        color: 'blue'
+                    },
+                    {
+                        label: 'Valor em Stock',
+                        count: formatCurrency(stockItems.reduce((acc, i) => acc + (i.stock_quantity * i.average_cost), 0)),
+                        icon: DollarSign,
+                        color: 'green'
+                    },
+                    {
+                        label: 'Stock Crítico',
+                        count: stockItems.filter(i => i.stock_quantity <= i.minimum_stock).length,
+                        icon: AlertTriangle,
+                        color: 'orange'
+                    },
+                    {
+                        label: 'Categorias',
+                        count: categories.length,
+                        icon: Tag,
+                        color: 'indigo'
+                    }
+                ].map((stat, idx) => (
+                    <div key={idx} className="bg-white/90 backdrop-blur-md border border-slate-200/50 p-5 rounded-2xl relative overflow-hidden group">
+                        <div className={`absolute -right-4 -top-4 w-24 h-24 bg-${stat.color}-600/10 rounded-full blur-2xl group-hover:bg-${stat.color}-600/20 transition-all`} />
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">{stat.label}</p>
+                                <p className="text-2xl font-black text-slate-900 mt-1">{stat.count}</p>
+                            </div>
+                            <div className={`p-2 bg-${stat.color}-600/10 rounded-lg text-${stat.color}-400`}>
+                                <stat.icon className="w-5 h-5" />
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Search & Filter Bar */}
+            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/60 p-4 rounded-2xl flex flex-col md:flex-row gap-4 items-center">
+                <div className="relative flex-1 group w-full">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                    <input
+                        type="text"
+                        placeholder="Procurar por nome, SKU ou categoria..."
+                        className="w-full bg-white/90 border border-slate-200 rounded-xl pl-12 pr-4 py-3 text-slate-200 outline-none focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600/50 transition-all"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                    <select
+                        className="bg-white/90 border border-slate-200 rounded-xl px-4 py-3 text-slate-300 outline-none focus:ring-2 focus:ring-blue-600/40 min-w-[160px]"
+                        value={categoryFilter}
+                        onChange={(e) => setCategoryFilter(e.target.value)}
+                    >
+                        <option value="all">Todas as Categorias</option>
+                        {categories.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                    </select>
+
+                    <button
+                        onClick={() => setShowLowStockOnly(!showLowStockOnly)}
+                        className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold transition-all border ${showLowStockOnly
+                            ? 'bg-orange-500/20 border-orange-500/50 text-orange-400'
+                            : 'bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-100'
+                            }`}
+                    >
+                        <AlertTriangle className="w-4 h-4" />
+                        Stock Baixo
+                    </button>
+                </div>
+            </div>
+
+            {/* Grid Display */}
+            {sortedGroups.length > 0 ? (
+                <div className="space-y-10">
+                    {sortedGroups.map(categoryName => (
+                        <div key={categoryName} className="space-y-4 animate-in slide-in-from-bottom-4 duration-500">
+                            <h2 className="text-xl font-black text-slate-900 flex items-center gap-3">
+                                <div className="p-2 bg-slate-100 rounded-xl shadow-lg border border-slate-200/50">
+                                    <Tag className="w-5 h-5 text-blue-500" />
+                                </div>
+                                {categoryName}
+                                <span className="mt-0.5 text-xs font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/50">
+                                    {groupedItems[categoryName].length} {groupedItems[categoryName].length === 1 ? 'item' : 'itens'}
+                                </span>
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                {groupedItems[categoryName].map(item => (
+                                    <div
+                                        key={item.id}
+                                        className="group bg-white/90 hover:bg-white/90/60 border border-slate-200/50 hover:border-blue-600/30 rounded-3xl p-6 transition-all duration-300 relative overflow-hidden"
+                                    >
+                                        {/* Visual Accents */}
+                                        <div className={`absolute top-0 right-0 w-2 h-full ${item.stock_quantity <= item.minimum_stock ? 'bg-orange-600' : 'bg-blue-600/20'
+                                            } opacity-50`} />
+
+                                        <div className="flex flex-col h-full">
+                                            <div className="flex items-start justify-between mb-4">
+                                                <div className="p-3 bg-slate-100 rounded-2xl text-blue-400 group-hover:scale-110 transition-transform">
+                                                    <Box className="w-6 h-6" />
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 bg-slate-100 px-2 py-1 rounded-md">
+                                                        {item.sku || 'Sem SKU'}
+                                                    </span>
+                                                    <div className="relative" ref={openMenuId === item.id ? menuRef : null}>
+                                                        <button
+                                                            onClick={() => setOpenMenuId(openMenuId === item.id ? null : item.id)}
+                                                            className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors"
+                                                        >
+                                                            <MoreHorizontal className="w-5 h-5" />
+                                                        </button>
+                                                        {openMenuId === item.id && (
+                                                            <div className="absolute right-0 top-8 z-20 w-40 bg-white/90 border border-slate-200 rounded-xl shadow-2xl overflow-hidden">
+                                                                <button
+                                                                    onClick={() => { setEditingItem(item); setOpenMenuId(null); }}
+                                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-100 transition-colors"
+                                                                >
+                                                                    <Pencil className="w-4 h-4 text-blue-400" />
+                                                                    Editar
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDelete(item.id)}
+                                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-slate-100 transition-colors"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                    Apagar
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <h3 className="text-lg font-bold text-[#1f2957] mb-1 group-hover:text-blue-400 transition-colors line-clamp-1">
+                                                {item.name}
+                                            </h3>
+                                            <p className="text-slate-500 text-xs flex items-center gap-1.5 mb-6 uppercase font-bold tracking-tighter">
+                                                <Tag className="w-3 h-3 text-blue-500" />
+                                                {item.category || 'Indefinido'}
+                                            </p>
+
+                                            <div className="mt-auto space-y-4">
+                                                {/* Stock Level Indicator */}
+                                                <div className="space-y-1.5">
+                                                    <div className="flex justify-between items-end">
+                                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Stock Atual</span>
+                                                        <span className={`text-sm font-black ${item.stock_quantity <= item.minimum_stock ? 'text-orange-500' : 'text-blue-400'
+                                                            }`}>
+                                                            {item.stock_quantity}
+                                                        </span>
+                                                    </div>
+                                                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                        <div
+                                                            className={`h-full transition-all duration-1000 ${item.stock_quantity <= item.minimum_stock ? 'bg-orange-500' : 'bg-blue-600'
+                                                                }`}
+                                                            style={{ width: `${Math.min((item.stock_quantity / (item.minimum_stock || 1)) * 50, 100)}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {/* Footer Info */}
+                                                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-200/50">
+                                                    <div>
+                                                        <p className="text-slate-500 text-[9px] font-black uppercase tracking-wider mb-1">Custo Médio</p>
+                                                        <p className="text-slate-200 text-sm font-bold">{formatCurrency(item.average_cost)}</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-slate-500 text-[9px] font-black uppercase tracking-wider mb-1">Localização</p>
+                                                        <p className="text-slate-200 text-sm font-bold truncate">{item.location || '---'}</p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Quick Actions Hidden by default, show on hover */}
+                                                <div className="flex items-center gap-2 pt-2 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0 duration-300">
+                                                    <button
+                                                        onClick={() => setEditingItem(item)}
+                                                        className="flex-1 bg-slate-100 hover:bg-slate-700 text-xs font-bold py-2 rounded-xl border border-slate-200 transition-all flex items-center justify-center gap-2"
+                                                    >
+                                                        <Settings className="w-3.5 h-3.5" />
+                                                        Editar
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setEditingItem(item)}
+                                                        className="bg-blue-600 hover:bg-blue-500 p-2 rounded-xl transition-all shadow-lg shadow-blue-600/20"
+                                                    >
+                                                        <ArrowUpRight className="w-4 h-4 text-slate-900" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="py-20 flex flex-col items-center justify-center text-slate-500 bg-white/90/20 border border-slate-200/50 rounded-3xl border-dashed">
+                    <div className="w-20 h-20 bg-white/90/80 rounded-full flex items-center justify-center mb-4 border border-slate-200 shadow-xl">
+                        <Search className="w-10 h-10 text-slate-600" />
+                    </div>
+                    <p className="font-bold uppercase tracking-widest text-sm text-slate-400">Nenhuma peça encontrada</p>
+                    <p className="text-xs mt-2 text-slate-500">Tente ajustar os seus filtros de pesquisa</p>
+                </div>
+            )}
+
+            {/* Datalists for autocomplete */}
+            <datalist id="dl-categories">
+                {categories.map(c => <option key={c} value={c as string} />)}
+            </datalist>
+            <datalist id="dl-locations">
+                {Array.from(new Set(stockItems.map(i => i.location).filter(Boolean))).map(l => <option key={l} value={l as string} />)}
+            </datalist>
+
+            {showCreateModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+                    <div className="w-full max-w-4xl bg-white/90 border border-slate-200 rounded-3xl shadow-2xl flex flex-col max-h-[90vh]">
+                        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200 shrink-0">
+                            <div>
+                                <h3 className="text-xl font-black text-slate-900">Adicionar Peças</h3>
+                                <p className="text-slate-500 text-xs mt-0.5">{newParts.length} {newParts.length === 1 ? 'peça' : 'peças'} para adicionar</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => { setShowCreateModal(false); setNewParts([blankRow(0)]); setRowCounter(1); }}
+                                className="p-2 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleCreateParts} className="flex flex-col flex-1 overflow-hidden">
+                            <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
+                                {newParts.map((row, idx) => (
+                                    <div key={row.id} className="bg-slate-50 border border-slate-200/60 rounded-2xl p-4 relative">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Peça #{idx + 1}</span>
+                                            {newParts.length > 1 && (
+                                                <button type="button" onClick={() => removeRow(row.id)} className="p-1 rounded-lg text-slate-500 hover:text-red-400 hover:bg-slate-700 transition-colors">
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                            <div className="space-y-1 col-span-2">
+                                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Nome *</label>
+                                                <input
+                                                    required
+                                                    placeholder="Ex: Filtro de óleo"
+                                                    value={row.name}
+                                                    onChange={e => updateRow(row.id, 'name', e.target.value)}
+                                                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">SKU</label>
+                                                <input
+                                                    placeholder="Ex: FO-001"
+                                                    value={row.sku}
+                                                    onChange={e => updateRow(row.id, 'sku', e.target.value)}
+                                                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Categoria</label>
+                                                <input
+                                                    list="dl-categories"
+                                                    placeholder="Ex: Filtros"
+                                                    value={row.category}
+                                                    onChange={e => updateRow(row.id, 'category', e.target.value)}
+                                                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Qtd Inicial</label>
+                                                <input
+                                                    type="number" min="0" step="0.01"
+                                                    value={row.stock_quantity}
+                                                    onChange={e => updateRow(row.id, 'stock_quantity', Number(e.target.value) || 0)}
+                                                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Stock Mín.</label>
+                                                <input
+                                                    type="number" min="0" step="0.01"
+                                                    value={row.minimum_stock}
+                                                    onChange={e => updateRow(row.id, 'minimum_stock', Number(e.target.value) || 0)}
+                                                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Custo Médio (€)</label>
+                                                <input
+                                                    type="number" min="0" step="0.01"
+                                                    value={row.average_cost}
+                                                    onChange={e => updateRow(row.id, 'average_cost', Number(e.target.value) || 0)}
+                                                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Localização</label>
+                                                <input
+                                                    list="dl-locations"
+                                                    placeholder="Ex: Prateleira A1"
+                                                    value={row.location}
+                                                    onChange={e => updateRow(row.id, 'location', e.target.value)}
+                                                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                <button
+                                    type="button"
+                                    onClick={addRow}
+                                    className="w-full py-3 border-2 border-dashed border-slate-300 hover:border-blue-600/50 hover:bg-blue-600/5 text-slate-500 hover:text-blue-400 rounded-2xl transition-all text-sm font-bold flex items-center justify-center gap-2"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Adicionar outra peça
+                                </button>
+                            </div>
+
+                            <div className="px-6 py-4 border-t border-slate-200 shrink-0 flex items-center justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => { setShowCreateModal(false); setNewParts([blankRow(0)]); setRowCounter(1); }}
+                                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-700 text-slate-200 rounded-xl font-bold transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSaving || newParts.every(r => !r.name.trim())}
+                                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white rounded-xl font-bold transition-colors flex items-center gap-2"
+                                >
+                                    {isSaving ? 'A guardar...' : `Guardar ${newParts.filter(r => r.name.trim()).length > 1 ? `${newParts.filter(r => r.name.trim()).length} peças` : 'peça'}`}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Modal */}
+            {editingItem && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+                    <div className="w-full max-w-2xl bg-white/90 border border-slate-200 rounded-3xl shadow-2xl overflow-hidden">
+                        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200">
+                            <h3 className="text-xl font-black text-slate-900">Editar Peça</h3>
+                            <button
+                                type="button"
+                                onClick={() => setEditingItem(null)}
+                                className="p-2 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleEditPart} className="p-6 space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1.5 md:col-span-2">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nome</label>
+                                    <input
+                                        required
+                                        value={editingItem.name}
+                                        onChange={(e) => setEditingItem(prev => prev ? { ...prev, name: e.target.value } : null)}
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">SKU</label>
+                                    <input
+                                        value={editingItem.sku ?? ''}
+                                        onChange={(e) => setEditingItem(prev => prev ? { ...prev, sku: e.target.value } : null)}
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Categoria</label>
+                                    <input
+                                        list="dl-categories"
+                                        value={editingItem.category ?? ''}
+                                        onChange={(e) => setEditingItem(prev => prev ? { ...prev, category: e.target.value } : null)}
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Stock Atual (L/UN)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={editingItem.stock_quantity}
+                                        onChange={(e) => setEditingItem(prev => prev ? { ...prev, stock_quantity: Number(e.target.value) || 0 } : null)}
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Stock Mínimo (L/UN)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={editingItem.minimum_stock}
+                                        onChange={(e) => setEditingItem(prev => prev ? { ...prev, minimum_stock: Number(e.target.value) || 0 } : null)}
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Custo Médio (€)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={editingItem.average_cost}
+                                        onChange={(e) => setEditingItem(prev => prev ? { ...prev, average_cost: Number(e.target.value) || 0 } : null)}
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5 md:col-span-2">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Localização</label>
+                                    <input
+                                        list="dl-locations"
+                                        value={editingItem.location ?? ''}
+                                        onChange={(e) => setEditingItem(prev => prev ? { ...prev, location: e.target.value } : null)}
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingItem(null)}
+                                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-700 text-slate-200 rounded-xl font-bold transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isEditSaving}
+                                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white rounded-xl font-bold transition-colors"
+                                >
+                                    {isEditSaving ? 'A guardar...' : 'Guardar alterações'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+        </div>
+    );
+}

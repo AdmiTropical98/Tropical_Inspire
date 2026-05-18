@@ -1,0 +1,23 @@
+RewriteEngine On
+
+<IfModule mod_headers.c>
+	<FilesMatch "^(index\.html|sw\.js|registerSW\.js|manifest\.webmanifest)$">
+		Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+		Header set Pragma "no-cache"
+		Header set Expires "0"
+	</FilesMatch>
+</IfModule>
+
+# Executar ficheiros reais primeiro (PHP, imagens, etc)
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# Executar pastas reais
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Nunca redirecionar API para React
+RewriteRule ^api/ - [L]
+
+# SPA fallback para React
+RewriteRule ^ index.html [L]

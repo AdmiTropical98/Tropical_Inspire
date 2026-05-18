@@ -1,0 +1,8 @@
+{
+  "name": "smartfleet/email-api-php",
+  "description": "SmartFleet Hostinger PHP email endpoint",
+  "type": "project",
+  "require": {
+    "phpmailer/phpmailer": "^6.9"
+  }
+}

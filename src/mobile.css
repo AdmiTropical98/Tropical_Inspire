@@ -1,0 +1,560 @@
+html.capacitor-android-mobile,
+body.capacitor-android-mobile,
+html.capacitor-android-mobile #root,
+body.capacitor-android-mobile #root {
+  height: 100%;
+  width: 100vw;
+  max-width: 100vw !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden;
+  overflow-y: hidden;
+}
+
+@media all {
+  html.capacitor-android-mobile body {
+    font-size: 14px;
+    line-height: 1.45;
+    background: #f8fafc !important;
+  }
+
+  html.capacitor-android-mobile .app-content-bg {
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
+    background-image: none !important;
+  }
+
+  html.capacitor-android-mobile .app-content-bg::before {
+    display: none !important;
+  }
+
+  /* 2) Remove desktop sidebar/top nav on mobile */
+  html.capacitor-android-mobile .navbar,
+  html.capacitor-android-mobile .custom-navbar,
+  html.capacitor-android-mobile [class*='sidebar'],
+  html.capacitor-android-mobile [id*='sidebar'] {
+    display: none !important;
+  }
+
+  /* 3) Bottom tab nav defaults */
+  html.capacitor-android-mobile .mobile-bottom-nav {
+    display: grid !important;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 7000;
+  }
+
+  /* 4) Full-width cards */
+  html.capacitor-android-mobile .surface-card,
+  html.capacitor-android-mobile .kpi-card,
+  html.capacitor-android-mobile .glass-card,
+  html.capacitor-android-mobile .glass-panel,
+  html.capacitor-android-mobile [class*='rounded-2xl'],
+  html.capacitor-android-mobile [class*='rounded-3xl'] {
+    width: 100%;
+    max-width: none;
+  }
+
+  /* 5) Fuel manager mobile layout */
+  html.capacitor-android-mobile .combustivel-page {
+    padding-bottom: calc(86px + env(safe-area-inset-bottom));
+  }
+
+  html.capacitor-android-mobile .combustivel-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 6px;
+    align-items: stretch;
+  }
+
+  html.capacitor-android-mobile .combustivel-tabs button {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    min-height: 46px;
+  }
+
+  html.capacitor-android-mobile .combustivel-page .table-scroll,
+  html.capacitor-android-mobile .combustivel-page .overflow-x-auto {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  html.capacitor-android-mobile .combustivel-page .fuel-form-actions {
+    flex-direction: column;
+  }
+
+  html.capacitor-android-mobile .combustivel-page .fuel-form-actions > * {
+    width: 100%;
+  }
+
+  html.capacitor-android-mobile .combustivel-page select,
+  html.capacitor-android-mobile .combustivel-page input,
+  html.capacitor-android-mobile .combustivel-page button {
+    min-height: 44px;
+  }
+
+  /* 6) Mais pages access sheet */
+  html.capacitor-android-mobile .mobile-more-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 7100;
+    border: 0;
+    background: rgba(15, 23, 42, 0.45);
+  }
+
+  html.capacitor-android-mobile .mobile-more-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(74px + env(safe-area-inset-bottom));
+    z-index: 7200;
+    background: rgba(255, 255, 255, 0.98);
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-bottom: 0;
+    padding: 12px;
+    max-height: min(62vh, 560px);
+    overflow-y: auto;
+  }
+
+  html.capacitor-android-mobile .mobile-more-title {
+    margin: 0 0 8px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #475569;
+    font-weight: 800;
+  }
+
+  html.capacitor-android-mobile .mobile-more-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  html.capacitor-android-mobile .mobile-more-item {
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    border-radius: 12px;
+    min-height: 46px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #0f172a;
+    font-weight: 700;
+  }
+
+  html.capacitor-android-mobile .mobile-more-item.active {
+    border-color: #93c5fd;
+    background: #eff6ff;
+    color: #1d4ed8;
+  }
+
+  /* 7) Login spacing and typography */
+  html.capacitor-android-mobile .login-scrollbar {
+    padding: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  html.capacitor-android-mobile .android-page-shell {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  html.capacitor-android-mobile .android-page-card {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  html.capacitor-android-mobile .android-page-shell[class*='items-center'] {
+    align-items: stretch !important;
+  }
+
+  html.capacitor-android-mobile .android-page-shell[class*='justify-center'] {
+    justify-content: flex-start !important;
+  }
+
+  html.capacitor-android-mobile .android-page-shell > * {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  html.capacitor-android-mobile .login-scrollbar .max-w-\[1440px\] {
+    max-width: none !important;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+
+  html.capacitor-android-mobile .login-scrollbar > .android-page-shell {
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+  }
+
+  html.capacitor-android-mobile .login-scrollbar h1,
+  html.capacitor-android-mobile .login-scrollbar h2 {
+    font-size: clamp(1.25rem, 6vw, 1.55rem) !important;
+    line-height: 1.25 !important;
+  }
+
+  html.capacitor-android-mobile .login-scrollbar p,
+  html.capacitor-android-mobile .login-scrollbar label {
+    font-size: 0.92rem !important;
+  }
+
+  html.capacitor-android-mobile .login-scrollbar .auth-card,
+  html.capacitor-android-mobile .login-scrollbar .colaborador-login-card,
+  html.capacitor-android-mobile .colaborador-dashboard .colaborador-main-card {
+    border-radius: 22px !important;
+    width: 100%;
+    max-width: none !important;
+  }
+
+  html.capacitor-android-mobile .colaborador-dashboard {
+    min-height: 100dvh;
+    overflow-y: auto !important;
+    padding-bottom: calc(104px + env(safe-area-inset-bottom));
+  }
+
+  html.capacitor-android-mobile .colaborador-dashboard main {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    justify-content: flex-start !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    padding-bottom: calc(110px + env(safe-area-inset-bottom)) !important;
+  }
+
+  html.capacitor-android-mobile .colaborador-dashboard .colaborador-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  html.capacitor-android-mobile .colaborador-dashboard .colaborador-tabs button {
+    min-height: 44px;
+    padding-left: 6px;
+    padding-right: 6px;
+    white-space: normal;
+    line-height: 1.15;
+  }
+
+  html.capacitor-android-mobile .colaborador-dashboard .colaborador-stats {
+    grid-template-columns: 1fr !important;
+  }
+
+  html.capacitor-android-mobile .route-planner-shell {
+    min-height: 100%;
+    height: 100%;
+  }
+
+  html.capacitor-android-mobile .route-planner-mobile-panel {
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  html.capacitor-android-mobile .route-planner-mobile-panel .route-config-grid,
+  html.capacitor-android-mobile .route-planner-mobile-panel .route-nav-grid,
+  html.capacitor-android-mobile .route-planner-mobile-panel .route-footer-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  html.capacitor-android-mobile .route-planner-mobile-panel .route-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  html.capacitor-android-mobile .route-planner-mobile-panel .route-poi-panel {
+    height: 170px !important;
+  }
+
+  html.capacitor-android-mobile .route-planner-mobile-panel select,
+  html.capacitor-android-mobile .route-planner-mobile-panel input,
+  html.capacitor-android-mobile .route-planner-mobile-panel button {
+    min-height: 44px;
+  }
+
+  /* 8) Full-screen map pages */
+  html.capacitor-android-mobile .mobile-map-content,
+  html.capacitor-android-mobile .mobile-map-page {
+    height: calc(100dvh - 64px - 74px - env(safe-area-inset-bottom)) !important;
+    min-height: calc(100dvh - 64px - 74px - env(safe-area-inset-bottom)) !important;
+  }
+
+  /* 9) Horizontal lists -> wrap without overflowing cards */
+  html.capacitor-android-mobile .overflow-x-auto > .flex,
+  html.capacitor-android-mobile .overflow-x-auto.flex,
+  html.capacitor-android-mobile [class*='tabs'] {
+    flex-wrap: wrap;
+  }
+
+  html.capacitor-android-mobile .overflow-x-auto button {
+    white-space: normal;
+  }
+
+  /* 10) Prevent fixed/sticky containers from overflowing viewport */
+  html.capacitor-android-mobile .fixed,
+  html.capacitor-android-mobile [class*='sticky'] {
+    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+
+  html.capacitor-android-mobile [class*='max-h-\[90vh\]'],
+  html.capacitor-android-mobile [class*='max-h-\[80vh\]'] {
+    max-height: calc(100dvh - 92px) !important;
+  }
+
+  html.capacitor-android-mobile .mobile-topbar {
+    min-height: 54px;
+    height: auto;
+    padding: calc(6px + env(safe-area-inset-top)) 10px 6px;
+    background: rgba(255, 255, 255, 0.98);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    gap: 8px;
+  }
+
+  html.capacitor-android-mobile .mobile-topbar-logo {
+    display: inline-flex;
+    align-items: center;
+    max-width: 126px;
+  }
+
+  html.capacitor-android-mobile .mobile-topbar-logo img {
+    height: 28px !important;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+  }
+
+  html.capacitor-android-mobile .mobile-topbar .avatar-3d {
+    height: 32px !important;
+    width: 32px !important;
+  }
+
+  html.capacitor-android-mobile .mobile-topbar .text-left p:first-child,
+  html.capacitor-android-mobile .mobile-topbar .text-left p:last-child {
+    max-width: 110px;
+  }
+
+  html.capacitor-android-mobile .layout-mobile,
+  html.capacitor-android-mobile .app-root {
+    width: 100vw !important;
+    min-width: 100vw !important;
+    min-height: 100dvh !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  html.capacitor-android-mobile .layout-mobile > *,
+  html.capacitor-android-mobile .app-root > *,
+  html.capacitor-android-mobile .app-content-bg,
+  html.capacitor-android-mobile .mobile-main-content {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    align-self: stretch !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  html.capacitor-android-mobile .mobile-main-content {
+    padding-bottom: calc(92px + env(safe-area-inset-bottom)) !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-scroll {
+    min-height: 100%;
+    width: 100vw !important;
+    min-width: 100vw !important;
+    max-width: 100vw !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content {
+    width: 100vw !important;
+    min-width: 100vw !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    padding: 0 0 calc(92px + env(safe-area-inset-bottom)) !important;
+    background: transparent !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content > div,
+  html.capacitor-android-mobile .mobile-page-content > section,
+  html.capacitor-android-mobile .combustivel-page,
+  html.capacitor-android-mobile .android-native-fuel,
+  html.capacitor-android-mobile .route-planner-shell {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    max-width: 100% !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content > *,
+  html.capacitor-android-mobile .mobile-page-content [class*='max-w-'],
+  html.capacitor-android-mobile .mobile-page-content [class*='mx-auto'],
+  html.capacitor-android-mobile .mobile-page-content [class*='container'],
+  html.capacitor-android-mobile .mobile-page-content [class*='w-fit'] {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  /* Remove lateral padding from top-level page wrapper divs on Android */
+  html.capacitor-android-mobile .mobile-page-content > div,
+  html.capacitor-android-mobile .mobile-page-content > section,
+  html.capacitor-android-mobile .mobile-page-content > main {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content > .container,
+  html.capacitor-android-mobile .mobile-page-content > .android-page-shell,
+  html.capacitor-android-mobile .mobile-page-content > div[class*='mx-auto'],
+  html.capacitor-android-mobile .mobile-page-content > section[class*='mx-auto'],
+  html.capacitor-android-mobile .mobile-page-content > main,
+  html.capacitor-android-mobile .mobile-page-content > div,
+  html.capacitor-android-mobile .mobile-page-content > section {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content > div[class*='items-center'],
+  html.capacitor-android-mobile .mobile-page-content > section[class*='items-center'],
+  html.capacitor-android-mobile .mobile-page-content > main[class*='items-center'],
+  html.capacitor-android-mobile .mobile-page-content > .android-page-shell[class*='items-center'] {
+    align-items: stretch !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content > div[class*='justify-center'],
+  html.capacitor-android-mobile .mobile-page-content > section[class*='justify-center'],
+  html.capacitor-android-mobile .mobile-page-content > main[class*='justify-center'],
+  html.capacitor-android-mobile .mobile-page-content > .android-page-shell[class*='justify-center'] {
+    justify-content: flex-start !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content [class*='px-4'],
+  html.capacitor-android-mobile .mobile-page-content [class*='px-5'],
+  html.capacitor-android-mobile .mobile-page-content [class*='px-6'],
+  html.capacitor-android-mobile .mobile-page-content [class*='px-8'] {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content .sticky {
+    position: relative !important;
+    top: auto !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content h1,
+  html.capacitor-android-mobile .mobile-page-content h2,
+  html.capacitor-android-mobile .mobile-page-content h3,
+  html.capacitor-android-mobile .mobile-page-content p,
+  html.capacitor-android-mobile .mobile-page-content span {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content .surface-card,
+  html.capacitor-android-mobile .mobile-page-content .glass-card,
+  html.capacitor-android-mobile .mobile-page-content .kpi-card,
+  html.capacitor-android-mobile .mobile-page-content .rounded-3xl {
+    width: 100% !important;
+    overflow: hidden;
+    border-radius: 14px !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content > .surface-card,
+  html.capacitor-android-mobile .mobile-page-content > .glass-card,
+  html.capacitor-android-mobile .mobile-page-content > .kpi-card,
+  html.capacitor-android-mobile .mobile-page-content > .rounded-3xl,
+  html.capacitor-android-mobile .mobile-page-content > div[class*='space-y'] > .surface-card:first-child,
+  html.capacitor-android-mobile .mobile-page-content > div[class*='space-y'] > .glass-card:first-child,
+  html.capacitor-android-mobile .mobile-page-content > div[class*='space-y'] > .rounded-3xl:first-child,
+  html.capacitor-android-mobile .combustivel-page > .surface-card,
+  html.capacitor-android-mobile .combustivel-page > div > .surface-card:first-child {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  html.capacitor-android-mobile .page-header-shell {
+    position: relative !important;
+    top: auto !important;
+    border-radius: 0 !important;
+    overflow: visible;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html.capacitor-android-mobile .page-header-shell > div:first-child,
+  html.capacitor-android-mobile .page-header-shell > div:last-child {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  html.capacitor-android-mobile .page-header-shell h1 {
+    white-space: normal !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content .grid {
+    min-width: 0;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content .overflow-x-auto {
+    overflow-x: auto !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content table {
+    min-width: 640px;
+  }
+
+  html.capacitor-android-mobile .mobile-bottom-nav {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 0;
+    height: auto;
+    box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.12);
+    background: rgba(255, 255, 255, 0.98);
+  }
+
+  html.capacitor-android-mobile .mobile-bottom-nav-item {
+    min-height: 50px;
+    gap: 2px;
+    border-radius: 10px;
+  }
+
+  html.capacitor-android-mobile .mobile-bottom-nav-item span {
+    font-size: 10px;
+    line-height: 1.05;
+  }
+}

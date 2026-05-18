@@ -1,0 +1,3143 @@
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
+import {
+    Upload, Plus, Calendar as CalendarIcon,
+    CheckSquare, MoreVertical, Trash2, ArrowRight, Siren,
+    Send, MapPin, Clock, Users, Bus,
+    Search,
+    LayoutGrid, CloudLightning, FileText, CheckCircle, Settings
+} from 'lucide-react';
+
+import DispatchBoard from './DispatchBoard';
+import EscalaTimelineModal from './EscalaTimelineModal';
+import { coerceServiceStatus, updateServiceStatus } from '../../services/serviceStatus';
+import * as XLSX from 'xlsx';
+import { useWorkshop } from '../../contexts/WorkshopContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { usePermissions } from '../../contexts/PermissionsContext';
+import type { Servico, Notification } from '../../types';
+import { useTranslation } from '../../hooks/useTranslation';
+import { supabase } from '../../lib/supabase';
+import {
+    fetchSheetCSV,
+    parseSheetToServices,
+    groupServicesIntoTrips,
+    suggestDrivers,
+    autoGroupTripsByZone,
+    generateAutomaticDistributionTrips,
+    type GroupedTrip,
+    type DailyDriverConfig,
+    type ZonaBase
+} from './EscalaAutomation';
+import { emailService } from '../../services/emailService';
+import { cleanTagId } from '../../services/cartrack';
+import { ColaboradorService } from '../../services/colaboradorService';
+import type { Colaborador as ColaboradorType } from '../../services/colaboradorService';
+
+interface NewServiceState {
+    hora: string;
+    passageiro: string;
+    origem: string;
+    destino: string;
+    referencia: string;
+    obs: string;
+    temRegresso: boolean;
+    horaRegresso: string;
+    destinoRegresso: string;
+    centroCustoId?: string;
+    colaboradorId?: string;
+    validationPoints: string[];
+}
+
+interface MotoristaViaturaAssoc {
+    id: string;
+    motorista_id: string;
+    viatura_id: string;
+    inicio: string;
+    fim: string | null;
+    origem: string;
+}
+
+interface DailyDriverConfigMap {
+    [driverId: string]: DailyDriverConfig;
+}
+
+const getDailyDistributionStorageKey = (date: string, centroCusto: string) => `auto_driver_config:${date}:${centroCusto || 'all'}`;
+const getDailyBusScheduleStorageKey = (date: string, centroCusto: string) => `auto_bus_schedule:${date}:${centroCusto || 'all'}`;
+
+const normalizeTimeInput = (value?: string | null, fallback = '08:00') => {
+    const str = String(value || '').trim();
+    if (!str) return fallback;
+    const match = str.match(/^(\d{1,2}):(\d{2})$/);
+    if (!match) return fallback;
+    const hh = Math.max(0, Math.min(23, Number(match[1])));
+    const mm = Math.max(0, Math.min(59, Number(match[2])));
+    return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+};
+
+const buildDefaultDailyDriverConfig = (driver: any): DailyDriverConfig => {
+    const fallbackTurnos =
+        driver.shifts && driver.shifts.length > 0
+            ? driver.shifts.map((shift: any) => ({
+                inicio: normalizeTimeInput(shift.inicio, '08:00'),
+                fim: normalizeTimeInput(shift.fim, '17:00')
+            }))
+            : driver.turnoInicio && driver.turnoFim
+                ? [{
+                    inicio: normalizeTimeInput(driver.turnoInicio, '08:00'),
+                    fim: normalizeTimeInput(driver.turnoFim, '17:00')
+                }]
+                : [{ inicio: '08:00', fim: '17:00' }];
+
+    return {
+        driverId: driver.id,
+        ativo: true,
+        usaAutocarro: false,
+        zonaBase: (() => {
+            const zones = driver.zones || [];
+            if (zones.length >= 2) return 'Ambos';
+            if (zones[0] === 'albufeira') return 'Albufeira';
+            if (zones[0] === 'quarteira') return 'Quarteira';
+            return undefined;
+        })(),
+        permitirForaDaZona: false,
+        turnos: fallbackTurnos.slice(0, 2),
+        indisponibilidades: []
+    };
+};
+
+const parseBusUsageWindows = (value: string) => {
+    const normalizeWindowTime = (raw: string) => {
+        const trimmed = String(raw || '').trim();
+        const match = trimmed.match(/^(\d{1,2})(?::(\d{2}))?$/);
+        if (!match) return null;
+        const hh = Math.max(0, Math.min(23, Number(match[1])));
+        const mm = Math.max(0, Math.min(59, Number(match[2] || '00')));
+        return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+    };
+
+    const windows: Array<{ inicio: string; fim?: string }> = [];
+
+    String(value || '')
+        .split(',')
+        .map(token => token.trim())
+        .filter(Boolean)
+        .forEach(token => {
+            const [startRaw, endRaw] = token.split('-').map(part => part.trim());
+            const inicio = normalizeWindowTime(startRaw);
+            if (!inicio) return;
+            const fim = endRaw ? normalizeWindowTime(endRaw) : undefined;
+            windows.push({ inicio, fim: fim || undefined });
+        });
+
+    return windows;
+};
+
+export default function Escalas() {
+    const location = useLocation();
+    const isOperacoesContext = location.pathname.startsWith('/operacoes');
+
+    const {
+        motoristas, servicos, addNotification, centrosCustos,
+        updateServico, deleteServico, geofences,
+        locais, scaleBatches, createScaleBatch,
+        zonasOperacionais, refreshData, viaturas, cartrackVehicles,
+        escalaTemplates, escalaTemplateItems, addEscalaTemplate, deleteEscalaTemplate, addTemplateItem, deleteTemplateItem,
+        publishBatch
+    } = useWorkshop();
+
+    const locationSuggestions = useMemo(() => {
+        const cartrackNames = geofences.map(g => g.name);
+        const localNames = locais.map(l => l.nome);
+        return Array.from(new Set([...localNames, ...cartrackNames])).sort();
+    }, [geofences, locais]);
+    const { userRole, currentUser } = useAuth();
+    const { hasAccess } = usePermissions();
+    const { t } = useTranslation();
+    const autoEmailEnabled = String(import.meta.env.VITE_EMAIL_AUTO_SEND ?? 'false') === 'true';
+
+    // Core State
+    const [selectedPendentes, setSelectedPendentes] = useState<string[]>([]);
+    const [selectedMotoristaForAssign, setSelectedMotoristaForAssign] = useState<string>('');
+    const [selectedCentroCusto, setSelectedCentroCusto] = useState<string>('all');
+    const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
+
+    // Mobile sidebar state
+    // const [isPendingSidebarOpen, setIsPendingSidebarOpen] = useState(false); // Removed: Use layout directly
+    // Desktop sidebar state
+    // const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // Removed: Use layout directly
+
+    // View Mode State
+    const [viewMode] = useState<'cards' | 'table'>('table');
+
+    // Grouping State
+
+
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterStatus] = useState<'all' | 'available' | 'busy'>('all');
+    const [colaboradores, setColaboradores] = useState<ColaboradorType[]>([]);
+
+    const isSupervisorUser = String(userRole || '').toLowerCase() === 'supervisor';
+    const currentSupervisorId = isSupervisorUser ? String(currentUser?.id || '') : '';
+
+    useEffect(() => {
+        const loadColaboradores = async () => {
+            const list = await ColaboradorService.listarTodos(
+                currentSupervisorId ? { supervisorId: currentSupervisorId } : undefined
+            );
+            setColaboradores(list);
+        };
+        loadColaboradores();
+    }, [currentSupervisorId]);
+
+    const normalizeColaboradorName = (value?: string | null) =>
+        String(value ?? '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .trim()
+            .toLowerCase();
+
+    const findColaboradorByName = (name: string) => {
+        const normalizedName = normalizeColaboradorName(name);
+        if (!normalizedName) return undefined;
+        return colaboradores.find(c => normalizeColaboradorName(c.nome) === normalizedName);
+    };
+
+
+
+    // Quick Distribution Mode State
+    const [isDistributeMode] = useState(false);
+
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Driver Menu State
+
+
+    // New Manual Service State
+    const [showNewServiceModal, setShowNewServiceModal] = useState(false);
+    const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null);
+    const [timelineBatchId, setTimelineBatchId] = useState<string | null>(null);
+    const [publishingBatchId, setPublishingBatchId] = useState<string | null>(null);
+    const [newService, setNewService] = useState<NewServiceState>({
+        hora: '09:00',
+        passageiro: '',
+        origem: '',
+        destino: '',
+        referencia: '',
+        obs: '',
+        temRegresso: false,
+        horaRegresso: '18:00',
+        destinoRegresso: '',
+        centroCustoId: '',
+        colaboradorId: '',
+        validationPoints: []
+    });
+
+    // Urgent Request State
+    const [showUrgentModal, setShowUrgentModal] = useState(false);
+    const [urgentData, setUrgentData] = useState({ hora: '12:00', passageiro: '', origem: '', destino: '', obs: '' });
+
+    const handleNewServicePassengerChange = (passageiro: string) => {
+        setNewService(prev => {
+            const matchedColaborador = findColaboradorByName(passageiro);
+            const previousParagem = findColaboradorByName(prev.passageiro)?.paragem;
+            const shouldAutofillOrigin =
+                !prev.origem.trim() ||
+                Boolean(previousParagem && normalizeColaboradorName(prev.origem) === normalizeColaboradorName(previousParagem));
+
+            return {
+                ...prev,
+                passageiro,
+                colaboradorId: matchedColaborador?.id || '',
+                origem: matchedColaborador?.paragem?.trim() && shouldAutofillOrigin
+                    ? matchedColaborador.paragem.trim()
+                    : prev.origem
+            };
+        });
+    };
+
+    const handleUrgentPassengerChange = (passageiro: string) => {
+        setUrgentData(prev => {
+            const matchedColaborador = findColaboradorByName(passageiro);
+            const previousParagem = findColaboradorByName(prev.passageiro)?.paragem;
+            const shouldAutofillOrigin =
+                !prev.origem.trim() ||
+                Boolean(previousParagem && normalizeColaboradorName(prev.origem) === normalizeColaboradorName(previousParagem));
+
+            return {
+                ...prev,
+                passageiro,
+                origem: matchedColaborador?.paragem?.trim() && shouldAutofillOrigin
+                    ? matchedColaborador.paragem.trim()
+                    : prev.origem
+            };
+        });
+    };
+
+    // Automation States
+    const [showAutoModal, setShowAutoModal] = useState(false);
+    const [showMoreMenu, setShowMoreMenu] = useState(false);
+    const [isAutoLoading, setIsAutoLoading] = useState(false);
+    const [automationTrips, setAutomationTrips] = useState<GroupedTrip[]>([]);
+    const [automationMode, setAutomationMode] = useState<'import' | 'auto-dispatch'>('import');
+    const [sendingScheduleServiceId, setSendingScheduleServiceId] = useState<string | null>(null);
+    const [showDailyDriversPanel, setShowDailyDriversPanel] = useState(false);
+    const [showAutoSettings, setShowAutoSettings] = useState(false);
+    const [dailyDriverConfigs, setDailyDriverConfigs] = useState<DailyDriverConfigMap>({});
+    const [dailyBusUsageSchedule, setDailyBusUsageSchedule] = useState('');
+    const [autoSettings, setAutoSettings] = useState({
+        albufeiraUrl: localStorage.getItem('auto_sheet_albufeira') || '',
+        quarteiraUrl: localStorage.getItem('auto_sheet_quarteira') || ''
+    });
+
+    const normalizePlate = (value?: string | null) => String(value ?? '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    const normalizeDriverName = (value?: string | null) => String(value ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase();
+
+    const viaturaById = useMemo(() => {
+        const map = new Map<string, any>();
+        viaturas.forEach(v => map.set(v.id, v));
+        return map;
+    }, [viaturas]);
+
+    const viaturaByPlate = useMemo(() => {
+        const map = new Map<string, any>();
+        viaturas.forEach(v => {
+            const plate = normalizePlate(v.matricula);
+            if (plate) map.set(plate, v);
+        });
+        return map;
+    }, [viaturas]);
+
+    const resolveDetectedVehicleForDriver = (driverId?: string | null) => {
+        if (!driverId) return null;
+        const driver = motoristas.find(m => m.id === driverId);
+        if (!driver) return null;
+
+        if (driver.viaturaId && viaturaById.has(driver.viaturaId)) {
+            return viaturaById.get(driver.viaturaId) || null;
+        }
+
+        const currentPlate = normalizePlate(driver.currentVehicle);
+        if (currentPlate && viaturaByPlate.has(currentPlate)) {
+            return viaturaByPlate.get(currentPlate) || null;
+        }
+
+        const liveVehicle = cartrackVehicles.find(v =>
+            (driver.cartrackKey && v.tagId && cleanTagId(driver.cartrackKey) === cleanTagId(v.tagId)) ||
+            (driver.cartrackId && v.driverId && String(driver.cartrackId) === String(v.driverId)) ||
+            (currentPlate && normalizePlate(v.registration || v.label) === currentPlate) ||
+            (driver.nome && v.driverName && normalizeDriverName(driver.nome) === normalizeDriverName(v.driverName))
+        );
+
+        if (!liveVehicle) return null;
+        return viaturaByPlate.get(normalizePlate(liveVehicle.registration || liveVehicle.label)) || null;
+    };
+
+    const getDriverVehicleLabel = (driverId?: string | null) => {
+        if (!driverId) return '';
+        const driver = motoristas.find(m => m.id === driverId);
+        const detectedVehicle = resolveDetectedVehicleForDriver(driverId);
+        return detectedVehicle?.matricula || driver?.currentVehicle || '';
+    };
+
+    const formatDriverOptionLabel = (driver: any) => {
+        const vehicleLabel = getDriverVehicleLabel(driver.id);
+        return vehicleLabel ? `${driver.nome} • ${vehicleLabel}` : driver.nome;
+    };
+
+    const displayMotoristas = useMemo(() => {
+        return motoristas.map(driver => {
+            const detectedVehicle = getDriverVehicleLabel(driver.id);
+            return detectedVehicle && detectedVehicle !== driver.currentVehicle
+                ? { ...driver, currentVehicle: detectedVehicle }
+                : driver;
+        });
+    }, [motoristas, cartrackVehicles, viaturas]);
+
+    useEffect(() => {
+        const key = getDailyDistributionStorageKey(selectedDate, selectedCentroCusto);
+        const raw = localStorage.getItem(key);
+        const busKey = getDailyBusScheduleStorageKey(selectedDate, selectedCentroCusto);
+        setDailyBusUsageSchedule(localStorage.getItem(busKey) || '');
+
+        const defaults: DailyDriverConfigMap = {};
+        displayMotoristas.forEach(driver => {
+            defaults[driver.id] = buildDefaultDailyDriverConfig(driver);
+        });
+
+        if (!raw) {
+            setDailyDriverConfigs(defaults);
+            return;
+        }
+
+        try {
+            const parsed = JSON.parse(raw) as DailyDriverConfigMap;
+            const merged: DailyDriverConfigMap = { ...defaults };
+
+            Object.keys(parsed || {}).forEach(driverId => {
+                if (!merged[driverId]) return;
+                merged[driverId] = {
+                    ...merged[driverId],
+                    ...parsed[driverId],
+                    driverId,
+                    turnos: (parsed[driverId]?.turnos || merged[driverId].turnos || []).slice(0, 2).map(turno => ({
+                        inicio: normalizeTimeInput(turno?.inicio, '08:00'),
+                        fim: normalizeTimeInput(turno?.fim, '17:00')
+                    })),
+                    indisponibilidades: (parsed[driverId]?.indisponibilidades || []).map(block => ({
+                        inicio: normalizeTimeInput(block?.inicio, '12:00'),
+                        fim: normalizeTimeInput(block?.fim, '13:00'),
+                        reason: block?.reason || ''
+                    }))
+                };
+            });
+
+            setDailyDriverConfigs(merged);
+        } catch {
+            setDailyDriverConfigs(defaults);
+        }
+    }, [displayMotoristas, selectedDate, selectedCentroCusto]);
+
+    useEffect(() => {
+        if (!dailyDriverConfigs || Object.keys(dailyDriverConfigs).length === 0) return;
+        const key = getDailyDistributionStorageKey(selectedDate, selectedCentroCusto);
+        localStorage.setItem(key, JSON.stringify(dailyDriverConfigs));
+    }, [dailyDriverConfigs, selectedDate, selectedCentroCusto]);
+
+    useEffect(() => {
+        const key = getDailyBusScheduleStorageKey(selectedDate, selectedCentroCusto);
+        localStorage.setItem(key, dailyBusUsageSchedule || '');
+    }, [dailyBusUsageSchedule, selectedDate, selectedCentroCusto]);
+
+    const syncVehicleAssignmentInFlight = useRef<Set<string>>(new Set());
+
+    const [showTemplateModal, setShowTemplateModal] = useState(false);
+    const [showManageTemplates, setShowManageTemplates] = useState(false);
+    const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+
+    const [newTemplateName, setNewTemplateName] = useState('');
+    const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
+    const [templateItemForm, setTemplateItemForm] = useState({
+        hora_entrada: '09:00',
+        hora_saida: '18:00',
+        passageiro: '',
+        local: '',
+        obs: ''
+    });
+    const [, setActiveAssociations] = useState<MotoristaViaturaAssoc[]>([]);
+
+    const loadAssociations = async () => {
+        const { data: activeData, error: activeError } = await supabase
+            .from('motorista_viatura_assoc')
+            .select('*')
+            .is('fim', null)
+            .order('inicio', { ascending: false });
+
+        if (activeError) {
+            console.warn('Falha ao carregar associações ativas:', activeError);
+            return;
+        }
+
+        setActiveAssociations((activeData || []) as MotoristaViaturaAssoc[]);
+
+    };
+
+    useEffect(() => {
+        void loadAssociations();
+    }, []);
+
+    const isUrgentService = (service: Partial<Servico>) => {
+        if (service.isUrgent || service.status === 'URGENTE') return true;
+        if (!service.hora) return false;
+
+        const [hoursRaw, minutesRaw] = service.hora.split(':');
+        const hours = Number(hoursRaw);
+        const minutes = Number(minutesRaw);
+        if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return false;
+
+        const dateBase = service.data || selectedDate || new Date().toISOString().split('T')[0];
+        const serviceDateTime = new Date(`${dateBase}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`);
+        if (Number.isNaN(serviceDateTime.getTime())) return false;
+
+        const diffMinutes = (serviceDateTime.getTime() - Date.now()) / 60000;
+        return diffMinutes >= 0 && diffMinutes < 60;
+    };
+
+    const getServiceVisualState = (service: Servico): 'urgent' | 'completed' | 'active' | 'delayed' | 'scheduled' => {
+        if (isUrgentService(service)) return 'urgent';
+        const canonical = coerceServiceStatus(service.status) || updateServiceStatus(service);
+        if (canonical === 'COMPLETED') return 'completed';
+        if (canonical === 'EN_ROUTE_ORIGIN' || canonical === 'ARRIVED_ORIGIN' || canonical === 'BOARDING' || canonical === 'EN_ROUTE_DESTINATION') return 'active';
+        if (canonical === 'DRIVER_ASSIGNED' || canonical === 'SCHEDULED') return 'scheduled';
+        return 'scheduled';
+    };
+
+    const getServiceVisualStyles = (service: Servico) => {
+        const state = getServiceVisualState(service);
+        if (state === 'urgent') return { label: 'Urgent', badge: 'bg-red-500/20 text-red-300 border-red-500/40', border: 'border-red-500/40' };
+        if (state === 'completed') return { label: 'Completed', badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40', border: 'border-emerald-500/30' };
+        if (state === 'active') return { label: 'Active', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40', border: 'border-amber-500/30' };
+        if (state === 'delayed') return { label: 'Delayed', badge: 'bg-red-500/20 text-red-300 border-red-500/40', border: 'border-red-500/30' };
+        return { label: 'Scheduled', badge: 'bg-slate-500/20 text-slate-300 border-slate-500/40', border: 'border-slate-300/30' };
+    };
+
+    const handlePendingDragStart = (serviceId: string) => (e: React.DragEvent) => {
+        e.dataTransfer.setData('text/plain', serviceId);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const notifyUrgentAssignment = async (service: Servico, driverId: string) => {
+        const driver = motoristas.find(m => m.id === driverId);
+        const centro = centrosCustos.find(c => c.id === service.centroCustoId);
+
+        await addNotification({
+            id: crypto.randomUUID(),
+            type: 'transport_assignment',
+            data: {
+                serviceId: service.id,
+                passenger: service.passageiro,
+                origin: service.origem,
+                destination: service.destino,
+                time: service.hora,
+                title: '⚠ Serviço URGENTE atribuído',
+                message: `${service.passageiro} • ${service.hora} • ${service.origem} → ${service.destino}`,
+                priority: 'high'
+            },
+            status: 'pending',
+            response: { driverId, serviceId: service.id },
+            timestamp: new Date().toISOString()
+        });
+
+        await addNotification({
+            id: crypto.randomUUID(),
+            type: 'system_alert',
+            data: {
+                title: '⚠ Atribuição URGENTE confirmada',
+                message: `Motorista ${driver?.nome || 'N/D'} atribuído ao serviço ${service.hora} (${centro?.nome || 'Centro Operacional'}).`,
+                priority: 'high'
+            },
+            status: 'pending',
+            timestamp: new Date().toISOString()
+        });
+    };
+
+    const assignDriverToService = async (service: Servico, driverId?: string | null) => {
+        const detectedVehicle = driverId ? resolveDetectedVehicleForDriver(driverId) : null;
+        const resolvedVehicleId = driverId ? (detectedVehicle?.id || service.vehicleId || null) : null;
+        const capacity = Number(detectedVehicle?.vehicleCapacity || viaturaById.get(resolvedVehicleId || '')?.vehicleCapacity || 8);
+        const passengerCount = Number(service.passengerCount || 1);
+        const occupancyRate = Number(((passengerCount / Math.max(capacity, 1)) * 100).toFixed(2));
+
+        await updateServico({
+            ...service,
+            motoristaId: driverId || undefined,
+            vehicleId: resolvedVehicleId,
+            passengerCount,
+            occupancyRate
+        });
+
+        if (driverId && isUrgentService(service)) {
+            await notifyUrgentAssignment(service, driverId);
+        }
+    };
+
+    useEffect(() => {
+        const servicesToSync = servicos.filter(service => {
+            if (!service.motoristaId || service.concluido) return false;
+            if ((service.data || selectedDate) !== selectedDate) return false;
+
+            const detectedVehicle = resolveDetectedVehicleForDriver(service.motoristaId);
+            return Boolean(detectedVehicle?.id) && String(service.vehicleId || '') !== String(detectedVehicle?.id || '');
+        });
+
+        if (servicesToSync.length === 0) return;
+
+        let cancelled = false;
+
+        const syncVehicleAssignments = async () => {
+            for (const service of servicesToSync) {
+                if (cancelled || syncVehicleAssignmentInFlight.current.has(service.id)) continue;
+
+                const detectedVehicle = resolveDetectedVehicleForDriver(service.motoristaId);
+                if (!detectedVehicle?.id) continue;
+
+                syncVehicleAssignmentInFlight.current.add(service.id);
+                try {
+                    const passengerCount = Number(service.passengerCount || 1);
+                    const capacity = Number(detectedVehicle.vehicleCapacity || 8);
+                    const occupancyRate = Number(((passengerCount / Math.max(capacity, 1)) * 100).toFixed(2));
+
+                    await updateServico({
+                        ...service,
+                        vehicleId: detectedVehicle.id,
+                        passengerCount,
+                        occupancyRate
+                    });
+                } catch (error) {
+                    console.warn('Falha ao sincronizar viatura detetada na escala:', service.id, error);
+                } finally {
+                    syncVehicleAssignmentInFlight.current.delete(service.id);
+                }
+            }
+        };
+
+        void syncVehicleAssignments();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [servicos, selectedDate, motoristas, cartrackVehicles, viaturas]);
+
+    const handleRunAutomation = async () => {
+        setIsAutoLoading(true);
+        try {
+            const url = selectedCentroCusto === 'albufeira' ? autoSettings.albufeiraUrl : autoSettings.quarteiraUrl;
+            if (!url) {
+                alert('Por favor, configure o URL da folha nas Definições de Automação.');
+                return;
+            }
+
+            localStorage.setItem('auto_sheet_albufeira', autoSettings.albufeiraUrl);
+            localStorage.setItem('auto_sheet_quarteira', autoSettings.quarteiraUrl);
+
+            const rows = await fetchSheetCSV(url, selectedDate);
+            const rawServices = parseSheetToServices(rows, selectedDate, selectedCentroCusto);
+
+            // Initial grouping using exact locations + zones enrichment
+            const trips = groupServicesIntoTrips(rawServices, zonasOperacionais);
+
+            // Initial Suggestion of drivers
+            const suggested = suggestDrivers(trips, motoristas, servicos, selectedCentroCusto);
+
+            setAutomationTrips(suggested);
+            setAutomationMode('import');
+            setShowAutoModal(true);
+        } catch (error: any) {
+            alert('Erro na Automação: ' + error.message);
+        } finally {
+            setIsAutoLoading(false);
+        }
+    };
+
+    const handleGenerateAutoDispatch = async () => {
+        setIsAutoLoading(true);
+        try {
+            const plannedPassengers = servicos.filter((s: Servico) => {
+                if (s.concluido || s.motoristaId) return false;
+                if ((s.data || selectedDate) !== selectedDate) return false;
+                if (selectedCentroCusto !== 'all' && s.centroCustoId !== selectedCentroCusto) return false;
+                return Boolean(s.hora && s.origem && s.destino && s.passageiro);
+            });
+
+            if (plannedPassengers.length === 0) {
+                alert('Sem passageiros planeados pendentes para distribuir nesta data.');
+                return;
+            }
+
+            const generated = generateAutomaticDistributionTrips({
+                services: plannedPassengers,
+                motoristas,
+                viaturas,
+                existingServicos: servicos,
+                selectedDate,
+                selectedCentroCusto,
+                dailyDriverConfigs,
+                options: {
+                    opposingDestinationGroups: [
+                        ['volta golfs', 'golfs', 'golf'],
+                        ['volta quinta do lago', 'quinta do lago']
+                    ],
+                    busUsageWindows: parseBusUsageWindows(dailyBusUsageSchedule),
+                    defaultVanCapacity: 8,
+                    defaultBusCapacity: 30
+                }
+            });
+
+            if (generated.length === 0) {
+                alert('Não foi possível gerar distribuição automática com os critérios atuais.');
+                return;
+            }
+
+            setAutomationTrips(generated);
+            setAutomationMode('auto-dispatch');
+            setShowAutoModal(true);
+        } finally {
+            setIsAutoLoading(false);
+        }
+    };
+
+    const updateDailyDriverConfig = (driverId: string, updater: (current: DailyDriverConfig) => DailyDriverConfig) => {
+        setDailyDriverConfigs(prev => {
+            const fallbackDriver = displayMotoristas.find(d => d.id === driverId);
+            const base = prev[driverId] || (fallbackDriver ? buildDefaultDailyDriverConfig(fallbackDriver) : {
+                driverId,
+                ativo: true,
+                usaAutocarro: false,
+                turnos: [{ inicio: '08:00', fim: '17:00' }],
+                indisponibilidades: []
+            });
+
+            return {
+                ...prev,
+                [driverId]: updater(base)
+            };
+        });
+    };
+
+    const updateDailyShift = (driverId: string, shiftIndex: number, field: 'inicio' | 'fim', value: string) => {
+        updateDailyDriverConfig(driverId, current => {
+            const turnos = [...(current.turnos || [])];
+            while (turnos.length <= shiftIndex) {
+                turnos.push({ inicio: '08:00', fim: '17:00' });
+            }
+            turnos[shiftIndex] = {
+                ...turnos[shiftIndex],
+                [field]: normalizeTimeInput(value, field === 'inicio' ? '08:00' : '17:00')
+            };
+            return { ...current, turnos: turnos.slice(0, 2) };
+        });
+    };
+
+    const toggleSecondShift = (driverId: string, enabled: boolean) => {
+        updateDailyDriverConfig(driverId, current => {
+            const turnos = [...(current.turnos || [])];
+            if (enabled) {
+                if (turnos.length < 2) turnos.push({ inicio: '17:00', fim: '22:00' });
+            } else {
+                while (turnos.length > 1) turnos.pop();
+            }
+            return { ...current, turnos };
+        });
+    };
+
+    const updateDailyUnavailable = (driverId: string, value: string) => {
+        const cleanValue = value.trim();
+        updateDailyDriverConfig(driverId, current => {
+            if (!cleanValue) return { ...current, indisponibilidades: [] };
+
+            const block = {
+                inicio: '00:00',
+                fim: '23:59',
+                reason: cleanValue
+            };
+            return { ...current, indisponibilidades: [block] };
+        });
+    };
+
+    const handleLaunchTemplate = async (templateId: string) => {
+        const template = escalaTemplates.find(t => t.id === templateId);
+        if (!template) return;
+
+        const items = escalaTemplateItems.filter(ti => ti.template_id === templateId);
+        if (items.length === 0) {
+            alert('Este modelo não tem itens.');
+            return;
+        }
+
+        const servicesToAdd: Servico[] = [];
+
+        items.forEach(item => {
+            // Entry Service
+            if (item.hora_entrada) {
+                servicesToAdd.push({
+                    id: crypto.randomUUID(),
+                    data: selectedDate,
+                    hora: item.hora_entrada,
+                    passageiro: item.passageiro || 'Staff',
+                    origem: item.local,
+                    destino: 'Hotel/Base', // Generic or from local mapping
+                    obs: item.obs || 'Entrada (Modelo)',
+                    concluido: false,
+                    centroCustoId: template.centro_custo_id || (selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined)
+                });
+            }
+            // Return Service
+            if (item.hora_saida) {
+                servicesToAdd.push({
+                    id: crypto.randomUUID(),
+                    data: selectedDate,
+                    hora: item.hora_saida,
+                    passageiro: item.passageiro || 'Staff',
+                    origem: 'Hotel/Base',
+                    destino: item.local,
+                    obs: item.obs || 'Saída (Modelo)',
+                    concluido: false,
+                    centroCustoId: template.centro_custo_id || (selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined)
+                });
+            }
+        });
+
+        const batchData = {
+            notes: `Escala Permanente: ${template.nome}`,
+            centroCustoId: selectedCentroCusto !== 'all' ? selectedCentroCusto : (template.centro_custo_id || undefined),
+            referenceDate: selectedDate
+        };
+
+        const result = await createScaleBatch(batchData, servicesToAdd);
+        if (result.success) {
+            setShowTemplateModal(false);
+            addNotification({
+                id: crypto.randomUUID(),
+                type: 'system_alert',
+                data: {
+                    message: `Escala gerada a partir do modelo "${template.nome}"`,
+                    title: 'Sucesso'
+                },
+                status: 'pending',
+                timestamp: new Date().toISOString()
+            });
+        }
+    };
+
+    const applyAutoGroupingByZone = () => {
+        setAutomationTrips(prev => autoGroupTripsByZone(prev));
+    };
+
+    const confirmAutomation = async () => {
+        const allServicesToCreate: any[] = [];
+
+        if (automationMode === 'auto-dispatch') {
+            automationTrips.forEach(trip => {
+                const passengerNames = trip.servicos.map(s => s.passageiro).filter(Boolean);
+                const passengerCount = Number(trip.passengerCount || trip.servicos.length || 1);
+                const vehicleCapacity = Number(trip.vehicleCapacity || viaturaById.get(trip.vehicleId || '')?.vehicleCapacity || 8);
+                const occupancyRate = Number((((passengerCount / Math.max(vehicleCapacity, 1)) * 100)).toFixed(2));
+
+                allServicesToCreate.push({
+                    id: crypto.randomUUID(),
+                    data: selectedDate,
+                    hora: trip.hora,
+                    passageiro: passengerCount > 1 ? `Grupo (${passengerCount} passageiros)` : (passengerNames[0] || 'Passageiro'),
+                    origem: trip.origem,
+                    destino: trip.destino,
+                    obs: `Auto Dispatch | ${passengerNames.join(', ')}`,
+                    concluido: false,
+                    centroCustoId: selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined,
+                    motoristaId: trip.motoristaId,
+                    vehicleId: trip.vehicleId || null,
+                    passengerCount,
+                    occupancyRate,
+                    originLocationId: trip.servicos[0]?.originLocationId || null,
+                    destinationLocationId: trip.servicos[0]?.destinationLocationId || null
+                });
+            });
+        } else {
+            automationTrips.forEach(trip => {
+                trip.servicos.forEach(s => {
+                    allServicesToCreate.push({
+                        ...s,
+                        motoristaId: trip.motoristaId,
+                        vehicleId: trip.vehicleId || null,
+                        passengerCount: Number(trip.passengerCount || 1),
+                        occupancyRate: trip.occupancyRate ?? null
+                    });
+                });
+            });
+        }
+
+        const batchData = {
+            notes: `Automação: ${selectedDate}`,
+            centroCustoId: selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined,
+            referenceDate: selectedDate
+        };
+
+        const result = await createScaleBatch(batchData, allServicesToCreate);
+        if (result.success) {
+            await refreshData();
+            setShowAutoModal(false);
+            addNotification({
+                id: crypto.randomUUID(),
+                type: 'system_alert',
+                data: {
+                    message: `Escala gerada com sucesso! ${allServicesToCreate.length} serviços importados.`,
+                    title: 'Sucesso'
+                },
+                status: 'pending',
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            alert('Erro ao guardar escala: ' + result.error);
+        }
+    };
+    // Layout & Filter State
+    const [layoutCols] = useState<number>(() => {
+        const saved = localStorage.getItem('escalas_layout_cols');
+        return saved ? parseInt(saved) : 3;
+    });
+
+    const [driverOrder] = useState<string[]>(() => {
+        const saved = localStorage.getItem('escalas_driver_order');
+        return saved ? JSON.parse(saved) : [];
+    });
+
+
+
+    // Save Layout Effects
+    useEffect(() => {
+        localStorage.setItem('escalas_layout_cols', layoutCols.toString());
+    }, [layoutCols]);
+
+    useEffect(() => {
+        if (driverOrder.length > 0)
+            localStorage.setItem('escalas_driver_order', JSON.stringify(driverOrder));
+    }, [driverOrder]);
+
+    // Quick Assign Function
+
+
+    const handleUrgentRequest = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        const newNotification: Notification = {
+            id: crypto.randomUUID(),
+            type: 'urgent_transport_request',
+            data: {
+                time: urgentData.hora || new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
+                passenger: urgentData.passageiro,
+                origin: urgentData.origem,
+                destination: urgentData.destino,
+                obs: urgentData.obs
+            },
+            status: 'pending',
+            timestamp: new Date().toISOString()
+        };
+
+        addNotification(newNotification);
+        setShowUrgentModal(false);
+        setUrgentData({ hora: '', passageiro: '', origem: '', destino: '', obs: '' });
+        alert(t('schedule.alerts.urgent_request_sent'));
+    };
+
+
+    // Advanced Filtering
+    const filteredServicos = servicos.filter(s => {
+        // Filter by Date
+        // If service has explicit 'data', use it.
+        // If not, try to fallback (optional: depending on business rule, we might default to today or show all legacy).
+
+        // Better fallback: if s.data is missing, maybe we shouldn't hide it yet to avoid data loss visibility.
+        // But the user wants control. Let's strictly filter if s.data exists.
+        if (s.data && s.data !== selectedDate) return false;
+
+        // Filter by Batch
+        if (selectedBatchId && s.batchId !== selectedBatchId) return false;
+        // If s.data is missing, we might want to still show it? Or assume it's legacy 'today'?
+        // For now: Check if s.data matches. If s.data is undefined, check if we are on "Today".
+        if (!s.data) {
+            // Basic legacy support: match today
+            const today = new Date().toISOString().split('T')[0];
+            if (selectedDate !== today) return false;
+        }
+
+        // Filter by Cost Center
+        if (selectedCentroCusto !== 'all' && s.centroCustoId !== selectedCentroCusto) return false;
+
+        // Filter by Search Term
+        if (searchTerm) {
+            const term = searchTerm.toLowerCase();
+            return (
+                s.passageiro.toLowerCase().includes(term) ||
+                s.origem.toLowerCase().includes(term) ||
+                s.destino.toLowerCase().includes(term) ||
+                s.voo?.toLowerCase().includes(term)
+            );
+        }
+        return true;
+    });
+
+    // Global Pending Calculation for Sidebar Grouping
+    const globalPendentes = servicos.filter(s => {
+        if (s.motoristaId || s.concluido) return false;
+        if (selectedCentroCusto !== 'all' && s.centroCustoId !== selectedCentroCusto) return false;
+        return true;
+    });
+
+    // Compute Batches that have pending services
+    const pendingBatches = scaleBatches.filter(batch => {
+        return globalPendentes.some(s => s.batchId === batch.id);
+    }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    const adHocPendentes = globalPendentes.filter(s => !s.batchId);
+
+    // Sidebar Count
+
+
+    const pendentes = filteredServicos.filter(s => !s.motoristaId).sort((a, b) => a.hora.localeCompare(b.hora));
+    const assigned = filteredServicos.filter(s => s.motoristaId);
+    const urgentServices = filteredServicos.filter(s => isUrgentService(s));
+    const urgentPendingServices = urgentServices.filter(s => !s.motoristaId);
+
+    // Logic & Filters
+    const filteredMotoristas = displayMotoristas.filter(m => {
+        if (selectedCentroCusto !== 'all' && m.centroCustoId !== selectedCentroCusto) return false;
+
+        if (filterStatus === 'all') return true;
+        if (filterStatus === 'available') return m.status === 'disponivel';
+        if (filterStatus === 'busy') return m.status === 'ocupado';
+        return true;
+    }).filter(m => {
+        if (searchTerm) return m.nome.toLowerCase().includes(searchTerm.toLowerCase());
+        return true;
+    });
+
+
+
+    // Stats
+    const totalServices = filteredServicos.length;
+    const progressPercentage = totalServices > 0 ? Math.round((assigned.length / totalServices) * 100) : 0;
+
+    const handleDownloadTemplate = () => {
+        const headers = [
+            'Nome do funcionário',
+            'Origem',
+            'Destino',
+            'Horário de apanhar transporte',
+            'Horário de saída do serviço',
+            'Voo',
+            'Observações'
+        ];
+
+        // Create an example row with the first local if available
+        const exampleRow = [
+            'Exemplo João Silva',
+            locais.length > 0 ? locais[0].nome : 'Hotel ABC',
+            locais.length > 1 ? locais[1].nome : 'Aeroporto FARO',
+            '09:00',
+            '18:00',
+            'TP123',
+            'Exemplo de nota'
+        ];
+
+        const wsData = [headers, exampleRow];
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+        // Add a second sheet with all locations for reference
+        const localesData = locais.map(l => ({
+            'Nome do Local': l.nome,
+            'Tipo': l.tipo,
+            'Área': l.centroCustoId || 'N/A'
+        }));
+
+        const wsLocales = XLSX.utils.json_to_sheet(localesData);
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Importar Escala");
+        XLSX.utils.book_append_sheet(wb, wsLocales, "Locais Disponíveis");
+
+        XLSX.writeFile(wb, "Template_Escala_Import.xlsx");
+
+        addNotification({
+            id: crypto.randomUUID(),
+            type: 'system_alert',
+            data: {
+                message: 'Modelo Excel descarregado com os locais e configurações atuais.',
+                title: 'Modelo Atualizado'
+            },
+            status: 'pending',
+            timestamp: new Date().toISOString()
+        });
+    };
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+
+        reader.onload = async (evt) => {
+            try {
+                const bstr = evt.target?.result;
+                const wb = XLSX.read(bstr, { type: 'binary' });
+                const wsname = wb.SheetNames[0];
+                const ws = wb.Sheets[wsname];
+
+                const data = XLSX.utils.sheet_to_json(ws);
+                const mappedServicos: Servico[] = [];
+
+                data.forEach((row: any) => {
+                    const nome = row['Nome do funcionário'] || row['Nome'] || 'Desconhecido';
+                    const origem = row['Origem'] || '';
+                    const destino = row['Destino'] || '';
+
+                    // Parse Times
+                    const parseTime = (val: any) => {
+                        if (!val) return null;
+                        if (typeof val === 'number') {
+                            const totalSeconds = Math.round(val * 86400);
+                            const hours = Math.floor(totalSeconds / 3600);
+                            const minutes = Math.floor((totalSeconds % 3600) / 60);
+                            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+                        }
+                        const str = String(val).trim();
+                        if (str.match(/^\d{1,2}:\d{2}/)) {
+                            const [h, m] = str.split(':');
+                            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                        }
+                        return '00:00';
+                    };
+
+                    const horaEntrada = parseTime(row['Horário de apanhar transporte']);
+                    const horaSaida = parseTime(row['Horário de saída do serviço']);
+                    const voo = row['Voo'] || '';
+                    const obsRow = row['Observações'] || '';
+
+                    if (horaEntrada) {
+                        mappedServicos.push({
+                            id: crypto.randomUUID(),
+                            hora: horaEntrada,
+                            passageiro: nome,
+                            origem: origem,
+                            destino: destino,
+                            voo: voo,
+                            obs: obsRow ? `Entrada - ${obsRow}` : 'Entrada (Importado)',
+                            concluido: false,
+                            centroCustoId: selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined
+                        });
+                    }
+
+                    if (horaSaida) {
+                        mappedServicos.push({
+                            id: crypto.randomUUID(),
+                            hora: horaSaida,
+                            passageiro: nome,
+                            origem: destino,
+                            destino: origem,
+                            voo: voo,
+                            obs: obsRow ? `Saída - ${obsRow}` : 'Saída (Importado)',
+                            concluido: false,
+                            centroCustoId: selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined
+                        });
+                    }
+                });
+
+                if (mappedServicos.length === 0) {
+                    alert(t('schedule.alerts.no_valid_data'));
+                } else {
+                    // Create a Batch for this upload
+                    const batchData = {
+                        notes: `Importado via Excel (${file.name})`,
+                        centroCustoId: selectedCentroCusto !== 'all' ? selectedCentroCusto : (mappedServicos[0].centroCustoId || undefined),
+                        referenceDate: selectedDate
+                    };
+
+                    const result = await createScaleBatch(batchData, mappedServicos);
+
+                    if (result.success) {
+                        addNotification({
+                            id: crypto.randomUUID(),
+                            type: 'system_alert',
+                            data: {
+                                message: `Lote "${batchData.notes}" criado com ${mappedServicos.length} serviços!`,
+                                title: 'Sucesso'
+                            },
+                            status: 'pending',
+                            timestamp: new Date().toISOString()
+                        });
+                    } else {
+                        alert(`Erro ao criar lote: ${result.error}`);
+                        // Fallback? No, if batch fails, we shouldn't add partials.
+                    }
+                }
+            } catch (error) {
+                console.error("Erro ao importar:", error);
+                alert(t('schedule.alerts.file_read_error'));
+            } finally {
+                if (fileInputRef.current) fileInputRef.current.value = '';
+            }
+        };
+        reader.readAsBinaryString(file);
+    };
+
+    const handleCreateService = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        // Try to find colaboradorId by name
+        const associatedColab = findColaboradorByName(newService.passageiro);
+        const colabId = associatedColab?.id || newService.colaboradorId;
+
+        const entryService: Servico = {
+            id: crypto.randomUUID(),
+            data: selectedDate, // Use currently selected date
+            hora: newService.hora,
+            passageiro: newService.passageiro || 'Staff',
+            origem: newService.origem,
+            destino: newService.destino,
+            voo: newService.referencia,
+            obs: 'Entrada',
+            concluido: false,
+            centroCustoId: newService.centroCustoId || (selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined),
+            colaboradorId: colabId,
+            validationPoints: newService.validationPoints
+        };
+        entryService.isUrgent = isUrgentService(entryService);
+        entryService.status = entryService.isUrgent ? 'URGENTE' : entryService.status;
+
+        const servicesToAdd: Servico[] = [entryService];
+
+        if (newService.temRegresso) {
+            const returnDest = newService.destinoRegresso || newService.origem;
+            const returnService: Servico = {
+                id: crypto.randomUUID(),
+                data: selectedDate,
+                hora: newService.horaRegresso,
+                passageiro: newService.passageiro || 'Staff',
+                origem: newService.destino,
+                destino: returnDest,
+                voo: newService.referencia,
+                obs: 'Saída',
+                concluido: false,
+                centroCustoId: newService.centroCustoId || (selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined),
+                colaboradorId: colabId,
+                validationPoints: newService.validationPoints
+            };
+
+            returnService.isUrgent = isUrgentService(returnService);
+            returnService.status = returnService.isUrgent ? 'URGENTE' : returnService.status;
+            servicesToAdd.push(returnService);
+        }
+
+        const batchData = {
+            notes: `Escala Manual: ${newService.passageiro}`,
+            centroCustoId: newService.centroCustoId || (selectedCentroCusto !== 'all' ? selectedCentroCusto : ''),
+            referenceDate: selectedDate
+        };
+
+        const result = await createScaleBatch(batchData, servicesToAdd);
+
+        if (result.success) {
+            addNotification({
+                id: crypto.randomUUID(),
+                type: 'system_alert',
+                data: {
+                    message: 'Serviço(s) criado(s) com sucesso!',
+                    title: 'Sucesso'
+                },
+                status: 'pending',
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            alert('Erro ao criar serviço: ' + result.error);
+        }
+        setShowNewServiceModal(false);
+
+        setNewService({
+            hora: '09:00',
+            passageiro: '',
+            origem: '',
+            destino: '',
+            referencia: '',
+            obs: '',
+            temRegresso: false,
+            horaRegresso: '18:00',
+            destinoRegresso: '',
+            centroCustoId: '',
+            colaboradorId: '',
+            validationPoints: []
+        });
+    };
+
+    const assignSelectedServicesToDriver = async (driverId: string) => {
+        if (!driverId || selectedPendentes.length === 0) return;
+
+        const servicesToUpdate = servicos.filter(s => selectedPendentes.includes(s.id));
+        await Promise.all(servicesToUpdate.map(s => assignDriverToService(s, driverId)));
+
+        if (autoEmailEnabled) {
+            const driver = motoristas.find(m => m.id === driverId);
+            if (driver?.email) {
+                await Promise.all(
+                    servicesToUpdate.map(service =>
+                        emailService.sendDriverScheduleEmail(
+                            emailService.mapDriverSchedulePayload(service, driver.nome, driver.email!, selectedDate)
+                        )
+                    )
+                );
+            }
+        }
+
+        setSelectedPendentes([]);
+        setSelectedMotoristaForAssign('');
+    };
+
+    const handleAssign = async () => {
+        await assignSelectedServicesToDriver(selectedMotoristaForAssign);
+    };
+
+    const handleBatchDelete = async () => {
+        if (selectedPendentes.length === 0) return;
+        if (!confirm(t('schedule.alerts.delete_confirm'))) return;
+
+        await Promise.all(selectedPendentes.map(id => deleteServico(id)));
+        setSelectedPendentes([]);
+    };
+
+    const togglePendenteSelection = (id: string) => {
+        setSelectedPendentes(prev =>
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        );
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedPendentes.length === pendentes.length) {
+            setSelectedPendentes([]);
+        } else {
+            setSelectedPendentes(pendentes.map(s => s.id));
+        }
+    };
+
+
+    const handleDeleteService = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (confirm(t('schedule.alerts.delete_confirm'))) {
+            await deleteServico(id);
+            setSelectedPendentes(prev => prev.filter(x => x !== id));
+            addNotification({
+                id: crypto.randomUUID(),
+                type: 'system_alert',
+                data: {
+                    message: 'Serviço eliminado com sucesso.',
+                    title: 'Eliminado'
+                },
+                status: 'pending',
+                timestamp: new Date().toISOString()
+            });
+        }
+    };
+
+    const handlePublishBatch = async (batchId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setPublishingBatchId(batchId);
+        try {
+            const result = await publishBatch(batchId);
+            if (result.success) {
+                setTimelineBatchId(batchId);
+            } else {
+                alert('Erro ao publicar escala: ' + result.error);
+            }
+        } finally {
+            setPublishingBatchId(null);
+        }
+    };
+
+    const handleSendScheduleEmail = async (service: Servico) => {
+        if (!service.motoristaId) {
+            alert('Atribua um motorista antes de enviar a escala por email.');
+            return;
+        }
+
+        const driver = motoristas.find(m => m.id === service.motoristaId);
+        if (!driver?.email) {
+            alert('Motorista sem email configurado.');
+            return;
+        }
+
+        setSendingScheduleServiceId(service.id);
+        try {
+            await emailService.sendDriverScheduleEmail(
+                emailService.mapDriverSchedulePayload(service, driver.nome, driver.email, selectedDate)
+            );
+            alert('Email enviado com sucesso.');
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Falha inesperada';
+            alert(`Erro ao enviar email: ${message}`);
+        } finally {
+            setSendingScheduleServiceId(null);
+        }
+    };
+
+
+    const processedMotoristas = useMemo(() => {
+        if (driverOrder.length === 0) return filteredMotoristas;
+        return [...filteredMotoristas].sort((a, b) => {
+            const indexA = driverOrder.indexOf(a.id);
+            const indexB = driverOrder.indexOf(b.id);
+            if (indexA === -1 && indexB === -1) return 0;
+            if (indexA === -1) return 1;
+            if (indexB === -1) return -1;
+            return indexA - indexB;
+        });
+    }, [filteredMotoristas, driverOrder]);
+
+    const quickAssignDrivers = useMemo(() => {
+        const statusRank = (status?: string) => {
+            const normalized = String(status || '').toLowerCase();
+            if (normalized === 'disponivel') return 0;
+            if (normalized === 'ocupado' || normalized === 'em_servico') return 1;
+            return 2;
+        };
+
+        return [...displayMotoristas]
+            .sort((a, b) => {
+                const rankA = statusRank(a.status);
+                const rankB = statusRank(b.status);
+                if (rankA !== rankB) return rankA - rankB;
+                const loadA = assigned.filter(service => service.motoristaId === a.id).length;
+                const loadB = assigned.filter(service => service.motoristaId === b.id).length;
+                if (loadA !== loadB) return loadA - loadB;
+                return a.nome.localeCompare(b.nome);
+            })
+            .slice(0, 6);
+    }, [displayMotoristas, assigned]);
+
+
+
+    return (
+        <div className={`flex flex-col w-full h-full min-h-0 relative overflow-hidden ${isOperacoesContext ? 'bg-amber-50/30' : 'bg-slate-50'}`}>
+
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                className="hidden"
+                accept=".xlsx, .xls, .csv"
+            />
+
+            <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-slate-50/95 backdrop-blur-md">
+                <div className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 space-y-3">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="min-w-0">
+                            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Gestão de Operações</p>
+                            <div className="mt-1 flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-100 bg-amber-50 text-amber-600 shadow-sm">
+                                    <CalendarIcon className="h-5 w-5" />
+                                </div>
+                                <div className="min-w-0">
+                                    <h1 className="truncate text-2xl font-black tracking-tight text-slate-900">Escalas</h1>
+                                    <p className="truncate text-sm text-slate-500">Mapa operacional, distribuição e atribuição rápida</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:items-center lg:justify-end">
+                            <div className="relative w-full lg:w-[200px]">
+                                <input
+                                    type="date"
+                                    value={selectedDate}
+                                    onChange={(e) => {
+                                        setSelectedDate(e.target.value);
+                                        setSelectedBatchId(null);
+                                    }}
+                                    className={`h-10 w-full bg-white text-slate-900 text-sm font-bold px-3 py-2 pl-9 rounded-xl border border-slate-200 outline-none transition-colors shadow-sm ${isOperacoesContext ? 'focus:border-amber-500' : 'focus:border-blue-500'}`}
+                                />
+                                <CalendarIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                            </div>
+
+                            <div className="relative w-full lg:min-w-[240px] lg:max-w-[340px] lg:flex-1">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Procurar serviço ou motorista..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className={`h-10 w-full bg-white border border-slate-200 rounded-xl py-2 pl-9 pr-4 text-sm text-slate-900 focus:outline-none placeholder:text-slate-400 ${isOperacoesContext ? 'focus:border-amber-500/60' : 'focus:border-blue-500/60'}`}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        {[
+                            { label: 'Total', value: totalServices, color: 'text-slate-900' },
+                            { label: 'Urgentes', value: urgentServices.length, color: urgentServices.length > 0 ? 'text-red-600' : 'text-slate-900' },
+                            { label: 'Atribuídos', value: assigned.length, color: isOperacoesContext ? 'text-amber-600' : 'text-blue-600' },
+                            { label: 'Pendentes', value: pendentes.length, color: pendentes.length > 0 ? 'text-amber-600' : 'text-slate-900' },
+                        ].map(kpi => (
+                            <div key={kpi.label} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+                                <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{kpi.label}</p>
+                                <p className={`mt-0.5 text-xl font-black leading-none ${kpi.color}`}>{kpi.value}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:gap-3">
+                        <select
+                            value={selectedCentroCusto}
+                            onChange={(e) => setSelectedCentroCusto(e.target.value)}
+                            className={`h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm text-slate-700 focus:outline-none appearance-none cursor-pointer shadow-sm w-full xl:w-[190px] ${isOperacoesContext ? 'focus:border-amber-500/50' : 'focus:border-blue-500/50'}`}
+                        >
+                            <option value="all">Todos Centros</option>
+                            {centrosCustos.map(cc => (
+                                <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                            ))}
+                        </select>
+
+                        <div className="flex flex-1 min-w-[180px] flex-col gap-1.5">
+                            <div className="flex justify-between text-[10px] font-semibold text-slate-400">
+                                <span>Progresso</span>
+                                <span>{progressPercentage}%</span>
+                            </div>
+                            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200/70">
+                                <div
+                                    className={`h-full transition-all duration-500 ${isOperacoesContext ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-blue-500 to-emerald-500'}`}
+                                    style={{ width: `${progressPercentage}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        {hasAccess(userRole, 'escalas_create') && (
+                            <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                                <button
+                                    onClick={() => setShowNewServiceModal(true)}
+                                    className={`h-10 rounded-xl px-4 text-sm font-bold flex items-center gap-1.5 shadow-sm transition-all ${isOperacoesContext ? 'bg-amber-600 text-white hover:bg-amber-500' : 'bg-blue-600 text-white hover:bg-blue-500'}`}
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Novo Serviço
+                                </button>
+
+                                <button
+                                    onClick={() => setShowUrgentModal(true)}
+                                    className="h-10 rounded-xl px-3 text-sm font-bold flex items-center gap-1.5 bg-red-600 text-white shadow-sm transition-all hover:bg-red-500"
+                                    title="Transporte de Emergência"
+                                >
+                                    <Siren className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Emergência</span>
+                                </button>
+
+                                <button
+                                    onClick={handleGenerateAutoDispatch}
+                                    disabled={isAutoLoading}
+                                    className="h-10 rounded-xl px-3 text-sm font-bold flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 shadow-sm transition-all hover:bg-slate-50 disabled:opacity-50"
+                                    title="Distribuição automática"
+                                >
+                                    {isAutoLoading ? <Clock className="w-4 h-4 animate-spin text-emerald-600" /> : <CloudLightning className="w-4 h-4 text-emerald-600" />}
+                                    <span className="hidden md:inline">Distribuição</span>
+                                </button>
+
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setShowMoreMenu(v => !v)}
+                                        className="h-10 rounded-xl px-3 text-sm font-bold flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 shadow-sm hover:bg-slate-50"
+                                    >
+                                        <MoreVertical className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Mais</span>
+                                    </button>
+
+                                    {showMoreMenu && (
+                                        <>
+                                            <div className="fixed inset-0 z-30" onClick={() => setShowMoreMenu(false)} />
+                                            <div className="absolute right-0 top-full mt-2 z-40 w-52 rounded-2xl border border-slate-200 bg-white shadow-xl py-1.5 divide-y divide-slate-100">
+                                                <div className="px-3 py-1.5">
+                                                    <button
+                                                        onClick={() => { handleRunAutomation(); setShowMoreMenu(false); }}
+                                                        disabled={isAutoLoading || selectedCentroCusto === 'all'}
+                                                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50"
+                                                    >
+                                                        {isAutoLoading ? <Clock className="w-4 h-4" /> : <Upload className="w-4 h-4" />}
+                                                        Automação
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { setShowAutoSettings(true); setShowMoreMenu(false); }}
+                                                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                                                    >
+                                                        <Settings className="w-4 h-4 text-slate-500" />
+                                                        Config. Automação
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { setShowDailyDriversPanel(true); setShowMoreMenu(false); }}
+                                                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                                                    >
+                                                        <Users className="w-4 h-4 text-amber-500" />
+                                                        Motoristas de hoje
+                                                    </button>
+                                                </div>
+                                                <div className="px-3 py-1.5">
+                                                    <button
+                                                        onClick={() => { setShowTemplateModal(true); setShowMoreMenu(false); }}
+                                                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                                                    >
+                                                        <CloudLightning className="w-4 h-4 text-amber-500" />
+                                                        Modelos
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { handleDownloadTemplate(); setShowMoreMenu(false); }}
+                                                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                                                    >
+                                                        <FileText className="w-4 h-4 text-slate-500" />
+                                                        Modelo Excel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </header>
+
+            {urgentPendingServices.length > 0 && (
+                <div className="mx-3 sm:mx-4 lg:mx-6 mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-semibold text-red-600">
+                    {urgentPendingServices.length} serviço(s) urgentes pendentes de atribuição.
+                </div>
+            )}
+
+            <div className="flex-1 min-h-0 overflow-hidden relative px-3 sm:px-4 lg:px-6 py-3">
+                <div className="flex flex-col md:flex-row h-full w-full overflow-hidden">
+                    {/* DRIVERS GRID WIDGET */}
+                    <div className="flex-1 flex flex-col min-w-0 h-full relative md:border-r border-slate-100">
+
+                        {/* Status Tabs (Stick to top of widget) */}
+
+                        {viewMode === 'cards' && (
+                            <div className="flex-1 min-h-0 p-4 md:p-6 overflow-hidden">
+                                <DispatchBoard
+                                    motoristas={processedMotoristas}
+                                    pendentes={pendentes}
+                                    assigned={assigned}
+                                    cartrackVehicles={cartrackVehicles}
+                                    onMoveService={async (service, targetDriverId) => {
+                                        await assignDriverToService(service, targetDriverId);
+                                    }}
+                                    isUrgentService={isUrgentService}
+                                />
+                            </div>
+                        )}
+
+                        {viewMode === 'table' && (
+                            <div className="flex-1 min-h-0 overflow-hidden">
+                                <div className="grid h-full min-h-0 gap-3 xl:grid-cols-1">
+                                    <section className="min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                                        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+                                            <h3 className="text-base font-black text-slate-900">Serviços do dia <span className="ml-2 rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-500">{filteredServicos.length}</span></h3>
+                                            <div className="flex items-center gap-2">
+                                                <button className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">Filtros</button>
+                                                <button className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">Colunas</button>
+                                            </div>
+                                        </div>
+
+                                        <div className="border-b border-slate-100 bg-slate-50/70 px-4 py-3">
+                                            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                                                <div>
+                                                    <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">Atribuição rápida</p>
+                                                    <p className="text-sm text-slate-600">{selectedPendentes.length} serviço(s) selecionado(s)</p>
+                                                </div>
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    {quickAssignDrivers.map((driver) => {
+                                                        const load = assigned.filter(service => service.motoristaId === driver.id).length;
+                                                        const isAvailable = String(driver.status || '').toLowerCase() === 'disponivel';
+                                                        return (
+                                                            <button
+                                                                key={driver.id}
+                                                                type="button"
+                                                                onClick={() => assignSelectedServicesToDriver(driver.id)}
+                                                                disabled={selectedPendentes.length === 0}
+                                                                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${isAvailable ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
+                                                            >
+                                                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/70 text-[10px] font-black text-slate-600">{driver.nome.slice(0, 2).toUpperCase()}</span>
+                                                                <span className="max-w-[120px] truncate">{driver.nome}</span>
+                                                                <span className="rounded-full bg-white/70 px-1.5 py-0.5 text-[10px] font-black text-slate-500">{load}</span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-[80px_1.8fr_90px_180px_110px_100px_56px] gap-3 border-b border-slate-100 px-4 py-2 text-[11px] font-black uppercase tracking-wide text-slate-400">
+                                            <span>Hora</span>
+                                            <span>Origem → Destino</span>
+                                            <span>Passageiros</span>
+                                            <span>Motorista</span>
+                                            <span>Estado</span>
+                                            <span>Prioridade</span>
+                                            <span className="text-right">Ações</span>
+                                        </div>
+
+                                        <div className="h-[calc(100%-94px)] overflow-y-auto custom-scrollbar">
+                                            {filteredServicos.length === 0 ? (
+                                                <div className="flex h-full flex-col items-center justify-center text-slate-500">
+                                                    <Search className="mb-3 h-10 w-10 opacity-25" />
+                                                    <p className="text-sm font-semibold">Nenhum serviço encontrado</p>
+                                                </div>
+                                            ) : (
+                                                filteredServicos.slice(0, 12).map((service) => {
+                                                    const urgent = isUrgentService(service);
+                                                    return (
+                                                        <div
+                                                            key={service.id}
+                                                            onClick={() => togglePendenteSelection(service.id)}
+                                                            className={`grid grid-cols-[80px_1.8fr_90px_180px_110px_100px_56px] gap-3 border-b border-slate-100 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50/70 ${selectedPendentes.includes(service.id) ? 'bg-amber-50/60' : ''}`}
+                                                        >
+                                                            <div className="font-mono font-bold text-slate-700">{service.hora}</div>
+                                                            <div className="min-w-0">
+                                                                <p className="truncate font-semibold text-slate-700">{service.origem}</p>
+                                                                <p className="truncate text-xs text-slate-500">→ {service.destino}</p>
+                                                            </div>
+                                                            <div className="text-center font-semibold">{Number(service.passengerCount || 1)}</div>
+                                                            <div onClick={(e) => e.stopPropagation()}>
+                                                                <select
+                                                                    className={`w-full rounded-lg border px-2 py-1.5 text-[11px] outline-none ${service.motoristaId ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-500'}`}
+                                                                    value={service.motoristaId || ''}
+                                                                    onChange={async (e) => {
+                                                                        const newDriverId = e.target.value;
+                                                                        await assignDriverToService(service, newDriverId || null);
+                                                                    }}
+                                                                >
+                                                                    <option value="">Por atribuir</option>
+                                                                    {displayMotoristas.filter(m => m.status === 'disponivel' || m.id === service.motoristaId).map(m => (
+                                                                        <option key={m.id} value={m.id}>{formatDriverOptionLabel(m)}</option>
+                                                                    ))}
+                                                                    <option disabled>──────────</option>
+                                                                    {displayMotoristas.filter(m => m.status !== 'disponivel' && m.id !== service.motoristaId).map(m => (
+                                                                        <option key={m.id} value={m.id}>{formatDriverOptionLabel(m)} ({m.status})</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                            <div>
+                                                                <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold border ${service.motoristaId ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
+                                                                    {service.motoristaId ? 'Scheduled' : 'Pendente'}
+                                                                </span>
+                                                            </div>
+                                                            <div>
+                                                                <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold border ${urgent ? 'border-red-200 bg-red-50 text-red-700' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
+                                                                    {urgent ? 'Urgente' : 'Normal'}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+                                                                <button
+                                                                    onClick={() => handleSendScheduleEmail(service)}
+                                                                    disabled={sendingScheduleServiceId === service.id}
+                                                                    className="rounded-md p-1.5 text-slate-500 hover:bg-cyan-50 hover:text-cyan-700 disabled:opacity-60"
+                                                                    title="Enviar Escala"
+                                                                >
+                                                                    <Send className="h-4 w-4" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    </section>
+
+                                </div>
+                            </div>
+                        )}
+
+                        {/* MODAL: NEW SERVICE */}
+                        {
+                            showNewServiceModal && (
+                                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 overflow-y-auto">
+                                    <div className="bg-white/90 border border-slate-200 p-0 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                        <div className="p-6 bg-white/90 border-b border-slate-100 flex items-center gap-3">
+                                            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
+                                                <Plus className="w-5 h-5" />
+                                            </div>
+                                            <h2 className="text-xl font-bold text-slate-900">{t('schedule.modal.new.title')}</h2>
+                                        </div>
+
+                                        <form onSubmit={handleCreateService} className="p-6 space-y-5">
+                                            <div className="grid grid-cols-3 gap-5">
+                                                <div className="col-span-1">
+                                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.entry_time')}</label>
+                                                    <input
+                                                        type="time"
+                                                        required
+                                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none font-mono"
+                                                        value={newService.hora}
+                                                        onChange={e => setNewService({ ...newService, hora: e.target.value })}
+                                                    />
+                                                </div>
+                                                <div className="col-span-2">
+                                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.passenger')}</label>
+                                                    <div className="relative">
+                                                        <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                                        <input
+                                                            type="text"
+                                                            required
+                                                            placeholder="Nome do passageiro..."
+                                                            className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none"
+                                                            value={newService.passageiro}
+                                                            onChange={e => handleNewServicePassengerChange(e.target.value)}
+                                                            list="colaboradores-list"
+                                                        />
+                                                        <datalist id="colaboradores-list">
+                                                            {colaboradores.map(c => (
+                                                                <option key={c.id} value={c.nome}>{c.numero}</option>
+                                                            ))}
+                                                        </datalist>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-5">
+                                                <div>
+                                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.pickup')}</label>
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        list="geofences-list"
+                                                        placeholder="Onde apanhar..."
+                                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none"
+                                                        value={newService.origem}
+                                                        onChange={e => setNewService({ ...newService, origem: e.target.value })}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.workplace')}</label>
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        list="geofences-list"
+                                                        placeholder="Destino..."
+                                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none"
+                                                        value={newService.destino}
+                                                        onChange={e => setNewService({ ...newService, destino: e.target.value })}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-5">
+                                                <div>
+                                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.ref')}</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Ex: Voo LX123"
+                                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none"
+                                                        value={newService.referencia}
+                                                        onChange={e => setNewService({ ...newService, referencia: e.target.value })}
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('menu.cost_centers')}</label>
+                                                    <select
+                                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none appearance-none"
+                                                        value={newService.centroCustoId}
+                                                        onChange={e => setNewService({ ...newService, centroCustoId: e.target.value })}
+                                                    >
+                                                        <option value="">(Sem custo associado)</option>
+                                                        {centrosCustos.map(cc => (
+                                                            <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            </div>
+
+
+                                            {/* Validation Points Selection */}
+                                            <div>
+                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Pontos de Validação (POIs)</label>
+                                                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto custom-scrollbar p-2 border border-slate-200 rounded-xl bg-white/90">
+                                                    {locais.map(poi => (
+                                                        <label key={poi.id} className="flex items-center gap-2 p-1.5 hover:bg-white/5 rounded-lg cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={newService.validationPoints.includes(poi.id)}
+                                                                onChange={e => {
+                                                                    const isChecked = e.target.checked;
+                                                                    setNewService(prev => ({
+                                                                        ...prev,
+                                                                        validationPoints: isChecked
+                                                                            ? [...prev.validationPoints, poi.id]
+                                                                            : prev.validationPoints.filter(id => id !== poi.id)
+                                                                    }));
+                                                                }}
+                                                                className="w-4 h-4 rounded border-slate-300 bg-white text-blue-600 focus:ring-0"
+                                                            />
+                                                            <span className="text-xs text-slate-300">{poi.nome}</span>
+                                                        </label>
+                                                    ))}
+                                                    {locais.length === 0 && <span className="text-xs text-slate-500 italic p-1">Nenhum POI criado.</span>}
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-4 border-t border-slate-100">
+                                                <label className="flex items-center gap-3 p-3 bg-white/90 rounded-xl border border-slate-100 cursor-pointer hover:bg-white/90 transition-colors">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={newService.temRegresso}
+                                                        onChange={e => setNewService({ ...newService, temRegresso: e.target.checked })}
+                                                        className="w-5 h-5 rounded border-slate-300 bg-white text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
+                                                    />
+                                                    <span className="text-sm font-bold text-slate-300">
+                                                        {t('schedule.modal.new.return_check')}
+                                                    </span>
+                                                </label>
+
+                                                {newService.temRegresso && (
+                                                    <div className="mt-4 pl-4 border-l-2 border-slate-200 space-y-4 animate-in slide-in-from-top-2">
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div>
+                                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.exit_time')}</label>
+                                                                <input
+                                                                    type="time"
+                                                                    required
+                                                                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none font-mono"
+                                                                    value={newService.horaRegresso}
+                                                                    onChange={e => setNewService({ ...newService, horaRegresso: e.target.value })}
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.diff_dest')}</label>
+                                                                <input
+                                                                    type="text"
+                                                                    list="geofences-list"
+                                                                    placeholder="Opcional..."
+                                                                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none"
+                                                                    value={newService.destinoRegresso}
+                                                                    onChange={e => setNewService({ ...newService, destinoRegresso: e.target.value })}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="flex justify-end gap-3 pt-4">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowNewServiceModal(false)}
+                                                    className="px-6 py-3 text-slate-500 hover:text-slate-700 transition-colors text-sm font-medium"
+                                                >
+                                                    Cancelar
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            )
+                        }
+                    </div >
+                </div >
+                {
+                    false && hasAccess(userRole, 'escalas_view_pending') && viewMode === 'table' && (
+                        <div className="w-full md:w-[350px] lg:w-[400px] shrink-0 h-full bg-slate-50 border-t md:border-t-0 md:border-l border-slate-100">
+                            <div className="h-full flex flex-col bg-slate-50 border-l border-slate-100 overflow-hidden">
+                                <div className="p-4 bg-slate-50/95 backdrop-blur border-b border-slate-100 flex items-center gap-3 shrink-0">
+                                    <div className="p-2 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg shadow-lg shadow-purple-900/20">
+                                        <Upload className="w-4 h-4 text-slate-900" />
+                                    </div>
+                                    <h2 className="text-lg font-bold text-[#1f2957] truncate flex-1">
+                                        {t('schedule.pending.title')}
+                                    </h2>
+                                    <span className="bg-slate-100 text-slate-500 text-xs px-2.5 py-1 rounded-full border border-slate-200 font-mono">
+                                        {globalPendentes.length}
+                                    </span>
+                                </div>
+
+                                {/* Batch Assign Control */}
+                                {!isDistributeMode && pendentes.length > 0 && (
+                                    <div className="p-4 border-b border-slate-100 space-y-2">
+                                        <div className="flex gap-2 p-1 bg-white/90 rounded-xl border border-slate-200">
+                                            <select
+                                                className="flex-1 bg-transparent text-sm px-3 py-2 text-slate-300 outline-none focus:text-slate-900 cursor-pointer w-full"
+                                                value={selectedMotoristaForAssign}
+                                                onChange={(e) => setSelectedMotoristaForAssign(e.target.value)}
+                                            >
+                                                <option value="" className="bg-white/90">{t('schedule.pending.assign_to')}</option>
+                                                {displayMotoristas.map(m => (
+                                                    <option key={m.id} value={m.id} className="bg-white/90">{formatDriverOptionLabel(m)}</option>
+                                                ))}
+                                            </select>
+                                            <button
+                                                onClick={handleAssign}
+                                                disabled={!selectedMotoristaForAssign || selectedPendentes.length === 0}
+                                                className="bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-all shadow-lg shrink-0"
+                                                title="Atribuir"
+                                            >
+                                                <ArrowRight className="w-4 h-4" />
+                                            </button>
+                                            {selectedPendentes.length > 0 && (
+                                                <button
+                                                    onClick={handleBatchDelete}
+                                                    className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 p-2 rounded-lg transition-all shrink-0"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center justify-between px-1">
+                                            <button onClick={toggleSelectAll} className="text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:text-slate-900">Selecionar Todos</button>
+                                            <span className="text-[10px] text-slate-600">{selectedPendentes.length} selecionados</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="p-4 border-b border-slate-100 bg-slate-50/60">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Pendentes Rápidos</h3>
+                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300">Arrastar para motorista</span>
+                                    </div>
+                                    <div className="max-h-56 overflow-y-auto custom-scrollbar space-y-2 pr-1">
+                                        {pendentes.slice(0, 12).map(service => {
+                                            const visual = getServiceVisualStyles(service);
+                                            const passengerCount = Number(service.passengerCount || 1);
+                                            const vehicleCapacity = Number(viaturaById.get(service.vehicleId || '')?.vehicleCapacity || 8);
+                                            return (
+                                                <div
+                                                    key={`quick-${service.id}`}
+                                                    draggable
+                                                    onDragStart={handlePendingDragStart(service.id)}
+                                                    className={`rounded-xl border ${visual.border} bg-slate-50 p-3 cursor-grab active:cursor-grabbing hover:border-blue-400/40`}
+                                                >
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <span className="text-[11px] font-mono font-bold text-blue-300">{service.hora}</span>
+                                                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${visual.badge}`}>{visual.label}</span>
+                                                    </div>
+                                                    <div className="mt-2 text-[11px] text-slate-300 truncate" title={service.origem}>{service.origem}</div>
+                                                    <div className="flex items-center gap-1 text-[10px] text-slate-500 my-1">
+                                                        <ArrowRight className="w-3 h-3" />
+                                                        <span className="truncate" title={service.destino}>{service.destino}</span>
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-400 flex items-center justify-between">
+                                                        <span className="inline-flex items-center gap-1"><Users className="w-3 h-3" /> {passengerCount} passageiros</span>
+                                                        <span>{passengerCount} / {vehicleCapacity} lugares</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                        {pendentes.length === 0 && <div className="text-xs text-slate-500 py-2">Sem pendentes para arrastar.</div>}
+                                    </div>
+                                </div>
+
+                                {/* List */}
+                                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 bg-[#0b1120]">
+                                    {(() => {
+                                        // 1. Group ALL services by batchId
+                                        const batchesMap = new Map<string, typeof globalPendentes>();
+                                        const adHoc: typeof globalPendentes = [];
+
+                                        globalPendentes.forEach(s => {
+                                            if (s.batchId) {
+                                                const existing = batchesMap.get(s.batchId) || [];
+                                                existing.push(s);
+                                                batchesMap.set(s.batchId, existing);
+                                            } else {
+                                                adHoc.push(s);
+                                            }
+                                        });
+
+                                        // 2. Resolve Batches (Real or Pseudo)
+                                        // Get all batch IDs that have services
+                                        const activeBatchIds = Array.from(batchesMap.keys());
+
+                                        // Sort batches by creation time (using ScaleBatch info if available, or fallback)
+                                        // We prioritize showing the NEWEST batches first
+                                        const sortedBatchIds = activeBatchIds.sort((a, b) => {
+                                            const batchA = scaleBatches.find(sb => sb.id === a);
+                                            const batchB = scaleBatches.find(sb => sb.id === b);
+                                            const timeA = batchA ? new Date(batchA.created_at).getTime() : 0;
+                                            const timeB = batchB ? new Date(batchB.created_at).getTime() : 0;
+                                            return timeB - timeA;
+                                        });
+
+                                        return (
+                                            <>
+                                                {/* Ad-Hoc (Ideally empty now) */}
+                                                {adHoc.length > 0 && (
+                                                    <div className={`rounded-xl border transition-all overflow-hidden ${expandedBatchId === 'adhoc' ? 'bg-white/90 border-blue-500/50' : 'bg-white/90 border-slate-100 hover:bg-white/90/80'}`}>
+                                                        <div
+                                                            onClick={() => setExpandedBatchId(expandedBatchId === 'adhoc' ? null : 'adhoc')}
+                                                            className="p-4 cursor-pointer"
+                                                        >
+                                                            <div className="flex justify-between items-start mb-2"><div className="font-bold text-slate-900 text-sm">Escalas Manuais / Legado</div><span className="bg-slate-100 text-slate-400 text-[10px] px-1.5 py-0.5 rounded border border-slate-100">{adHoc.length}</span></div>
+                                                            <div className="text-xs text-slate-500">Serviços sem lote associado</div>
+                                                        </div>
+
+                                                        {/* EXPANDED CONTENT AD-HOC */}
+                                                        {expandedBatchId === 'adhoc' && (
+                                                            <div className="bg-white/90 border-t border-slate-100 p-3 space-y-2">
+                                                                {adHoc.map(service => (
+                                                                    <div key={service.id} className="bg-slate-50 p-3 rounded-lg border border-slate-100 space-y-2">
+                                                                        <div className="flex justify-between items-start">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="text-blue-400 font-mono font-bold text-xs bg-blue-400/10 px-1.5 py-0.5 rounded">{service.hora}</span>
+                                                                                <span className="text-slate-300 text-xs font-medium truncate max-w-[120px]" title={service.passageiro}>{service.passageiro}</span>
+                                                                                {isUrgentService(service) && (
+                                                                                    <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border border-red-500/40 bg-red-500/20 text-red-300">⚠ URGENTE</span>
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="flex gap-2">
+                                                                                <button
+                                                                                    onClick={() => handleSendScheduleEmail(service)}
+                                                                                    disabled={sendingScheduleServiceId === service.id}
+                                                                                    className="text-slate-600 hover:text-cyan-400 p-1 disabled:opacity-60"
+                                                                                    title="Enviar Escala"
+                                                                                >
+                                                                                    <Send className="w-3 h-3" />
+                                                                                </button>
+                                                                                <button
+                                                                                    onClick={(e) => handleDeleteService(service.id, e)}
+                                                                                    className="text-slate-600 hover:text-red-400 p-1"
+                                                                                    title="Eliminar"
+                                                                                >
+                                                                                    <Trash2 className="w-3 h-3" />
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center text-[10px] text-slate-500">
+                                                                            <span className="truncate" title={service.origem}>{service.origem}</span>
+                                                                            <ArrowRight className="w-3 h-3 text-slate-600" />
+                                                                            <span className="truncate text-right" title={service.destino}>{service.destino}</span>
+                                                                        </div>
+                                                                        <div className="pt-2 border-t border-slate-100">
+                                                                            <select
+                                                                                className="w-full bg-slate-100 text-slate-500 text-[10px] px-2 py-1.5 rounded border border-slate-200 outline-none focus:border-blue-500/50"
+                                                                                value=""
+                                                                                onChange={(e) => {
+                                                                                    if (e.target.value) {
+                                                                                        assignDriverToService(service, e.target.value);
+                                                                                    }
+                                                                                }}
+                                                                            >
+                                                                                <option value="">Atribuir a...</option>
+                                                                                {displayMotoristas.filter(m => m.status === 'disponivel').map(m => (
+                                                                                    <option key={m.id} value={m.id}>{formatDriverOptionLabel(m)}</option>
+                                                                                ))}
+                                                                                <option disabled>──────────</option>
+                                                                                {displayMotoristas.filter(m => m.status !== 'disponivel').map(m => (
+                                                                                    <option key={m.id} value={m.id} className="text-slate-500">{formatDriverOptionLabel(m)} ({m.status})</option>
+                                                                                ))}
+                                                                            </select>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* Batches (Real & Orphaned) */}
+                                                {sortedBatchIds.map(batchId => {
+                                                    const batchServices = batchesMap.get(batchId) || [];
+                                                    const batch = scaleBatches.find(b => b.id === batchId);
+                                                    const isExpanded = expandedBatchId === batchId;
+
+                                                    // Fallback info if batch is missing (Orphaned due to RLS/Sync)
+                                                    const createdBy = batch?.created_by || 'Lote Desconhecido';
+                                                    const createdByRole = batch?.created_by_role || 'Erro Sync';
+                                                    const createdAt = batch?.created_at ? batch.created_at.split('T')[1].substring(0, 5) : '--:--';
+                                                    const centroCustoName = batch?.centro_custo_id ? centrosCustos.find(c => c.id === batch.centro_custo_id)?.nome : 'Sem Centro Custo';
+
+                                                    return (
+                                                        <div key={batchId} className={`rounded-xl border transition-all overflow-hidden ${isExpanded ? 'bg-white/90 border-blue-500/50' : 'bg-white/90 border-slate-100 hover:bg-white/90/80'}`}>
+                                                            <div
+                                                                onClick={() => setExpandedBatchId(isExpanded ? null : batchId)}
+                                                                className="p-4 cursor-pointer"
+                                                            >
+                                                                <div className="flex justify-between items-start mb-3">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs ${batch ? 'bg-gradient-to-br from-blue-500 to-cyan-500' : 'bg-slate-700'}`}>
+                                                                            {createdBy.charAt(0).toUpperCase()}
+                                                                        </div>
+                                                                        <div>
+                                                                            <div className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                                                                                {createdBy}
+                                                                                <span className={`text-[10px] px-1.5 py-0.5 rounded border font-normal capitalize ${batch ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                                                                                    {createdByRole}
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                                {batch?.centro_custo_id && (
+                                                                                    <span className="text-[10px] text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 truncate max-w-[150px]">
+                                                                                        {centroCustoName}
+                                                                                    </span>
+                                                                                )}
+                                                                                <span className="text-[10px] text-slate-500 font-mono">{createdAt}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="bg-blue-500/20 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/20">{batchServices.length}</span>
+                                                                        {batch?.is_published ? (
+                                                                            <button
+                                                                                onClick={(e) => { e.stopPropagation(); setTimelineBatchId(batchId); }}
+                                                                                className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25 transition-colors whitespace-nowrap"
+                                                                                title="Ver linha cronológica"
+                                                                            >
+                                                                                Ver Linha
+                                                                            </button>
+                                                                        ) : batch && (
+                                                                            <button
+                                                                                onClick={(e) => handlePublishBatch(batchId, e)}
+                                                                                disabled={publishingBatchId === batchId}
+                                                                                className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-blue-600/20 text-blue-300 border-blue-500/40 hover:bg-blue-600/40 disabled:opacity-50 transition-colors whitespace-nowrap"
+                                                                                title="Publicar escala e gerar linha cronológica"
+                                                                            >
+                                                                                {publishingBatchId === batchId ? '...' : 'Publicar'}
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 text-xs text-slate-400">
+                                                                    <CalendarIcon className="w-3.5 h-3.5" />
+                                                                    <span className="font-mono">{batch?.reference_date || selectedDate}</span>
+                                                                    {batch?.is_published && (
+                                                                        <span className="ml-auto text-[10px] text-emerald-400 flex items-center gap-1">
+                                                                            <CheckCircle className="w-3 h-3" /> Publicada
+                                                                        </span>
+                                                                    )}
+                                                                    {!batch && <span className="text-red-400 text-[10px] ml-auto italic">Erro de Sincronização</span>}
+                                                                </div>
+
+                                                            </div>
+
+                                                            {/* EXPANDED CONTENT */}
+                                                            {isExpanded && (
+                                                                <div className="bg-white/90 border-t border-slate-100 p-3 space-y-2">
+                                                                    {batchServices.map(service => (
+                                                                        <div key={service.id} className="bg-slate-50 p-3 rounded-lg border border-slate-100 space-y-2">
+                                                                            <div className="flex justify-between items-start">
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <span className="text-blue-400 font-mono font-bold text-xs bg-blue-400/10 px-1.5 py-0.5 rounded">{service.hora}</span>
+                                                                                    <span className="text-slate-300 text-xs font-medium truncate max-w-[120px]" title={service.passageiro}>{service.passageiro}</span>
+                                                                                    {isUrgentService(service) && (
+                                                                                        <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border border-red-500/40 bg-red-500/20 text-red-300">⚠ URGENTE</span>
+                                                                                    )}
+                                                                                </div>
+                                                                                <button
+                                                                                    onClick={(e) => handleDeleteService(service.id, e)}
+                                                                                    className="text-slate-600 hover:text-red-400 p-1"
+                                                                                    title="Eliminar"
+                                                                                >
+                                                                                    <Trash2 className="w-3 h-3" />
+                                                                                </button>
+                                                                                <button
+                                                                                    onClick={() => handleSendScheduleEmail(service)}
+                                                                                    disabled={sendingScheduleServiceId === service.id}
+                                                                                    className="text-slate-600 hover:text-cyan-400 p-1 disabled:opacity-60"
+                                                                                    title="Enviar Escala"
+                                                                                >
+                                                                                    <Send className="w-3 h-3" />
+                                                                                </button>
+                                                                            </div>
+
+                                                                            <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center text-[10px] text-slate-500">
+                                                                                <span className="truncate" title={service.origem}>{service.origem}</span>
+                                                                                <ArrowRight className="w-3 h-3 text-slate-600" />
+                                                                                <span className="truncate text-right" title={service.destino}>{service.destino}</span>
+                                                                            </div>
+
+                                                                            <div className="pt-2 border-t border-slate-100">
+                                                                                <select
+                                                                                    className="w-full bg-slate-100 text-slate-500 text-[10px] px-2 py-1.5 rounded border border-slate-200 outline-none focus:border-blue-500/50"
+                                                                                    value=""
+                                                                                    onChange={(e) => {
+                                                                                        if (e.target.value) {
+                                                                                            assignDriverToService(service, e.target.value);
+                                                                                        }
+                                                                                    }}
+                                                                                >
+                                                                                    <option value="">Atribuir a...</option>
+                                                                                    {displayMotoristas.filter(m => m.status === 'disponivel').map(m => (
+                                                                                        <option key={m.id} value={m.id}>{formatDriverOptionLabel(m)}</option>
+                                                                                    ))}
+                                                                                    <option disabled>──────────</option>
+                                                                                    {displayMotoristas.filter(m => m.status !== 'disponivel').map(m => (
+                                                                                        <option key={m.id} value={m.id} className="text-slate-500">{formatDriverOptionLabel(m)} ({m.status})</option>
+                                                                                    ))}
+                                                                                </select>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                                {pendingBatches.length === 0 && adHocPendentes.length === 0 && (
+                                                    <div className="h-40 flex flex-col items-center justify-center text-slate-600 text-center"><CheckSquare className="w-8 h-8 mb-3 opacity-20" /><p className="text-sm">Tudo limpo!</p></div>
+                                                )}
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+
+
+
+                            </div>
+                        </div>
+                    )
+                }
+            </div >
+
+
+
+
+            {/* MODAL: DAILY DRIVER CONFIG */}
+            {showDailyDriversPanel && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] flex items-center justify-center p-4 overflow-y-auto">
+                    <div className="bg-white/90 border border-slate-200 rounded-2xl w-full max-w-6xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+                        <div className="px-6 py-5 border-b border-slate-200 bg-white/90 flex items-center justify-between">
+                            <div>
+                                <h2 className="text-xl font-black text-slate-900">Motoristas de hoje</h2>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Configure disponibilidade, turnos e autocarro para {selectedDate}.
+                                </p>
+                                <div className="mt-3">
+                                    <label className="block text-[11px] font-black uppercase tracking-wide text-slate-500 mb-1">
+                                        Horarios do autocarro (forcar)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={dailyBusUsageSchedule}
+                                        onChange={(e) => setDailyBusUsageSchedule(e.target.value)}
+                                        placeholder="Ex: 08:00, 12:30-13:30, 18:00"
+                                        className="w-full md:w-[420px] bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900"
+                                    />
+                                    <p className="mt-1 text-[11px] text-slate-500">
+                                        Nesses horarios, a distribuicao tenta autocarro mesmo com menos de 8 passageiros.
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowDailyDriversPanel(false)}
+                                className="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold"
+                            >
+                                Fechar
+                            </button>
+                        </div>
+
+                        <div className="overflow-auto p-4 md:p-6">
+                            <div className="min-w-[1200px] grid grid-cols-14 gap-2 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-slate-500 border-b border-slate-200" style={{gridTemplateColumns:'repeat(14,minmax(0,1fr))' }}>
+                                <div className="col-span-2">Nome</div>
+                                <div className="col-span-1">Ativo</div>
+                                <div className="col-span-2">Turno 1</div>
+                                <div className="col-span-2">Turno 2</div>
+                                <div className="col-span-1">Auto.</div>
+                                <div className="col-span-2">Zona Base</div>
+                                <div className="col-span-1">Fora Zona</div>
+                                <div className="col-span-3">Indisponibilidades</div>
+                            </div>
+
+                            <div className="space-y-2 mt-2">
+                                {displayMotoristas.map(driver => {
+                                    const cfg = dailyDriverConfigs[driver.id] || buildDefaultDailyDriverConfig(driver);
+                                    const shift1 = cfg.turnos[0] || { inicio: '08:00', fim: '17:00' };
+                                    const shift2Enabled = (cfg.turnos?.length || 0) > 1;
+                                    const shift2 = cfg.turnos[1] || { inicio: '17:00', fim: '22:00' };
+                                    const unavailableText = cfg.indisponibilidades?.[0]?.reason || '';
+
+                                    return (
+                                        <div key={driver.id} className="min-w-[1200px] grid gap-2 items-center p-3 rounded-xl border border-slate-200 bg-white/90" style={{gridTemplateColumns:'repeat(14,minmax(0,1fr))' }}>
+                                            <div className="col-span-2">
+                                                <p className="text-sm font-bold text-slate-900 truncate">{driver.nome}</p>
+                                                <p className="text-[11px] text-slate-500 truncate">{driver.currentVehicle || 'Sem viatura'}</p>
+                                            </div>
+
+                                            <div className="col-span-1 flex justify-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={cfg.ativo}
+                                                    onChange={(e) => updateDailyDriverConfig(driver.id, current => ({ ...current, ativo: e.target.checked }))}
+                                                    className="h-4 w-4"
+                                                />
+                                            </div>
+
+                                            <div className="col-span-2 grid grid-cols-2 gap-2">
+                                                <input
+                                                    type="time"
+                                                    value={shift1.inicio}
+                                                    onChange={(e) => updateDailyShift(driver.id, 0, 'inicio', e.target.value)}
+                                                    className="bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs text-slate-900"
+                                                />
+                                                <input
+                                                    type="time"
+                                                    value={shift1.fim}
+                                                    onChange={(e) => updateDailyShift(driver.id, 0, 'fim', e.target.value)}
+                                                    className="bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs text-slate-900"
+                                                />
+                                            </div>
+
+                                            <div className="col-span-2 space-y-1">
+                                                <label className="flex items-center gap-2 text-[11px] text-slate-600 font-semibold">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={shift2Enabled}
+                                                        onChange={(e) => toggleSecondShift(driver.id, e.target.checked)}
+                                                        className="h-3.5 w-3.5"
+                                                    />
+                                                    2º turno
+                                                </label>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <input
+                                                        type="time"
+                                                        disabled={!shift2Enabled}
+                                                        value={shift2.inicio}
+                                                        onChange={(e) => updateDailyShift(driver.id, 1, 'inicio', e.target.value)}
+                                                        className="bg-white border border-slate-200 disabled:opacity-50 rounded-lg px-2 py-2 text-xs text-slate-900"
+                                                    />
+                                                    <input
+                                                        type="time"
+                                                        disabled={!shift2Enabled}
+                                                        value={shift2.fim}
+                                                        onChange={(e) => updateDailyShift(driver.id, 1, 'fim', e.target.value)}
+                                                        className="bg-white border border-slate-200 disabled:opacity-50 rounded-lg px-2 py-2 text-xs text-slate-900"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="col-span-1 flex justify-center">
+                                                <label className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={cfg.usaAutocarro}
+                                                        onChange={(e) => updateDailyDriverConfig(driver.id, current => ({ ...current, usaAutocarro: e.target.checked }))}
+                                                        className="h-4 w-4"
+                                                    />
+                                                    <Bus className="w-3.5 h-3.5" />
+                                                </label>
+                                            </div>
+
+                                            <div className="col-span-2">
+                                                <select
+                                                    value={cfg.zonaBase || ''}
+                                                    onChange={(e) => updateDailyDriverConfig(driver.id, current => ({ ...current, zonaBase: (e.target.value || undefined) as ZonaBase | undefined }))}
+                                                    className="w-full bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs text-slate-900"
+                                                >
+                                                    <option value="">Qualquer</option>
+                                                    <option value="Albufeira">Albufeira</option>
+                                                    <option value="Quarteira">Quarteira</option>
+                                                    <option value="Ambos">Ambos</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="col-span-1 flex justify-center">
+                                                <input
+                                                    type="checkbox"
+                                                    title="Permitir fora da zona base"
+                                                    checked={cfg.permitirForaDaZona || false}
+                                                    onChange={(e) => updateDailyDriverConfig(driver.id, current => ({ ...current, permitirForaDaZona: e.target.checked }))}
+                                                    className="h-4 w-4"
+                                                />
+                                            </div>
+
+                                            <div className="col-span-3">
+                                                <input
+                                                    type="text"
+                                                    value={unavailableText}
+                                                    onChange={(e) => updateDailyUnavailable(driver.id, e.target.value)}
+                                                    placeholder="Opcional (ex: folga, férias, manutenção)"
+                                                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900"
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <div className="px-6 py-4 border-t border-slate-200 bg-white/90 flex items-center justify-between">
+                            <p className="text-xs text-slate-500">
+                                Estas regras diárias são usadas pelo botão “Distribuir escalas automaticamente”.
+                            </p>
+                            <button
+                                onClick={() => setShowDailyDriversPanel(false)}
+                                className="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm"
+                            >
+                                Guardar e fechar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL: AUTO SETTINGS */}
+            {showAutoSettings && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4 overflow-y-auto">
+                    <div className="bg-white/90 border border-slate-200 p-6 rounded-2xl w-full max-w-md shadow-2xl">
+                        <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+                            <MoreVertical className="w-5 h-5 text-blue-400" />
+                            Configuração de Automação
+                        </h2>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Google Sheet Albufeira (CSV/Export URL)</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-white/90 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm"
+                                    placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv"
+                                    value={autoSettings.albufeiraUrl}
+                                    onChange={e => setAutoSettings({ ...autoSettings, albufeiraUrl: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Google Sheet Quarteira (CSV/Export URL)</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-white/90 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm"
+                                    placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv"
+                                    value={autoSettings.quarteiraUrl}
+                                    onChange={e => setAutoSettings({ ...autoSettings, quarteiraUrl: e.target.value })}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 mt-8">
+                            <button
+                                onClick={() => setShowAutoSettings(false)}
+                                className="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-bold hover:bg-slate-700 transition-colors"
+                            >
+                                Fechar
+                            </button>
+                            <button
+                                onClick={() => {
+                                    localStorage.setItem('auto_sheet_albufeira', autoSettings.albufeiraUrl);
+                                    localStorage.setItem('auto_sheet_quarteira', autoSettings.quarteiraUrl);
+                                    setShowAutoSettings(false);
+                                }}
+                                className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/20"
+                            >
+                                Guardar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL: AUTOMATION PREVIEW */}
+            {showAutoModal && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4 overflow-y-auto">
+                    <div className="bg-white/90 border border-emerald-500/20 p-6 rounded-3xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
+                                    <CloudLightning className="w-8 h-8 text-emerald-500" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-slate-900">{automationMode === 'auto-dispatch' ? 'Pré-visualização do Auto Dispatch' : 'Pré-visualização da Escala'}</h2>
+                                    <p className="text-slate-400 text-sm">Verifique, edite e remova propostas antes de confirmar.</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={applyAutoGroupingByZone}
+                                    className="bg-blue-600/20 text-blue-400 border border-blue-500/30 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-blue-600/30 transition-all"
+                                >
+                                    <LayoutGrid className="w-4 h-4" />
+                                    AUTO AGRUPAR POR ZONA
+                                </button>
+                                <button
+                                    onClick={() => setShowAutoModal(false)}
+                                    className="text-slate-500 hover:text-slate-700 p-2"
+                                >
+                                    <Trash2 className="w-6 h-6" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
+                            {automationTrips.map((trip, idx) => {
+                                const computedPassengers = Number(trip.passengerCount || trip.servicos.length || 1);
+                                const computedCapacity = Number(trip.vehicleCapacity || viaturaById.get(trip.vehicleId || '')?.vehicleCapacity || 8);
+                                const computedOccupancy = Number((((computedPassengers / Math.max(computedCapacity, 1)) * 100)).toFixed(2));
+
+                                return (
+                                    <div key={trip.id} className="bg-white/90 border border-slate-100 rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-start md:items-center group">
+                                        <div className="flex items-center gap-3 min-w-[100px]">
+                                            <span className="bg-emerald-500/20 text-emerald-400 font-mono font-bold px-2 py-1 rounded border border-emerald-500/20">{trip.hora}</span>
+                                        </div>
+
+                                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-1">
+                                                <div className="flex items-center gap-2 text-xs text-slate-500 uppercase font-bold tracking-wider">
+                                                    <MapPin className="w-3 h-3" /> Origem
+                                                    {trip.areaOrigem && <span className="bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded ml-1">{trip.areaOrigem}</span>}
+                                                </div>
+                                                <div className="text-slate-900 font-medium">{trip.origem}</div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <div className="flex items-center gap-2 text-xs text-slate-500 uppercase font-bold tracking-wider">
+                                                    <ArrowRight className="w-3 h-3" /> Destino
+                                                    {trip.areaDestino && <span className="bg-purple-500/10 text-purple-400 px-1.5 py-0.5 rounded ml-1">{trip.areaDestino}</span>}
+                                                </div>
+                                                <div className="text-slate-900 font-medium">{trip.destino}</div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-4">
+                                            <div className="bg-slate-50 rounded-lg px-3 py-1.5 border border-slate-100 text-center min-w-[40px]">
+                                                <div className="text-[10px] text-slate-500 font-bold leading-none mb-1">Pass.</div>
+                                                <div className="text-slate-900 font-bold leading-none">{computedPassengers}</div>
+                                            </div>
+
+                                            <div className="bg-slate-50 rounded-lg px-3 py-1.5 border border-slate-100 text-center min-w-[72px]">
+                                                <div className="text-[10px] text-slate-500 font-bold leading-none mb-1">Ocupação</div>
+                                                <div className="text-emerald-300 font-bold leading-none">{computedOccupancy.toFixed(0)}%</div>
+                                            </div>
+
+                                            <select
+                                                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 focus:border-emerald-500/50 outline-none w-48"
+                                                value={trip.vehicleId || ''}
+                                                onChange={(e) => {
+                                                    const vehicleId = e.target.value;
+                                                    const vehicle = viaturaById.get(vehicleId);
+                                                    const capacity = Number(vehicle?.vehicleCapacity || 8);
+                                                    const passengerCount = Number(computedPassengers);
+                                                    const occupancyRate = Number(((passengerCount / Math.max(capacity, 1)) * 100).toFixed(2));
+                                                    const newTrips = [...automationTrips];
+                                                    newTrips[idx].vehicleId = vehicleId || undefined;
+                                                    newTrips[idx].vehicleCapacity = capacity;
+                                                    newTrips[idx].occupancyRate = occupancyRate;
+                                                    setAutomationTrips(newTrips);
+                                                }}
+                                            >
+                                                <option value="">🚗 Sem viatura</option>
+                                                {viaturas.map(v => (
+                                                    <option key={v.id} value={v.id}>{v.matricula} ({v.vehicleCapacity || 8} lugares)</option>
+                                                ))}
+                                            </select>
+
+                                            <select
+                                                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 focus:border-emerald-500/50 outline-none w-48"
+                                                value={trip.motoristaId || ''}
+                                                onChange={(e) => {
+                                                    const newTrips = [...automationTrips];
+                                                    newTrips[idx].motoristaId = e.target.value;
+                                                    setAutomationTrips(newTrips);
+                                                }}
+                                            >
+                                                <option value="">🚫 Sem motorista</option>
+                                                {displayMotoristas.map(m => (
+                                                    <option key={m.id} value={m.id}>{formatDriverOptionLabel(m)}</option>
+                                                ))}
+                                            </select>
+
+                                            <button
+                                                onClick={() => setAutomationTrips(prev => prev.filter((_, tripIndex) => tripIndex !== idx))}
+                                                className="bg-red-500/15 text-red-400 border border-red-500/30 px-3 py-2 rounded-xl text-xs font-bold hover:bg-red-500/25"
+                                            >
+                                                Remover
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="mt-6 pt-6 border-t border-slate-200 flex justify-between items-center">
+                            <div className="text-slate-400 text-sm">
+                                <span className="text-slate-900 font-bold">{automationTrips.length}</span> serviços propostos. PRONTO PARA CONFIRMAR.
+                            </div>
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => setShowAutoModal(false)}
+                                    className="px-6 py-3 bg-slate-100 text-slate-500 rounded-xl font-bold hover:bg-slate-700 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={confirmAutomation}
+                                    className="px-10 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-900/20 transform hover:scale-[1.02] active:scale-95 flex items-center gap-2"
+                                >
+                                    <CloudLightning className="w-5 h-5" />
+                                    Confirmar Escala
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL: URGENT REQUEST */}
+            {
+                showUrgentModal && (
+                    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4 overflow-y-auto">
+                        <div className="bg-white/90 border border-red-500/30 p-8 rounded-3xl w-full max-w-lg shadow-[0_0_50px_rgba(239,68,68,0.15)] animate-in zoom-in-95 duration-200">
+                            <div className="flex items-center gap-4 mb-8 text-red-500">
+                                <div className="p-3 bg-red-500/10 rounded-2xl border border-red-500/20">
+                                    <Siren className="w-8 h-8" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-slate-900">{t('schedule.modal.urgent.title')}</h2>
+                                    <p className="text-red-400/80 text-sm font-medium">Este pedido será notificado aos supervisores.</p>
+                                </div>
+                            </div>
+
+                            <form onSubmit={handleUrgentRequest} className="space-y-6">
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.time')}</label>
+                                        <input
+                                            type="time"
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-slate-900 focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
+                                            value={urgentData.hora}
+                                            onChange={e => setUrgentData({ ...urgentData, hora: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.passenger')}</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            placeholder="Nome..."
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-slate-900 focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
+                                            value={urgentData.passageiro}
+                                            onChange={e => handleUrgentPassengerChange(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.pickup')}</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            list="geofences-list"
+                                            placeholder="Onde está..."
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-slate-900 focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
+                                            value={urgentData.origem}
+                                            onChange={e => setUrgentData({ ...urgentData, origem: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.dropoff')}</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            list="geofences-list"
+                                            placeholder="Para onde vai..."
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-slate-900 focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
+                                            value={urgentData.destino}
+                                            onChange={e => setUrgentData({ ...urgentData, destino: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.obs')}</label>
+                                    <textarea
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-slate-900 focus:ring-2 focus:ring-red-500 outline-none resize-none shadow-inner"
+                                        rows={3}
+                                        placeholder="Detalhes adicionais..."
+                                        value={urgentData.obs}
+                                        onChange={e => setUrgentData({ ...urgentData, obs: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="flex gap-4 pt-4 border-t border-slate-100">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowUrgentModal(false)}
+                                        className="flex-1 py-4 bg-slate-100 text-slate-500 hover:text-slate-900 rounded-xl font-bold transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="flex-[2] py-4 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold shadow-lg shadow-red-900/40 flex items-center justify-center gap-3 transform hover:scale-[1.02] transition-all"
+                                    >
+                                        <Send className="w-5 h-5" />
+                                        {t('schedule.modal.urgent.send')}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )
+            }
+            {/* Template Selection Modal */}
+            {showTemplateModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+                    <div className="bg-white/90 border border-slate-200 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]">
+                        <div className="p-6 bg-white/90 border-b border-slate-100 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-500">
+                                    <FileText className="w-5 h-5" />
+                                </div>
+                                <h2 className="text-xl font-bold text-slate-900">Lançar Escala Permanente (Modelo)</h2>
+                            </div>
+                            <button
+                                onClick={() => setShowTemplateModal(false)}
+                                className="text-slate-500 hover:text-slate-700 transition-colors"
+                            >
+                                <Plus className="w-6 h-6 rotate-45" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {escalaTemplates.map(template => (
+                                    <button
+                                        key={template.id}
+                                        onClick={() => setSelectedTemplateId(template.id)}
+                                        className={`group p-5 rounded-2xl border transition-all text-left relative overflow-hidden ${selectedTemplateId === template.id
+                                            ? 'bg-indigo-500/10 border-indigo-500 ring-2 ring-indigo-500/20 shadow-xl shadow-indigo-900/20'
+                                            : 'bg-slate-50 border-slate-100 hover:border-slate-200 hover:bg-slate-50'
+                                            }`}
+                                    >
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className={`p-2 rounded-lg ${selectedTemplateId === template.id ? 'bg-indigo-500 text-white' : 'bg-slate-700 text-slate-400 group-hover:bg-slate-600 transition-colors'}`}>
+                                                <FileText className="w-4 h-4" />
+                                            </div>
+                                            {selectedTemplateId === template.id && (
+                                                <div className="bg-indigo-500 text-[10px] font-black text-white px-2 py-0.5 rounded-full uppercase tracking-tighter animate-pulse">
+                                                    Selecionado
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="font-black text-lg text-slate-900 mb-1 group-hover:translate-x-1 transition-transform">{template.nome}</div>
+                                        <div className="flex items-center gap-2 text-xs text-slate-400">
+                                            <Users className="w-3 h-3" />
+                                            {escalaTemplateItems.filter(i => i.template_id === template.id).length} Serviços Registrados
+                                        </div>
+
+                                        {/* Decorative background element */}
+                                        <div className={`absolute -right-4 -bottom-4 w-24 h-24 blur-3xl rounded-full transition-opacity duration-500 ${selectedTemplateId === template.id ? 'bg-indigo-500/20 opacity-100' : 'bg-transparent opacity-0'}`} />
+                                    </button>
+                                ))}
+
+                                <button
+                                    onClick={() => {
+                                        setShowTemplateModal(false);
+                                        setShowManageTemplates(true);
+                                    }}
+                                    className="p-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 hover:bg-slate-50 transition-all text-center flex flex-col items-center justify-center gap-3 group min-h-[140px]"
+                                >
+                                    <div className="p-3 bg-slate-700/50 rounded-xl group-hover:scale-110 group-hover:bg-slate-700 transition-all">
+                                        <Settings className="w-6 h-6 text-slate-400 group-hover:text-slate-900" />
+                                    </div>
+                                    <span className="text-sm font-black text-slate-400 group-hover:text-slate-900 uppercase tracking-widest">Painel de Gestão</span>
+                                </button>
+                            </div>
+
+                            {selectedTemplateId && (
+                                <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Pré-visualização de Itens</h3>
+                                    </div>
+                                    <div className="bg-white/90 rounded-xl border border-slate-100 overflow-hidden">
+                                        <table className="w-full text-left text-xs">
+                                            <thead>
+                                                <tr className="border-b border-slate-100 bg-white/5">
+                                                    <th className="px-4 py-3 font-bold text-slate-300">Entrada</th>
+                                                    <th className="px-4 py-3 font-bold text-slate-300">Saída</th>
+                                                    <th className="px-4 py-3 font-bold text-slate-300">Passageiro</th>
+                                                    <th className="px-4 py-3 font-bold text-slate-300">Local</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {escalaTemplateItems.filter(i => i.template_id === selectedTemplateId).map(item => (
+                                                    <tr key={item.id} className="hover:bg-white/5">
+                                                        <td className="px-4 py-3 text-emerald-400 font-medium">{item.hora_entrada || '-'}</td>
+                                                        <td className="px-4 py-3 text-amber-400 font-medium">{item.hora_saida || '-'}</td>
+                                                        <td className="px-4 py-3 text-slate-900">{item.passageiro}</td>
+                                                        <td className="px-4 py-3 text-slate-300">{item.local}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-6 bg-white/90 border-t border-slate-100 flex gap-4">
+                            <button
+                                onClick={() => setShowTemplateModal(false)}
+                                className="flex-1 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 rounded-xl font-bold transition-all"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                disabled={!selectedTemplateId}
+                                onClick={() => selectedTemplateId && handleLaunchTemplate(selectedTemplateId)}
+                                className="flex-[2] py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl font-bold shadow-lg shadow-indigo-900/40 flex items-center justify-center gap-2 transform active:scale-95 transition-all"
+                            >
+                                <Send className="w-5 h-5" />
+                                Lançar para {selectedDate}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Template Management Modal */}
+            {showManageTemplates && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[80] flex items-center justify-center p-4">
+                    <div className="bg-white/90 border border-slate-200 rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col overflow-hidden h-[85vh]">
+                        <div className="p-6 bg-white/90 border-b border-slate-100 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-500">
+                                    <Settings className="w-5 h-5" />
+                                </div>
+                                <h2 className="text-xl font-bold text-slate-900">Gestão de Modelos de Escala</h2>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setShowManageTemplates(false);
+                                    setShowTemplateModal(true);
+                                }}
+                                className="text-slate-500 hover:text-slate-700 transition-colors"
+                            >
+                                <Plus className="w-6 h-6 rotate-45" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 flex overflow-hidden">
+                            {/* Templates Lateral List */}
+                            <div className="w-64 border-r border-slate-100 bg-slate-50/60 p-4 space-y-4 overflow-y-auto">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Modelos</span>
+                                    <button
+                                        onClick={() => setIsCreatingTemplate(true)}
+                                        className="p-1 text-indigo-400 hover:text-slate-900"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                    </button>
+                                </div>
+
+                                {isCreatingTemplate && (
+                                    <div className="p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/50 space-y-2">
+                                        <input
+                                            autoFocus
+                                            className="w-full bg-white border border-indigo-500/30 rounded-lg px-3 py-2 text-xs text-slate-900 outline-none"
+                                            placeholder="Nome do Modelo..."
+                                            value={newTemplateName}
+                                            onChange={e => setNewTemplateName(e.target.value)}
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter') {
+                                                    addEscalaTemplate({ nome: newTemplateName }, []);
+                                                    setIsCreatingTemplate(false);
+                                                    setNewTemplateName('');
+                                                }
+                                            }}
+                                        />
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => setIsCreatingTemplate(false)}
+                                                className="flex-1 text-[10px] text-slate-500 hover:text-slate-700 font-bold"
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    addEscalaTemplate({ nome: newTemplateName }, []);
+                                                    setIsCreatingTemplate(false);
+                                                    setNewTemplateName('');
+                                                }}
+                                                className="flex-1 text-[10px] text-indigo-400 hover:text-slate-900 font-bold"
+                                            >
+                                                Criar
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {escalaTemplates.map(template => (
+                                    <div key={template.id} className="relative group">
+                                        <button
+                                            onClick={() => setSelectedTemplateId(template.id)}
+                                            className={`w-full p-3 rounded-xl text-left text-sm transition-all flex items-center justify-between ${selectedTemplateId === template.id
+                                                ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-900/40'
+                                                : 'text-slate-400 hover:bg-white/5 hover:text-slate-900'
+                                                }`}
+                                        >
+                                            <span className="truncate">{template.nome}</span>
+                                            <FileText className="w-4 h-4 opacity-50" />
+                                        </button>
+                                        {selectedTemplateId === template.id && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (confirm('Eliminar este modelo?')) deleteEscalaTemplate(template.id);
+                                                }}
+                                                className="absolute -right-2 -top-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                                            >
+                                                <Trash2 className="w-3 h-3" />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Template Items Content */}
+                            <div className="flex-1 p-6 overflow-y-auto">
+                                {selectedTemplateId ? (
+                                    <div className="space-y-6">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h3 className="text-xl font-bold text-slate-900 mb-1">
+                                                    {escalaTemplates.find(t => t.id === selectedTemplateId)?.nome}
+                                                </h3>
+                                                <p className="text-xs text-slate-400">Gerir funcionários e locais deste modelo permanente</p>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                {/* Add Item form toggle or similar could go here */}
+                                            </div>
+                                        </div>
+
+                                        {/* New Item Form */}
+                                        <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4 space-y-4">
+                                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 ml-1">Funcionário</label>
+                                                    <input
+                                                        className="w-full bg-white/90 border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-900 focus:border-indigo-500 outline-none"
+                                                        placeholder="Ex: João Silva"
+                                                        value={templateItemForm.passageiro}
+                                                        onChange={e => setTemplateItemForm({ ...templateItemForm, passageiro: e.target.value })}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 ml-1">Local/Hotel</label>
+                                                    <input
+                                                        className="w-full bg-white/90 border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-900 focus:border-indigo-500 outline-none"
+                                                        placeholder="Ex: Hilton Vilamoura"
+                                                        value={templateItemForm.local}
+                                                        onChange={e => setTemplateItemForm({ ...templateItemForm, local: e.target.value })}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 ml-1">Hora Entrada</label>
+                                                    <input
+                                                        type="time"
+                                                        className="w-full bg-white/90 border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-900 focus:border-indigo-500 outline-none"
+                                                        value={templateItemForm.hora_entrada}
+                                                        onChange={e => setTemplateItemForm({ ...templateItemForm, hora_entrada: e.target.value })}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 ml-1">Hora Saída</label>
+                                                    <input
+                                                        type="time"
+                                                        className="w-full bg-white/90 border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-900 focus:border-indigo-500 outline-none"
+                                                        value={templateItemForm.hora_saida}
+                                                        onChange={e => setTemplateItemForm({ ...templateItemForm, hora_saida: e.target.value })}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-end">
+                                                <button
+                                                    onClick={() => {
+                                                        if (!templateItemForm.local) return alert('Local é obrigatório');
+                                                        addTemplateItem({
+                                                            template_id: selectedTemplateId!,
+                                                            ...templateItemForm
+                                                        });
+                                                        setTemplateItemForm({
+                                                            hora_entrada: '09:00',
+                                                            hora_saida: '18:00',
+                                                            passageiro: '',
+                                                            local: '',
+                                                            obs: ''
+                                                        });
+                                                    }}
+                                                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all active:scale-95"
+                                                >
+                                                    <Plus className="w-4 h-4" />
+                                                    Adicionar ao Modelo
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Items List */}
+                                        <div className="space-y-3">
+                                            {escalaTemplateItems.filter(ti => ti.template_id === selectedTemplateId).length === 0 ? (
+                                                <div className="text-center py-20 bg-white/90 rounded-3xl border border-dashed border-slate-100 flex flex-col items-center justify-center">
+                                                    <div className="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center mb-4">
+                                                        <FileText className="w-8 h-8 text-indigo-500/30" />
+                                                    </div>
+                                                    <h4 className="text-slate-900 font-bold mb-1">Modelo Vazio</h4>
+                                                    <p className="text-slate-500 text-xs max-w-[200px]">Adicione funcionários e locais acima para começar a construir este modelo.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="grid grid-cols-1 gap-2">
+                                                    <div className="grid grid-cols-12 px-6 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-100">
+                                                        <div className="col-span-3">Horários</div>
+                                                        <div className="col-span-4">Funcionário / Passageiro</div>
+                                                        <div className="col-span-4">Destino / Local</div>
+                                                        <div className="col-span-1 text-right">Ações</div>
+                                                    </div>
+                                                    {escalaTemplateItems.filter(ti => ti.template_id === selectedTemplateId).map(item => (
+                                                        <div key={item.id} className="grid grid-cols-12 items-center bg-slate-50 border border-slate-100 hover:border-indigo-500/40 hover:bg-slate-50 rounded-2xl px-6 py-4 group transition-all">
+                                                            <div className="col-span-3 flex items-center gap-3">
+                                                                <div className="flex flex-col">
+                                                                    <div className="flex items-center gap-1.5 mb-1">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" />
+                                                                        <span className="text-sm font-black text-slate-900">{item.hora_entrada || '--:--'}</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50" />
+                                                                        <span className="text-sm font-black text-slate-900">{item.hora_saida || '--:--'}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="col-span-4">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-400 group-hover:bg-indigo-500 group-hover:text-slate-900 transition-colors">
+                                                                        {item.passageiro?.charAt(0) || 'S'}
+                                                                    </div>
+                                                                    <span className="text-sm font-bold text-slate-900 group-hover:text-indigo-200 transition-colors truncate">
+                                                                        {item.passageiro || 'Staff Geral'}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="col-span-4 flex items-center gap-2">
+                                                                <div className="p-1.5 bg-slate-100 rounded-lg border border-slate-100">
+                                                                    <MapPin className="w-3 h-3 text-indigo-400" />
+                                                                </div>
+                                                                <span className="text-sm text-slate-300 font-medium truncate">{item.local}</span>
+                                                            </div>
+                                                            <div className="col-span-1 text-right">
+                                                                <button
+                                                                    onClick={() => deleteTemplateItem(item.id)}
+                                                                    className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="h-full flex flex-col items-center justify-center text-center opacity-50">
+                                        <div className="p-4 bg-indigo-500/5 rounded-full mb-4">
+                                            <FileText className="w-12 h-12 text-indigo-500/30" />
+                                        </div>
+                                        <h3 className="text-lg font-bold text-[#1f2957] mb-2">Selecione um Modelo</h3>
+                                        <p className="text-sm text-slate-400 max-w-xs">
+                                            Escolha um modelo à esquerda ou crie um novo para gerir as escalas recorrentes.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Datalist for geofences suggestions */}
+            <datalist id="geofences-list">
+                {locationSuggestions.map((name: string, i: number) => (
+                    <option key={i} value={name} />
+                ))}
+            </datalist>
+
+            {/* Timeline Modal */}
+            {timelineBatchId && (() => {
+                const timelineBatch = scaleBatches.find(b => b.id === timelineBatchId);
+                const timelineServices = servicos.filter(s => s.batchId === timelineBatchId);
+                if (!timelineBatch) return null;
+                return (
+                    <EscalaTimelineModal
+                        batch={timelineBatch}
+                        services={timelineServices}
+                        motoristas={motoristas}
+                        viaturas={viaturas}
+                        centrosCustos={centrosCustos}
+                        onClose={() => setTimelineBatchId(null)}
+                    />
+                );
+            })()}
+        </div>
+
+
+    )
+}
+
