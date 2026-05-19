@@ -187,15 +187,26 @@ async function ensureExeIco() {
   fs.writeFileSync(EXE_ICON_ICO, icoBuffer);
 }
 
+function removeLegacyInstallerAssets() {
+  const legacyFiles = ['sidebar.bmp', 'sidebar-uninstall.bmp', 'header.bmp', 'header-small.bmp'];
+
+  for (const fileName of legacyFiles) {
+    const filePath = path.join(INSTALLER_DIR, fileName);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  }
+}
+
 async function main() {
   ensureDir(BUILD_DIR);
   ensureDir(INSTALLER_DIR);
 
   await ensureExeIco();
-  await generateSidebar(path.join(INSTALLER_DIR, 'sidebar.bmp'), 'ALGARTEMPO FROTA', 'Enterprise Installer');
-  await generateSidebar(path.join(INSTALLER_DIR, 'sidebar-uninstall.bmp'), 'ALGARTEMPO FROTA', 'Uninstall Wizard');
-  await generateHeader(path.join(INSTALLER_DIR, 'header.bmp'));
-  await generateHeaderSmall(path.join(INSTALLER_DIR, 'header-small.bmp'));
+  fs.copyFileSync(EXE_ICON_ICO, path.join(INSTALLER_DIR, 'exeicon.ico'));
+  await generateSidebar(path.join(INSTALLER_DIR, 'wizard.bmp'), 'ALGARTEMPO FROTA', 'Enterprise Installer');
+  await generateHeaderSmall(path.join(INSTALLER_DIR, 'wizardsmall.bmp'));
+  removeLegacyInstallerAssets();
 
   console.log('[prepare-installer-assets] Assets do instalador gerados com sucesso.');
 }

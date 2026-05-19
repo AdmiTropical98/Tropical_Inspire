@@ -12,8 +12,8 @@
 
 [Setup]
 AppId={{7FD1A4F0-BE3D-45E1-9A24-5439AFD89428}
-AppName={#MyAppName}
-AppVersion={#MyAppVersion}
+AppName=ALGARTEMPO FROTA
+AppVersion=1.9.1
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
@@ -27,13 +27,13 @@ PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 OutputDir=..\\..\\release
 OutputBaseFilename=ALGARTEMPO-Setup-{#MyAppVersion}-Inno
-SetupIconFile=..\\exeicon.ico
+SetupIconFile=exeicon.ico
 UninstallDisplayIcon={app}\\{#MyAppExeName}
-Compression=lzma2
+Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
-WizardImageFile=..\\installer\\sidebar.bmp
-WizardSmallImageFile=..\\installer\\header-small.bmp
+WizardImageFile=wizard.bmp
+WizardSmallImageFile=wizardsmall.bmp
 DisableWelcomePage=no
 DisableProgramGroupPage=yes
 ArchitecturesInstallIn64BitMode=x64compatible
