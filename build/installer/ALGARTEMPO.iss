@@ -6,10 +6,6 @@
   #define MyAppVersion "1.9.1"
 #endif
 
-#define SkinDll "..\\inno\\isskin\\ISSkin.dll"
-#define SkinTheme "..\\inno\\isskin\\Aero.cjstyles"
-#define UseSkin FileExists(SkinDll) && FileExists(SkinTheme)
-
 [Setup]
 AppId={{7FD1A4F0-BE3D-45E1-9A24-5439AFD89428}
 AppName=ALGARTEMPO FROTA
@@ -31,7 +27,8 @@ SetupIconFile=exeicon.ico
 UninstallDisplayIcon={app}\\{#MyAppExeName}
 Compression=lzma
 SolidCompression=yes
-WizardStyle=modern
+WizardStyle=modern windows11 includetitlebar
+WizardStyleFile=Styles\\Luna.vsf
 WizardImageFile=wizard.bmp
 WizardSmallImageFile=wizardsmall.bmp
 DisableWelcomePage=no
@@ -46,10 +43,6 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 Source: "..\\..\\release\\win-unpacked\\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-#if UseSkin
-Source: "{#SkinDll}"; Flags: dontcopy
-Source: "{#SkinTheme}"; Flags: dontcopy
-#endif
 
 [Icons]
 Name: "{autoprograms}\\ALGARTEMPO"; Filename: "{app}\\{#MyAppExeName}"
@@ -57,31 +50,3 @@ Name: "{autodesktop}\\ALGARTEMPO"; Filename: "{app}\\{#MyAppExeName}"; Tasks: de
 
 [Run]
 Filename: "{app}\\{#MyAppExeName}"; Description: "Iniciar ALGARTEMPO agora"; Flags: nowait postinstall skipifsilent
-
-[Code]
-#if UseSkin
-function LoadSkin(lpszPath: string; lpszIniFileName: string): Integer;
-  external 'LoadSkin@files:ISSkin.dll stdcall delayload';
-function UnloadSkin(): Integer;
-  external 'UnloadSkin@files:ISSkin.dll stdcall delayload';
-
-function InitializeSetup(): Boolean;
-begin
-  Result := True;
-  try
-    ExtractTemporaryFile('ISSkin.dll');
-    ExtractTemporaryFile('Aero.cjstyles');
-    LoadSkin(ExpandConstant('{tmp}\\Aero.cjstyles'), '');
-  except
-    Result := True;
-  end;
-end;
-
-procedure DeinitializeSetup();
-begin
-  try
-    UnloadSkin();
-  except
-  end;
-end;
-#endif
