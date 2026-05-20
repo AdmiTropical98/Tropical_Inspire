@@ -10,8 +10,10 @@ const ROOT = path.resolve(__dirname, '..');
 const BUILD_DIR = path.join(ROOT, 'build');
 const INSTALLER_DIR = path.join(BUILD_DIR, 'installer');
 
-const EXE_ICON_PNG = path.join(ROOT, 'public', 'exeicon.png');
+const APPLE_TOUCH_ICON_PNG = path.join(ROOT, 'public', 'apple-touch-icon.png');
+const LEGACY_EXE_ICON_PNG = path.join(ROOT, 'public', 'exeicon.png');
 const EXE_ICON_ICO = path.join(BUILD_DIR, 'exeicon.ico');
+const PUBLIC_FAVICON_ICO = path.join(ROOT, 'public', 'favicon.ico');
 const WIZARD_BMP = path.join(INSTALLER_DIR, 'wizard.bmp');
 const WIZARD_SMALL_BMP = path.join(INSTALLER_DIR, 'wizardsmall.bmp');
 
@@ -26,12 +28,17 @@ function ensureFileExists(filePath, message) {
 }
 
 async function ensureExeIco() {
-  if (!fs.existsSync(EXE_ICON_PNG)) {
-    throw new Error(`Fonte do icone nao encontrada: ${EXE_ICON_PNG}`);
+  const sourcePng = fs.existsSync(APPLE_TOUCH_ICON_PNG)
+    ? APPLE_TOUCH_ICON_PNG
+    : LEGACY_EXE_ICON_PNG;
+
+  if (!fs.existsSync(sourcePng)) {
+    throw new Error(`Fonte do icone nao encontrada: ${APPLE_TOUCH_ICON_PNG} (fallback: ${LEGACY_EXE_ICON_PNG})`);
   }
 
-  const icoBuffer = await pngToIco(EXE_ICON_PNG);
+  const icoBuffer = await pngToIco(sourcePng);
   fs.writeFileSync(EXE_ICON_ICO, icoBuffer);
+  fs.writeFileSync(PUBLIC_FAVICON_ICO, icoBuffer);
 }
 
 function removeLegacyInstallerAssets() {

@@ -12,7 +12,7 @@ export default defineConfig({
       disable: isElectronBuild,
       injectRegister: false,
       registerType: 'autoUpdate',
-      includeAssets: ['apple-touch-icon.png', 'favicon.png', 'grid-pattern.svg'],
+      includeAssets: ['apple-touch-icon.png', 'favicon.ico', 'favicon.png', 'grid-pattern.svg'],
       manifest: {
         name: 'Gestão Frota',
         short_name: 'GestãoFrota',
