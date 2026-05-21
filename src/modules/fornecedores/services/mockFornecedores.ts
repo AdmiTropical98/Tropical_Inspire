@@ -1,0 +1,38 @@
+import { Fornecedor } from '../types/fornecedor';
+
+export const mockFornecedores: Fornecedor[] = [
+  {
+    id: '1',
+    nome: 'Tech Solutions',
+    categoria: 'Tecnologia',
+    estado: 'ativo',
+    nif: '123456789',
+    morada: 'Rua das Inovações, 100',
+    email: 'contato@techsolutions.com',
+    iban: 'PT50000201231234567890154',
+    contactos: ['+351 912345678'],
+    documentos: ['contrato.pdf'],
+    historico: ['2024-01-10: Contrato assinado'],
+    notas: 'Fornecedor estratégico para TI.',
+    avaliacoes: [5, 4, 5],
+    pagamentos: ['pagamento1', 'pagamento2'],
+    requisicoes: ['req1', 'req2'],
+  },
+  {
+    id: '2',
+    nome: 'Limpeza Pro',
+    categoria: 'Limpeza',
+    estado: 'inativo',
+    nif: '987654321',
+    morada: 'Av. Central, 200',
+    email: 'geral@limpezapro.com',
+    iban: 'PT50000201231234567890155',
+    contactos: ['+351 934567890'],
+    documentos: ['contrato_limpeza.pdf'],
+    historico: ['2023-12-01: Serviço suspenso'],
+    notas: 'Serviço suspenso por falta de pagamento.',
+    avaliacoes: [3, 2],
+    pagamentos: ['pagamento3'],
+    requisicoes: ['req3'],
+  },
+];

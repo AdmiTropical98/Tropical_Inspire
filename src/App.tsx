@@ -37,8 +37,11 @@ import ContabilidadeTab from './pages/Contabilidade';
 import SupplierInvoiceDocumentPage from './pages/Contabilidade/SupplierInvoiceDocumentPage';
 import NovaFaturaPage from './pages/Finance/NovaFaturaPage';
 import ControloOperacionalTab from './pages/ControloOperacional';
+// Fornecedores Frota (antigo)
 import Fornecedores from './pages/Fornecedores';
 import SupplierProfile from './pages/Fornecedores/SupplierProfile';
+// Fornecedores Enterprise (novo)
+const FornecedoresModuleEntry = lazy(() => import('./modules/fornecedores/FornecedoresModuleEntry'));
 import ViaVerde from './pages/ViaVerde';
 import Carregamentos from './pages/Carregamentos';
 import EficienciaFrota from './pages/EficienciaFrota';
@@ -830,8 +833,11 @@ function App() {
         <Route path="/finance/faturas/:invoiceId/editar" element={<SupplierInvoiceDocumentPage mode="edit" />} />
         <Route path="/lancar-escalas" element={<Navigate to="/operacoes/planear-escala" replace />} />
         <Route path="/controlo-operacional" element={<ControloOperacionalTab />} />
-        <Route path="/fornecedores" element={<Fornecedores />} />
-        <Route path="/fornecedores/:supplierId" element={<SupplierProfile />} />
+        {/* Novo módulo Fornecedores Enterprise */}
+        <Route path="/fornecedores/*" element={<Suspense fallback={<div className="p-8 text-slate-400">A carregar módulo Fornecedores...</div>}><FornecedoresModuleEntry /></Suspense>} />
+        {/* Fornecedores da Frota (antigo) - manter para viaturas/manutenção */}
+        <Route path="/frota/fornecedores" element={<Fornecedores />} />
+        <Route path="/frota/fornecedores/:supplierId" element={<SupplierProfile />} />
         <Route path="/via-verde" element={<ViaVerde />} />
         <Route path="/carregamentos" element={<Carregamentos />} />
         <Route path="/eficiencia-frota" element={<EficienciaFrota />} />

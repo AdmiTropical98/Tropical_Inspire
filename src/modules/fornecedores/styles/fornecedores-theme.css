@@ -1,0 +1,40 @@
+/* Paleta dark blue, glassmorphism leve, brilhos azuis, bordas suaves */
+:root {
+  --color-bg-main: #0a1627;
+  --color-bg-card: rgba(18, 32, 56, 0.85);
+  --color-bg-glass: rgba(18, 32, 56, 0.65);
+  --color-primary: #2563eb;
+  --color-primary-light: #3b82f6;
+  --color-accent: #60a5fa;
+  --color-border: #1e293b;
+  --color-text-main: #e0e7ef;
+  --color-text-muted: #94a3b8;
+  --color-glow: #2563eb33;
+}
+
+body, .fornecedores-root {
+  background: var(--color-bg-main);
+  color: var(--color-text-main);
+}
+
+.card-glass {
+  background: var(--color-bg-glass);
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 32px 0 var(--color-glow);
+  border: 1px solid var(--color-border);
+  backdrop-filter: blur(8px);
+}
+
+.text-glow {
+  text-shadow: 0 0 8px var(--color-glow);
+}
+
+/* Scrollbar custom */
+::-webkit-scrollbar {
+  width: 8px;
+  background: var(--color-bg-card);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: 8px;
+}
