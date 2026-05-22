@@ -179,14 +179,14 @@ export default function FornecedoresModule() {
         {/* Content */}
         <main className="ferp-content">
           <Routes>
-            <Route index element={<Navigate to="/fornecedores-erp/dashboard" replace />} />
-            <Route path="dashboard" element={<FornecedoresDashboard />} />
-            <Route path="gestao" element={<FornecedoresGestao />} />
-            <Route path="gestao/perfil/:supplierId" element={<FornecedorPerfil />} />
-            <Route path="requisicoes" element={<FornecedoresRequisicoes />} />
-            <Route path="pagamentos" element={<FornecedoresPagamentos />} />
-            <Route path="documentos" element={<FornecedoresDocumentos />} />
-            <Route path="relatorios" element={<FornecedoresRelatorios />} />
+            <Route path="/fornecedores-erp" element={<Navigate to="/fornecedores-erp/dashboard" replace />} />
+            <Route path="/fornecedores-erp/dashboard" element={<FornecedoresDashboard />} />
+            <Route path="/fornecedores-erp/gestao" element={<FornecedoresGestao />} />
+            <Route path="/fornecedores-erp/gestao/perfil/:supplierId" element={<FornecedorPerfil />} />
+            <Route path="/fornecedores-erp/requisicoes" element={<FornecedoresRequisicoes />} />
+            <Route path="/fornecedores-erp/pagamentos" element={<FornecedoresPagamentos />} />
+            <Route path="/fornecedores-erp/documentos" element={<FornecedoresDocumentos />} />
+            <Route path="/fornecedores-erp/relatorios" element={<FornecedoresRelatorios />} />
             <Route path="*" element={<Navigate to="/fornecedores-erp/dashboard" replace />} />
           </Routes>
         </main>
