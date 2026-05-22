@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   BarChart3,
   Building2,
@@ -54,6 +54,33 @@ export default function FornecedoresModule() {
 
   const activeKey = NAV_ITEMS.find((n) => location.pathname.startsWith(n.path))?.key ?? '';
   const pageTitle = getPageTitle(location.pathname);
+  const renderContent = () => {
+    if (location.pathname.startsWith('/fornecedores-erp/gestao/perfil/')) {
+      return <FornecedorPerfil />;
+    }
+
+    if (location.pathname === '/fornecedores-erp/gestao') {
+      return <FornecedoresGestao />;
+    }
+
+    if (location.pathname === '/fornecedores-erp/requisicoes') {
+      return <FornecedoresRequisicoes />;
+    }
+
+    if (location.pathname === '/fornecedores-erp/pagamentos') {
+      return <FornecedoresPagamentos />;
+    }
+
+    if (location.pathname === '/fornecedores-erp/documentos') {
+      return <FornecedoresDocumentos />;
+    }
+
+    if (location.pathname === '/fornecedores-erp/relatorios') {
+      return <FornecedoresRelatorios />;
+    }
+
+    return <FornecedoresDashboard />;
+  };
 
   return (
     <div className="ferp-shell">
@@ -178,17 +205,7 @@ export default function FornecedoresModule() {
 
         {/* Content */}
         <main className="ferp-content">
-          <Routes>
-            <Route path="/fornecedores-erp" element={<Navigate to="/fornecedores-erp/dashboard" replace />} />
-            <Route path="/fornecedores-erp/dashboard" element={<FornecedoresDashboard />} />
-            <Route path="/fornecedores-erp/gestao" element={<FornecedoresGestao />} />
-            <Route path="/fornecedores-erp/gestao/perfil/:supplierId" element={<FornecedorPerfil />} />
-            <Route path="/fornecedores-erp/requisicoes" element={<FornecedoresRequisicoes />} />
-            <Route path="/fornecedores-erp/pagamentos" element={<FornecedoresPagamentos />} />
-            <Route path="/fornecedores-erp/documentos" element={<FornecedoresDocumentos />} />
-            <Route path="/fornecedores-erp/relatorios" element={<FornecedoresRelatorios />} />
-            <Route path="*" element={<Navigate to="/fornecedores-erp/dashboard" replace />} />
-          </Routes>
+          {renderContent()}
         </main>
       </section>
     </div>

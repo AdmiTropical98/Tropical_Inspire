@@ -5,6 +5,18 @@ import {
   Star,
   TrendingUp,
 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
 // ─── Mock data ───────────────────────────────────────────────────────────────
 const TOP_BY_SPEND = [
@@ -68,7 +80,7 @@ export default function FornecedoresRelatorios() {
   return (
     <div className="ferp-animate space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <motion.div className="flex items-center justify-between" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <div>
           <h2 className="text-2xl font-black tracking-tight text-white">Relatórios & Analytics</h2>
           <p className="text-sm" style={{ color: '#94a3b8' }}>Ano fiscal 2024 · Dados atualizados</p>
@@ -81,14 +93,14 @@ export default function FornecedoresRelatorios() {
             <Download className="h-4 w-4" /> Exportar Excel
           </button>
         </div>
-      </div>
+      </motion.div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         {KPI.map((k) => {
           const Icon = k.icon;
           return (
-            <div key={k.label} className="ferp-card ferp-card-glow p-5">
+            <motion.div key={k.label} className="ferp-card ferp-card-glow p-5" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex h-9 w-9 items-center justify-center rounded-[9px]" style={{ background: `${k.color}18` }}>
                   <Icon className="h-5 w-5" style={{ color: k.color }} />
@@ -97,13 +109,12 @@ export default function FornecedoresRelatorios() {
               <p className="text-[26px] font-black text-white">{k.value}</p>
               <p className="text-[11px] font-semibold mt-0.5" style={{ color: '#64748b' }}>{k.label}</p>
               <p className="text-[11px] mt-0.5" style={{ color: k.color }}>{k.sub}</p>
-            </div>
+            </motion.div>
           );
         })}
       </div>
 
-      {/* Trend chart */}
-      <div className="ferp-card ferp-card-glow p-5">
+      <motion.div className="ferp-card ferp-card-glow p-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <div className="mb-5 flex items-center justify-between">
           <div>
             <h3 className="text-[15px] font-black text-white">Evolução de Gastos 2024</h3>
@@ -114,36 +125,20 @@ export default function FornecedoresRelatorios() {
             <p className="text-[11px]" style={{ color: '#4ade80' }}>▲ 18.4% vs 2023</p>
           </div>
         </div>
-        <div className="flex h-44 items-end gap-2">
-          {MONTHLY_TREND.map((m) => {
-            const pct = (m.spend / maxSpend) * 100;
-            return (
-              <div key={m.month} className="group flex flex-1 flex-col items-center gap-1">
-                <div className="relative w-full">
-                  <div
-                    className="ferp-bar w-full"
-                    style={{ height: `${(pct / 100) * 160}px`, minHeight: 4 }}
-                    title={fmt(m.spend)}
-                  >
-                    <div
-                      className="absolute -top-8 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col items-center whitespace-nowrap"
-                    >
-                      <div
-                        className="rounded-[8px] px-2.5 py-1.5 text-[10px] font-bold text-white"
-                        style={{ background: 'rgba(30,10,60,0.95)', border: '1px solid rgba(139,92,246,0.4)' }}
-                      >
-                        <p>{fmt(m.spend)}</p>
-                        <p style={{ color: '#94a3b8' }}>{m.suppliers} fornec.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <span className="text-[9px] font-bold uppercase" style={{ color: '#475569' }}>{m.month}</span>
-              </div>
-            );
-          })}
+        <div className="h-56">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={MONTHLY_TREND}>
+              <CartesianGrid strokeDasharray="2 2" stroke="rgba(139,92,246,0.15)" />
+              <XAxis dataKey="month" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis yAxisId="left" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis yAxisId="right" orientation="right" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+              <Tooltip contentStyle={{ background: '#100625', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 10 }} formatter={(v: number, key: string) => (key === 'spend' ? fmt(v) : v)} />
+              <Line yAxisId="left" type="monotone" dataKey="spend" stroke="#c084fc" strokeWidth={2.5} dot={{ r: 2 }} />
+              <Line yAxisId="right" type="monotone" dataKey="suppliers" stroke="#60a5fa" strokeWidth={2.2} dot={{ r: 2 }} />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
-      </div>
+      </motion.div>
 
       {/* Bottom row */}
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
@@ -197,30 +192,29 @@ export default function FornecedoresRelatorios() {
       </div>
 
       {/* Category breakdown */}
-      <div className="ferp-card ferp-card-glow p-5">
+      <motion.div className="ferp-card ferp-card-glow p-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <h3 className="mb-5 text-[15px] font-black text-white">Gastos por Categoria</h3>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {[
-            { cat: 'IT & Software', value: 142300, pct: 45, color: '#7c3aed' },
-            { cat: 'Serviços', value: 98400, pct: 31, color: '#a855f7' },
-            { cat: 'Material Escritório', value: 74100, pct: 23, color: '#818cf8' },
-            { cat: 'Segurança', value: 65800, pct: 20, color: '#6366f1' },
-            { cat: 'Alimentação', value: 53200, pct: 17, color: '#c084fc' },
-            { cat: 'Logística & Outros', value: 86600, pct: 27, color: '#4f46e5' },
-          ].map((item) => (
-            <div key={item.cat} className="rounded-[12px] p-4" style={{ background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(139,92,246,0.12)' }}>
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-[12px] font-bold" style={{ color: '#cbd5e1' }}>{item.cat}</span>
-                <span className="text-[12px] font-black" style={{ color: item.color }}>{item.pct}%</span>
-              </div>
-              <p className="text-[18px] font-black text-white">{fmt(item.value)}</p>
-              <div className="ferp-progress mt-2">
-                <div className="ferp-progress-fill" style={{ width: `${item.pct}%`, background: `linear-gradient(90deg, ${item.color}, ${item.color}80)` }} />
-              </div>
-            </div>
-          ))}
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={[
+                { cat: 'IT & Software', value: 142300 },
+                { cat: 'Serviços', value: 98400 },
+                { cat: 'Material Escritório', value: 74100 },
+                { cat: 'Segurança', value: 65800 },
+                { cat: 'Alimentação', value: 53200 },
+                { cat: 'Logística & Outros', value: 86600 },
+              ]}
+            >
+              <CartesianGrid strokeDasharray="2 2" stroke="rgba(139,92,246,0.15)" />
+              <XAxis dataKey="cat" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+              <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ background: '#100625', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 10 }} />
+              <Bar dataKey="value" fill="#7c3aed" radius={[8, 8, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

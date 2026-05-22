@@ -1,4 +1,16 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip as ChartTooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import {
   AlertCircle,
   CheckCircle2,
@@ -64,7 +76,6 @@ export default function FornecedoresPagamentos() {
   const totalPendente = PAYMENTS.filter((p) => p.status === 'Pendente').reduce((acc, p) => acc + p.amount, 0);
   const totalVencido = PAYMENTS.filter((p) => p.status === 'Vencido').reduce((acc, p) => acc + p.amount, 0);
 
-  // Chart data — by month
   const monthlyData = [
     { month: 'Set', paid: 28400, pending: 5200 },
     { month: 'Out', paid: 31800, pending: 8100 },
@@ -74,10 +85,16 @@ export default function FornecedoresPagamentos() {
   ];
   const maxVal = Math.max(...monthlyData.map((m) => m.paid + m.pending));
 
+  const velocityData = monthlyData.map((m) => ({
+    month: m.month,
+    total: m.paid + m.pending,
+    paid: m.paid,
+  }));
+
   return (
     <div className="ferp-animate space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <motion.div className="flex items-center justify-between" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <div>
           <h2 className="text-2xl font-black tracking-tight text-white">Pagamentos</h2>
           <p className="text-sm" style={{ color: '#94a3b8' }}>{filtered.length} registro(s)</p>
@@ -90,7 +107,7 @@ export default function FornecedoresPagamentos() {
             <Plus className="h-4 w-4" /> Registar Pagamento
           </button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -101,7 +118,7 @@ export default function FornecedoresPagamentos() {
         ].map((s) => {
           const Icon = s.icon;
           return (
-            <div key={s.label} className="ferp-card ferp-card-glow p-5">
+            <motion.div key={s.label} className="ferp-card ferp-card-glow p-5" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-[9px]" style={{ background: `${s.color}18` }}>
                   <Icon className="h-5 w-5" style={{ color: s.color }} />
@@ -116,12 +133,12 @@ export default function FornecedoresPagamentos() {
               <p className="text-[26px] font-black text-white">{s.value}</p>
               <p className="text-[12px] font-semibold mt-1" style={{ color: '#64748b' }}>{s.label}</p>
               <p className="text-[11px] mt-0.5" style={{ color: s.color }}>{s.sub}</p>
-            </div>
+            </motion.div>
           );
         })}
       </div>
 
-      {/* Stacked bar chart */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       <div className="ferp-card ferp-card-glow p-5">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-[15px] font-black text-white">Pagamentos por Mês</h3>
@@ -147,6 +164,29 @@ export default function FornecedoresPagamentos() {
             );
           })}
         </div>
+      </div>
+
+      <motion.div className="ferp-card ferp-card-glow p-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <h3 className="mb-3 text-[15px] font-black text-white">Velocidade de processamento</h3>
+        <div className="h-36">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={velocityData}>
+              <defs>
+                <linearGradient id="paidVelocity" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#4ade80" stopOpacity={0.5} />
+                  <stop offset="95%" stopColor="#4ade80" stopOpacity={0.05} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="2 2" stroke="rgba(139,92,246,0.15)" />
+              <XAxis dataKey="month" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+              <ChartTooltip contentStyle={{ background: '#100625', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 10 }} />
+              <Area type="monotone" dataKey="total" stroke="#a855f7" fill="url(#paidVelocity)" />
+              <Bar dataKey="paid" fill="#4ade80" radius={[4, 4, 0, 0]} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </motion.div>
       </div>
 
       {/* Filters */}

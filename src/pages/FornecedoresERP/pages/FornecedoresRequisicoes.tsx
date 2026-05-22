@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Pie, PieChart, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import {
   CheckCircle2,
   ChevronRight,
@@ -104,10 +106,17 @@ export default function FornecedoresRequisicoes() {
     emAnalise: REQUISITIONS.filter((r) => r.status === 'Em Análise').length,
   };
 
+  const statusChart = [
+    { name: 'Pendente', value: stats.pendente, color: '#fbbf24' },
+    { name: 'Em Análise', value: stats.emAnalise, color: '#60a5fa' },
+    { name: 'Aprovado', value: stats.aprovado, color: '#4ade80' },
+    { name: 'Rejeitado', value: REQUISITIONS.filter((r) => r.status === 'Rejeitado').length, color: '#f87171' },
+  ];
+
   return (
     <div className="ferp-animate space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <motion.div className="flex items-center justify-between" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <div>
           <h2 className="text-2xl font-black tracking-tight text-white">Requisições</h2>
           <p className="text-sm" style={{ color: '#94a3b8' }}>{filtered.length} requisição(ões) encontrada(s)</p>
@@ -115,10 +124,10 @@ export default function FornecedoresRequisicoes() {
         <button type="button" onClick={() => setShowNew(true)} className="ferp-btn-primary">
           <Plus className="h-4 w-4" /> Nova Requisição
         </button>
-      </div>
+      </motion.div>
 
-      {/* Stats mini */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:col-span-8">
         {[
           { label: 'Total', value: stats.total, icon: Package, color: '#7c3aed' },
           { label: 'Pendentes', value: stats.pendente, icon: Clock, color: '#fbbf24' },
@@ -127,19 +136,36 @@ export default function FornecedoresRequisicoes() {
         ].map((s) => {
           const Icon = s.icon;
           return (
-            <button
+            <motion.button
               key={s.label}
               type="button"
               onClick={() => setStatusFilter(s.label === 'Total' ? 'Todos' : s.label === 'Em Análise' ? 'Em Análise' : s.label.replace(/s$/, ''))}
               className="ferp-card p-4 text-left transition"
               style={{ background: 'var(--ferp-surface)' }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
             >
               <Icon className="h-5 w-5 mb-2" style={{ color: s.color }} />
               <p className="text-[22px] font-black text-white">{s.value}</p>
               <p className="text-[11px] font-semibold mt-0.5" style={{ color: '#64748b' }}>{s.label}</p>
-            </button>
+            </motion.button>
           );
         })}
+        </div>
+
+        <motion.div className="ferp-card p-4 xl:col-span-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <h3 className="mb-2 text-[13px] font-black text-white">Estado das requisições</h3>
+          <div className="h-36">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={statusChart} innerRadius={36} outerRadius={58} dataKey="value" paddingAngle={2}>
+                  {statusChart.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
+                </Pie>
+                <Tooltip contentStyle={{ background: '#100625', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 10 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
       </div>
 
       {/* Filters */}

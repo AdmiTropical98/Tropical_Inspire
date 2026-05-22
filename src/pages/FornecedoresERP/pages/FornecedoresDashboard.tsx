@@ -1,319 +1,406 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
-  ArrowUpRight,
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  PolarAngleAxis,
+  PolarGrid,
+  Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import {
+  Bell,
   Building2,
   CheckCircle2,
-  ChevronRight,
+  CircleAlert,
+  Clock3,
   CreditCard,
-  Package,
-  Star,
+  FileClock,
+  Filter,
+  Search,
+  Sparkles,
   TrendingUp,
-  Users,
-  Zap,
+  Wallet,
 } from 'lucide-react';
 
-// ─── Mock data ─────────────────────────────────────────
-const MONTHLY_SPEND = [
-  { month: 'Jan', value: 38400 },
-  { month: 'Fev', value: 42100 },
-  { month: 'Mar', value: 31800 },
-  { month: 'Abr', value: 55300 },
-  { month: 'Mai', value: 47900 },
-  { month: 'Jun', value: 62100 },
-  { month: 'Jul', value: 58700 },
-  { month: 'Ago', value: 44200 },
-  { month: 'Set', value: 71400 },
-  { month: 'Out', value: 66800 },
-  { month: 'Nov', value: 83200 },
-  { month: 'Dez', value: 79500 },
-];
+type SupplierState = 'Ativo' | 'Pendente' | 'Inativo';
 
-const TOP_SUPPLIERS = [
-  { id: '1', name: 'TechServ Solutions', category: 'IT & Software', spend: 142300, rating: 4.8, active: true },
-  { id: '2', name: 'Limpeza Premium Lda', category: 'Serviços', spend: 98400, rating: 4.5, active: true },
-  { id: '3', name: 'Office Plus Portugal', category: 'Material de Escritório', spend: 74100, rating: 4.2, active: true },
-  { id: '4', name: 'Segurança Total SA', category: 'Segurança', spend: 65800, rating: 4.7, active: true },
-  { id: '5', name: 'Catering Express', category: 'Alimentação', spend: 53200, rating: 4.0, active: false },
-];
-
-const RECENT_ACTIVITY = [
-  { id: 1, type: 'payment', text: 'Pagamento processado — TechServ Solutions', amount: '€ 12.400', time: 'há 2h', color: '#4ade80' },
-  { id: 2, type: 'request', text: 'Nova requisição aprovada — Office Plus Portugal', amount: '€ 3.200', time: 'há 5h', color: '#c084fc' },
-  { id: 3, type: 'supplier', text: 'Novo fornecedor adicionado — CleanCo Lda', amount: '', time: 'ontem', color: '#60a5fa' },
-  { id: 4, type: 'payment', text: 'Pagamento pendente — Segurança Total SA', amount: '€ 8.750', time: 'ontem', color: '#fbbf24' },
-  { id: 5, type: 'contract', text: 'Contrato renovado — Catering Express', amount: '€ 53.200/ano', time: '2 dias', color: '#a855f7' },
-];
-
-const STATS = [
-  { label: 'Total Fornecedores', value: '148', sub: '+12 este mês', icon: Building2, color: '#7c3aed', glow: 'rgba(124,58,237,0.3)' },
-  { label: 'Ativos', value: '127', sub: '85.8% do total', icon: CheckCircle2, color: '#4ade80', glow: 'rgba(74,222,128,0.2)' },
-  { label: 'Pendentes', value: '21', sub: '7 aguardam aprovação', icon: Zap, color: '#fbbf24', glow: 'rgba(251,191,36,0.2)' },
-  { label: 'Gasto Anual', value: '€ 721K', sub: '+18.4% vs ano anterior', icon: CreditCard, color: '#a855f7', glow: 'rgba(168,85,247,0.25)' },
-];
-
-// ─── Helpers ───────────────────────────────────────────
-const maxSpend = Math.max(...MONTHLY_SPEND.map((m) => m.value));
-
-function Stars({ rating }: { rating: number }) {
-  return (
-    <div className="flex gap-0.5">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Star
-          key={i}
-          className={`h-3 w-3 ${i <= Math.round(rating) ? 'ferp-star' : 'ferp-star-empty'}`}
-          fill={i <= Math.round(rating) ? '#fbbf24' : 'transparent'}
-        />
-      ))}
-    </div>
-  );
+interface SupplierRow {
+  id: string;
+  logo: string;
+  nome: string;
+  categoria: string;
+  estado: SupplierState;
+  gasto: number;
+  pagamentos: number;
+  requisicoes: number;
 }
 
-function fmt(n: number) {
-  return new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
+const monthlyEvolution = [
+  { mes: 'Jan', gasto: 38400, pagamentos: 16, ativos: 106 },
+  { mes: 'Fev', gasto: 42100, pagamentos: 18, ativos: 108 },
+  { mes: 'Mar', gasto: 31800, pagamentos: 12, ativos: 109 },
+  { mes: 'Abr', gasto: 55300, pagamentos: 21, ativos: 112 },
+  { mes: 'Mai', gasto: 47900, pagamentos: 20, ativos: 114 },
+  { mes: 'Jun', gasto: 62100, pagamentos: 26, ativos: 117 },
+  { mes: 'Jul', gasto: 58700, pagamentos: 22, ativos: 118 },
+  { mes: 'Ago', gasto: 44200, pagamentos: 18, ativos: 120 },
+  { mes: 'Set', gasto: 71400, pagamentos: 31, ativos: 123 },
+  { mes: 'Out', gasto: 66800, pagamentos: 28, ativos: 125 },
+  { mes: 'Nov', gasto: 83200, pagamentos: 33, ativos: 127 },
+  { mes: 'Dez', gasto: 79500, pagamentos: 30, ativos: 127 },
+];
+
+const paymentBreakdown = [
+  { nome: 'Pago', valor: 520000, color: '#4ade80' },
+  { nome: 'Pendente', valor: 148000, color: '#fbbf24' },
+  { nome: 'Vencido', valor: 53400, color: '#f87171' },
+];
+
+const categoryData = [
+  { categoria: 'IT & Software', valor: 142300 },
+  { categoria: 'Serviços', valor: 98400 },
+  { categoria: 'Material Escritório', valor: 74100 },
+  { categoria: 'Segurança', valor: 65800 },
+  { categoria: 'Logística', valor: 61200 },
+  { categoria: 'Outros', valor: 39700 },
+];
+
+const analyticsRadar = [
+  { eixo: 'SLA', score: 91 },
+  { eixo: 'Qualidade', score: 88 },
+  { eixo: 'Conformidade', score: 94 },
+  { eixo: 'Preço', score: 79 },
+  { eixo: 'Risco', score: 70 },
+  { eixo: 'Inovação', score: 86 },
+];
+
+const suppliers: SupplierRow[] = [
+  { id: '1', logo: 'TS', nome: 'TechServ Solutions', categoria: 'IT & Software', estado: 'Ativo', gasto: 142300, pagamentos: 24, requisicoes: 9 },
+  { id: '2', logo: 'LP', nome: 'Limpeza Premium Lda', categoria: 'Serviços', estado: 'Ativo', gasto: 98400, pagamentos: 18, requisicoes: 7 },
+  { id: '3', logo: 'OP', nome: 'Office Plus Portugal', categoria: 'Material Escritório', estado: 'Ativo', gasto: 74100, pagamentos: 16, requisicoes: 11 },
+  { id: '4', logo: 'ST', nome: 'Segurança Total SA', categoria: 'Segurança', estado: 'Ativo', gasto: 65800, pagamentos: 12, requisicoes: 5 },
+  { id: '5', logo: 'CB', nome: 'Consult Business Group', categoria: 'Consultoria', estado: 'Pendente', gasto: 24100, pagamentos: 5, requisicoes: 4 },
+  { id: '6', logo: 'LG', nome: 'LogiTrans Portugal', categoria: 'Logística', estado: 'Ativo', gasto: 61200, pagamentos: 15, requisicoes: 8 },
+  { id: '7', logo: 'SC', nome: 'SoftCloud Lda', categoria: 'IT & Software', estado: 'Pendente', gasto: 19800, pagamentos: 3, requisicoes: 6 },
+  { id: '8', logo: 'PX', nome: 'Print & Design Studio', categoria: 'Outros', estado: 'Inativo', gasto: 9100, pagamentos: 2, requisicoes: 1 },
+];
+
+const rightSideFeed = {
+  atividade: [
+    'Contrato renovado com TechServ Solutions por 24 meses',
+    'Nova requisição REQ-2026-014 enviada para aprovação',
+    'KPI de conformidade subiu para 94% esta semana',
+    'Onboarding de fornecedor SoftCloud concluído',
+  ],
+  pagamentos: [
+    { nome: 'TechServ Solutions', valor: 12400, quando: 'há 2h' },
+    { nome: 'Office Plus Portugal', valor: 3200, quando: 'hoje' },
+    { nome: 'Segurança Total SA', valor: 8750, quando: 'ontem' },
+  ],
+  notificacoes: [
+    { tipo: 'warning', txt: '3 pagamentos vencem em 48h' },
+    { tipo: 'info', txt: '2 fornecedores aguardam validação fiscal' },
+    { tipo: 'success', txt: 'Backup documental concluído com sucesso' },
+  ],
+  contratos: [
+    { fornecedor: 'Limpeza Premium Lda', dias: 14 },
+    { fornecedor: 'Segurança Total SA', dias: 22 },
+    { fornecedor: 'Print & Design Studio', dias: 30 },
+  ],
+};
+
+const cards = [
+  { label: 'Total fornecedores', value: '148', icon: Building2, delta: '+12 este mês', color: '#a855f7' },
+  { label: 'Ativos', value: '127', icon: CheckCircle2, delta: '85.8% do total', color: '#4ade80' },
+  { label: 'Pendentes', value: '21', icon: Clock3, delta: '7 em revisão', color: '#fbbf24' },
+  { label: 'Pagamentos', value: '73', icon: CreditCard, delta: '+9 esta semana', color: '#60a5fa' },
+  { label: 'Gastos mensais', value: 'EUR 79.5K', icon: Wallet, delta: '+18.4% YoY', color: '#c084fc' },
+  { label: 'Requisições abertas', value: '19', icon: FileClock, delta: '5 críticas', color: '#f97316' },
+];
+
+function currency(v: number) {
+  return new Intl.NumberFormat('pt-PT', {
+    style: 'currency',
+    currency: 'EUR',
+    maximumFractionDigits: 0,
+  }).format(v);
 }
 
-// ─── Component ─────────────────────────────────────────
+function badgeClass(estado: SupplierState) {
+  if (estado === 'Ativo') return 'ferp-badge ferp-badge-active';
+  if (estado === 'Pendente') return 'ferp-badge ferp-badge-pending';
+  return 'ferp-badge ferp-badge-inactive';
+}
+
 export default function FornecedoresDashboard() {
   const navigate = useNavigate();
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<'Todos' | SupplierState>('Todos');
+
+  const filteredSuppliers = useMemo(
+    () =>
+      suppliers.filter((s) => {
+        const searchOk =
+          s.nome.toLowerCase().includes(search.toLowerCase()) ||
+          s.categoria.toLowerCase().includes(search.toLowerCase());
+        const statusOk = status === 'Todos' || s.estado === status;
+        return searchOk && statusOk;
+      }),
+    [search, status],
+  );
 
   return (
-    <div className="ferp-animate space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="ferp-animate space-y-5">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="flex flex-wrap items-center justify-between gap-3"
+      >
         <div>
-          <h2 className="text-2xl font-black tracking-tight text-white">
-            Visão Geral
-          </h2>
-          <p className="mt-0.5 text-sm" style={{ color: '#94a3b8' }}>
-            {new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-          </p>
+          <h2 className="text-2xl font-black tracking-tight text-white">Dashboard Fornecedores</h2>
+          <p className="text-sm" style={{ color: '#94a3b8' }}>Controle operativo, financeiro e analítico em tempo real</p>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate('/fornecedores-erp/gestao')}
-          className="ferp-btn-primary"
-        >
-          <Building2 className="h-4 w-4" />
-          Gerir Fornecedores
+        <button type="button" onClick={() => navigate('/fornecedores-erp/relatorios')} className="ferp-btn-primary">
+          <Sparkles className="h-4 w-4" /> Analytics Executivo
         </button>
-      </div>
+      </motion.div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {STATS.map((stat) => {
-          const Icon = stat.icon;
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-6">
+        {cards.map((card, idx) => {
+          const Icon = card.icon;
           return (
-            <div key={stat.label} className="ferp-card ferp-stat-card ferp-card-glow">
-              <div className="mb-4 flex items-start justify-between">
-                <div
-                  className="flex h-10 w-10 items-center justify-center rounded-[10px]"
-                  style={{ background: `${stat.color}22`, boxShadow: `0 0 14px ${stat.glow}` }}
-                >
-                  <Icon className="h-5 w-5" style={{ color: stat.color }} />
+            <motion.div
+              key={card.label}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: idx * 0.05 }}
+              className="ferp-card ferp-stat-card ferp-card-glow"
+            >
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex h-9 w-9 items-center justify-center rounded-[10px]" style={{ background: `${card.color}20` }}>
+                  <Icon className="h-5 w-5" style={{ color: card.color }} />
                 </div>
-                <ArrowUpRight className="h-4 w-4" style={{ color: stat.color, opacity: 0.7 }} />
+                <TrendingUp className="h-4 w-4" style={{ color: card.color }} />
               </div>
-              <p className="text-[28px] font-black tracking-tight text-white leading-none">
-                {stat.value}
-              </p>
-              <p className="mt-1 text-[12px] font-semibold" style={{ color: '#94a3b8' }}>
-                {stat.label}
-              </p>
-              <p className="mt-0.5 text-[11px]" style={{ color: stat.color }}>
-                {stat.sub}
-              </p>
-            </div>
+              <p className="text-[23px] font-black text-white leading-none">{card.value}</p>
+              <p className="mt-1 text-[12px] font-semibold" style={{ color: '#94a3b8' }}>{card.label}</p>
+              <p className="text-[11px]" style={{ color: card.color }}>{card.delta}</p>
+            </motion.div>
           );
         })}
       </div>
 
-      {/* Middle row: chart + top suppliers */}
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-        {/* Bar chart — monthly spend */}
-        <div className="ferp-card ferp-card-glow xl:col-span-2 p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h3 className="text-[15px] font-black text-white">Gastos Mensais</h3>
-              <p className="text-[12px]" style={{ color: '#64748b' }}>
-                Total acumulado: <span style={{ color: '#c084fc' }}>€ 721.400</span>
-              </p>
-            </div>
-            <div className="ferp-badge ferp-badge-approved">
-              <TrendingUp className="h-3 w-3" />
-              +18.4%
-            </div>
+      <div className="grid grid-cols-1 gap-5 2xl:grid-cols-12">
+        <div className="space-y-5 2xl:col-span-9">
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+            <motion.div className="ferp-card ferp-card-glow p-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <h3 className="mb-4 text-[14px] font-black text-white">Evolução mensal</h3>
+              <div className="h-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={monthlyEvolution}>
+                    <defs>
+                      <linearGradient id="evolucao" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#a855f7" stopOpacity={0.6} />
+                        <stop offset="95%" stopColor="#a855f7" stopOpacity={0.05} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="mes" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+                    <Tooltip formatter={(v: number) => currency(v)} contentStyle={{ background: '#100625', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 10 }} />
+                    <Area type="monotone" dataKey="gasto" stroke="#c084fc" strokeWidth={2.5} fill="url(#evolucao)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </motion.div>
+
+            <motion.div className="ferp-card ferp-card-glow p-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.05 }}>
+              <h3 className="mb-4 text-[14px] font-black text-white">Pagamentos</h3>
+              <div className="h-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={paymentBreakdown} innerRadius={52} outerRadius={84} dataKey="valor" paddingAngle={3}>
+                      {paymentBreakdown.map((entry) => (
+                        <Cell key={entry.nome} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v: number) => currency(v)} contentStyle={{ background: '#100625', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 10 }} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </motion.div>
           </div>
 
-          {/* Chart */}
-          <div className="flex h-36 items-end gap-1.5">
-            {MONTHLY_SPEND.map((m) => {
-              const pct = (m.value / maxSpend) * 100;
-              return (
-                <div key={m.month} className="group flex flex-1 flex-col items-center gap-1">
-                  <div
-                    className="ferp-bar w-full relative"
-                    style={{ height: `${pct}%`, minHeight: 4 }}
-                    title={fmt(m.value)}
-                  >
-                    <div
-                      className="absolute -top-7 left-1/2 -translate-x-1/2 hidden group-hover:block whitespace-nowrap rounded-md px-2 py-1 text-[10px] font-bold text-white"
-                      style={{ background: 'rgba(30,10,60,0.95)', border: '1px solid rgba(139,92,246,0.4)' }}
-                    >
-                      {fmt(m.value)}
-                    </div>
-                  </div>
-                  <span className="text-[9px] font-bold uppercase" style={{ color: '#475569' }}>{m.month}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+            <motion.div className="ferp-card ferp-card-glow p-5 xl:col-span-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+              <h3 className="mb-4 text-[14px] font-black text-white">Categorias</h3>
+              <div className="h-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={categoryData}>
+                    <XAxis dataKey="categoria" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
+                    <Tooltip formatter={(v: number) => currency(v)} contentStyle={{ background: '#100625', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 10 }} />
+                    <Bar dataKey="valor" fill="#a855f7" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </motion.div>
 
-        {/* Categoria breakdown */}
-        <div className="ferp-card ferp-card-glow p-5">
-          <h3 className="mb-4 text-[15px] font-black text-white">Por Categoria</h3>
-          <div className="space-y-3">
-            {[
-              { cat: 'IT & Software', pct: 68, color: '#7c3aed' },
-              { cat: 'Serviços', pct: 52, color: '#a855f7' },
-              { cat: 'Material Escritório', pct: 38, color: '#c084fc' },
-              { cat: 'Segurança', pct: 31, color: '#818cf8' },
-              { cat: 'Alimentação', pct: 25, color: '#6366f1' },
-              { cat: 'Outros', pct: 18, color: '#4f46e5' },
-            ].map((item) => (
-              <div key={item.cat}>
-                <div className="mb-1 flex items-center justify-between">
-                  <span className="text-[12px] font-semibold" style={{ color: '#cbd5e1' }}>{item.cat}</span>
-                  <span className="text-[11px] font-bold" style={{ color: item.color }}>{item.pct}%</span>
+            <motion.div className="ferp-card ferp-card-glow p-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}>
+              <h3 className="mb-4 text-[14px] font-black text-white">Analytics</h3>
+              <div className="h-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart data={analyticsRadar}>
+                    <PolarGrid stroke="rgba(139,92,246,0.2)" />
+                    <PolarAngleAxis dataKey="eixo" stroke="#94a3b8" fontSize={10} />
+                    <Radar dataKey="score" stroke="#c084fc" fill="#a855f7" fillOpacity={0.35} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            </motion.div>
+          </div>
+
+          <motion.div className="ferp-card ferp-card-glow p-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h3 className="text-[14px] font-black text-white">Fornecedores ativos</h3>
+              <div className="flex flex-wrap gap-2">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2" style={{ color: '#64748b' }} />
+                  <input className="ferp-input pl-8" style={{ width: 220 }} placeholder="Pesquisar fornecedor" value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
-                <div className="ferp-progress">
-                  <div className="ferp-progress-fill" style={{ width: `${item.pct}%`, background: `linear-gradient(90deg, ${item.color}, ${item.color}bb)` }} />
+                <div className="relative">
+                  <Filter className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2" style={{ color: '#64748b' }} />
+                  <select className="ferp-input pl-8" style={{ width: 140 }} value={status} onChange={(e) => setStatus(e.target.value as 'Todos' | SupplierState)}>
+                    <option className="bg-[#0d0520]">Todos</option>
+                    <option className="bg-[#0d0520]">Ativo</option>
+                    <option className="bg-[#0d0520]">Pendente</option>
+                    <option className="bg-[#0d0520]">Inativo</option>
+                  </select>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
+            </div>
 
-      {/* Bottom row: top suppliers + recent activity */}
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-        {/* Top Suppliers */}
-        <div className="ferp-card ferp-card-glow p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-[15px] font-black text-white">Top Fornecedores</h3>
-            <button
-              type="button"
-              onClick={() => navigate('/fornecedores-erp/gestao')}
-              className="ferp-btn-ghost"
-              style={{ fontSize: 11, padding: '5px 10px' }}
-            >
-              Ver todos <ChevronRight className="h-3 w-3" />
-            </button>
-          </div>
-          <div className="space-y-2">
-            {TOP_SUPPLIERS.map((s, idx) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => navigate(`/fornecedores-erp/gestao/perfil/${s.id}`)}
-                className="flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left transition"
-                style={{ background: 'rgba(124,58,237,0.05)' }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(124,58,237,0.12)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(124,58,237,0.05)'; }}
-              >
-                <span
-                  className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-black"
-                  style={{ background: 'rgba(124,58,237,0.2)', color: '#c084fc' }}
-                >
-                  {idx + 1}
-                </span>
-                <div className="ferp-avatar">{s.name.charAt(0)}</div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-bold text-white">{s.name}</p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px]" style={{ color: '#64748b' }}>{s.category}</span>
-                    <Stars rating={s.rating} />
+            <div className="ferp-table-wrap">
+              <table className="ferp-table">
+                <thead>
+                  <tr>
+                    <th>Fornecedor</th>
+                    <th>Categoria</th>
+                    <th>Estado</th>
+                    <th>Valor gasto</th>
+                    <th>Ações rápidas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredSuppliers.map((row) => (
+                    <tr key={row.id}>
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <div className="ferp-avatar" style={{ width: 32, height: 32, borderRadius: 999 }}>{row.logo}</div>
+                          <div>
+                            <p className="text-[13px] font-bold text-white">{row.nome}</p>
+                            <p className="text-[11px]" style={{ color: '#64748b' }}>{row.pagamentos} pagamentos • {row.requisicoes} requisições</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ color: '#94a3b8' }}>{row.categoria}</td>
+                      <td><span className={badgeClass(row.estado)}>{row.estado}</span></td>
+                      <td style={{ color: '#c084fc', fontWeight: 700 }}>{currency(row.gasto)}</td>
+                      <td>
+                        <div className="flex gap-2">
+                          <button className="ferp-btn-ghost" style={{ padding: '6px 10px', fontSize: 11 }} onClick={() => navigate(`/fornecedores-erp/gestao/perfil/${row.id}`)} type="button">Perfil</button>
+                          <button className="ferp-btn-ghost" style={{ padding: '6px 10px', fontSize: 11 }} onClick={() => navigate('/fornecedores-erp/pagamentos')} type="button">Pagamento</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
+        </div>
+
+        <aside className="space-y-5 2xl:col-span-3">
+          <motion.div className="ferp-card ferp-card-glow p-5" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}>
+            <h3 className="mb-3 flex items-center gap-2 text-[14px] font-black text-white"><Sparkles className="h-4 w-4 text-[#c084fc]" /> Atividade recente</h3>
+            <div className="space-y-3">
+              {rightSideFeed.atividade.map((item) => (
+                <div key={item} className="rounded-[10px] p-3" style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(139,92,246,0.16)' }}>
+                  <p className="text-[12px] font-semibold text-white">{item}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          <motion.div className="ferp-card ferp-card-glow p-5" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.05 }}>
+            <h3 className="mb-3 flex items-center gap-2 text-[14px] font-black text-white"><CreditCard className="h-4 w-4 text-[#4ade80]" /> Pagamentos recentes</h3>
+            <div className="space-y-3">
+              {rightSideFeed.pagamentos.map((p) => (
+                <div key={p.nome + p.quando} className="flex items-center justify-between rounded-[10px] p-3" style={{ background: 'rgba(74,222,128,0.06)' }}>
+                  <div>
+                    <p className="text-[12px] font-semibold text-white">{p.nome}</p>
+                    <p className="text-[11px]" style={{ color: '#64748b' }}>{p.quando}</p>
                   </div>
+                  <p className="text-[12px] font-bold" style={{ color: '#4ade80' }}>{currency(p.valor)}</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-[13px] font-black" style={{ color: '#c084fc' }}>{fmt(s.spend)}</p>
-                  <span className={`ferp-badge ${s.active ? 'ferp-badge-active' : 'ferp-badge-inactive'}`}>
-                    {s.active ? 'Ativo' : 'Inativo'}
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+              ))}
+            </div>
+          </motion.div>
 
-        {/* Recent Activity */}
-        <div className="ferp-card ferp-card-glow p-5">
-          <h3 className="mb-4 text-[15px] font-black text-white">Atividade Recente</h3>
-          <div className="relative space-y-0">
-            {RECENT_ACTIVITY.map((a, idx) => (
-              <div key={a.id} className="relative flex items-start gap-3 pb-4">
-                {idx < RECENT_ACTIVITY.length - 1 && (
-                  <div
-                    className="absolute left-[7px] top-5 bottom-0 w-px"
-                    style={{ background: 'rgba(139,92,246,0.15)' }}
-                  />
-                )}
-                <div
-                  className="ferp-timeline-dot mt-1"
-                  style={{ background: a.color, boxShadow: `0 0 8px ${a.color}` }}
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-semibold text-white leading-tight">{a.text}</p>
-                  <div className="mt-0.5 flex items-center gap-2">
-                    {a.amount && (
-                      <span className="text-[12px] font-bold" style={{ color: a.color }}>{a.amount}</span>
-                    )}
-                    <span className="text-[11px]" style={{ color: '#475569' }}>• {a.time}</span>
-                  </div>
+          <motion.div className="ferp-card ferp-card-glow p-5" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
+            <h3 className="mb-3 flex items-center gap-2 text-[14px] font-black text-white"><Bell className="h-4 w-4 text-[#fbbf24]" /> Notificações</h3>
+            <div className="space-y-2">
+              {rightSideFeed.notificacoes.map((n) => (
+                <div key={n.txt} className="flex items-start gap-2 rounded-[10px] p-2.5" style={{ background: 'rgba(124,58,237,0.08)' }}>
+                  <CircleAlert className="mt-0.5 h-4 w-4" style={{ color: n.tipo === 'warning' ? '#fbbf24' : n.tipo === 'success' ? '#4ade80' : '#60a5fa' }} />
+                  <p className="text-[12px] text-white">{n.txt}</p>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
+              ))}
+            </div>
+          </motion.div>
+
+          <motion.div className="ferp-card ferp-card-glow p-5" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}>
+            <h3 className="mb-3 flex items-center gap-2 text-[14px] font-black text-white"><FileClock className="h-4 w-4 text-[#f97316]" /> Contratos a expirar</h3>
+            <div className="space-y-2">
+              {rightSideFeed.contratos.map((c) => (
+                <div key={c.fornecedor} className="flex items-center justify-between rounded-[10px] px-3 py-2.5" style={{ background: 'rgba(249,115,22,0.08)' }}>
+                  <span className="text-[12px] text-white">{c.fornecedor}</span>
+                  <span className="text-[11px] font-black" style={{ color: '#fb923c' }}>{c.dias} dias</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </aside>
       </div>
 
-      {/* Quick actions */}
-      <div className="ferp-card p-5">
-        <h3 className="mb-4 text-[14px] font-black text-white">Ações Rápidas</h3>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[
-            { label: 'Novo Fornecedor', icon: Building2, path: '/fornecedores-erp/gestao', color: '#7c3aed' },
-            { label: 'Nova Requisição', icon: Package, path: '/fornecedores-erp/requisicoes', color: '#a855f7' },
-            { label: 'Registar Pagamento', icon: CreditCard, path: '/fornecedores-erp/pagamentos', color: '#818cf8' },
-            { label: 'Ver Relatórios', icon: TrendingUp, path: '/fornecedores-erp/relatorios', color: '#c084fc' },
-          ].map((action) => {
-            const Icon = action.icon;
-            return (
-              <button
-                key={action.label}
-                type="button"
-                onClick={() => navigate(action.path)}
-                className="flex flex-col items-center gap-2 rounded-[12px] p-4 text-center transition"
-                style={{
-                  background: `${action.color}11`,
-                  border: `1px solid ${action.color}33`,
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = `${action.color}22`; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = `${action.color}11`; }}
-              >
-                <div
-                  className="flex h-9 w-9 items-center justify-center rounded-[9px]"
-                  style={{ background: `${action.color}22` }}
-                >
-                  <Icon className="h-5 w-5" style={{ color: action.color }} />
-                </div>
-                <span className="text-[12px] font-bold text-white">{action.label}</span>
-              </button>
-            );
-          })}
+      <motion.div className="ferp-card ferp-card-glow p-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+        <h3 className="mb-4 text-[14px] font-black text-white">Fornecedores ativos (trend)</h3>
+        <div className="h-44">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={monthlyEvolution}>
+              <XAxis dataKey="mes" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+              <Tooltip contentStyle={{ background: '#100625', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 10 }} />
+              <Line type="monotone" dataKey="ativos" stroke="#60a5fa" strokeWidth={2.5} dot={{ r: 2 }} />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

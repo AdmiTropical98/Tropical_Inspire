@@ -1,9 +1,20 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
+  Bar,
+  BarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import {
+  Building,
   Building2,
   ChevronRight,
-  Filter,
+  Clock3,
+  DollarSign,
   Plus,
   Search,
   Star,
@@ -79,6 +90,18 @@ export default function FornecedoresGestao() {
   const [page, setPage] = useState(1);
   const [showNewModal, setShowNewModal] = useState(false);
 
+  const spendingByCategory = [
+    { name: 'IT', value: 182000 },
+    { name: 'Serviços', value: 126000 },
+    { name: 'Logística', value: 85400 },
+    { name: 'Segurança', value: 65800 },
+    { name: 'Outros', value: 41200 },
+  ];
+
+  const totalSpend = SUPPLIERS.reduce((acc, supplier) => acc + supplier.spend, 0);
+  const active = SUPPLIERS.filter((supplier) => supplier.status === 'Ativo').length;
+  const pending = SUPPLIERS.filter((supplier) => supplier.status === 'Pendente').length;
+
   const filtered = SUPPLIERS.filter((s) => {
     const matchSearch =
       s.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -95,7 +118,7 @@ export default function FornecedoresGestao() {
   return (
     <div className="ferp-animate space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <motion.div className="flex items-center justify-between" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <div>
           <h2 className="text-2xl font-black tracking-tight text-white">Fornecedores</h2>
           <p className="text-sm" style={{ color: '#94a3b8' }}>
@@ -110,10 +133,51 @@ export default function FornecedoresGestao() {
           <Plus className="h-4 w-4" />
           Novo Fornecedor
         </button>
+      </motion.div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        {[
+          { label: 'Total', value: SUPPLIERS.length, sub: 'base global', icon: Building2, color: '#a855f7' },
+          { label: 'Ativos', value: active, sub: 'com contrato', icon: Building, color: '#4ade80' },
+          { label: 'Pendentes', value: pending, sub: 'em aprovação', icon: Clock3, color: '#fbbf24' },
+          { label: 'Gasto acumulado', value: fmt(totalSpend), sub: 'últimos 12 meses', icon: DollarSign, color: '#c084fc' },
+        ].map((card, idx) => {
+          const Icon = card.icon;
+          return (
+            <motion.div
+              key={card.label}
+              className="ferp-card ferp-stat-card"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.05 }}
+            >
+              <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-[10px]" style={{ background: `${card.color}22` }}>
+                <Icon className="h-4 w-4" style={{ color: card.color }} />
+              </div>
+              <p className="text-[22px] font-black text-white">{card.value}</p>
+              <p className="text-[12px] font-semibold" style={{ color: '#94a3b8' }}>{card.label}</p>
+              <p className="text-[11px]" style={{ color: card.color }}>{card.sub}</p>
+            </motion.div>
+          );
+        })}
       </div>
 
+      <motion.div className="ferp-card p-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+        <h3 className="mb-3 text-[14px] font-black text-white">Gasto por categoria</h3>
+        <div className="h-48">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={spendingByCategory}>
+              <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+              <Tooltip formatter={(value: number) => fmt(value)} contentStyle={{ background: '#100625', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 10 }} />
+              <Bar dataKey="value" fill="#a855f7" radius={[8, 8, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </motion.div>
+
       {/* Filters */}
-      <div className="ferp-card p-4">
+      <motion.div className="ferp-card p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}>
         <div className="flex flex-wrap items-center gap-3">
           {/* Search */}
           <div className="relative flex-1 min-w-[200px]">
@@ -158,10 +222,10 @@ export default function FornecedoresGestao() {
             </button>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Table */}
-      <div className="ferp-table-wrap ferp-card">
+      <motion.div className="ferp-table-wrap ferp-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
         <table className="ferp-table">
           <thead>
             <tr>
@@ -222,7 +286,7 @@ export default function FornecedoresGestao() {
             ))}
           </tbody>
         </table>
-      </div>
+      </motion.div>
 
       {/* Pagination */}
       {totalPages > 1 && (

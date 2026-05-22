@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import {
   Download,
   Eye,
@@ -64,10 +66,16 @@ export default function FornecedoresDocumentos() {
     count: DOCUMENTS.filter((d) => d.type === t).length,
   }));
 
+  const pieData = byType.map((item) => ({
+    name: item.type,
+    value: item.count,
+    color: TYPE_COLORS[item.type].text,
+  }));
+
   return (
     <div className="ferp-animate space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <motion.div className="flex items-center justify-between" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <div>
           <h2 className="text-2xl font-black tracking-tight text-white">Documentos</h2>
           <p className="text-sm" style={{ color: '#94a3b8' }}>{filtered.length} documento(s)</p>
@@ -75,7 +83,33 @@ export default function FornecedoresDocumentos() {
         <button type="button" onClick={() => setShowUpload(true)} className="ferp-btn-primary">
           <Upload className="h-4 w-4" /> Upload Documento
         </button>
-      </div>
+      </motion.div>
+
+      <motion.div className="ferp-card p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <h3 className="mb-2 text-[13px] font-black text-white">Distribuição documental</h3>
+            <div className="h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={pieData} dataKey="value" outerRadius={62} innerRadius={34}>
+                    {pieData.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
+                  </Pie>
+                  <Tooltip contentStyle={{ background: '#100625', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 10 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {byType.map((item) => (
+              <div key={item.type} className="flex items-center justify-between rounded-[10px] px-3 py-2" style={{ background: 'rgba(124,58,237,0.08)' }}>
+                <span className="text-[12px] text-white">{item.type}</span>
+                <span className="text-[12px] font-black" style={{ color: TYPE_COLORS[item.type].text }}>{item.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </motion.div>
 
       {/* Type summary */}
       <div className="flex flex-wrap gap-2">
