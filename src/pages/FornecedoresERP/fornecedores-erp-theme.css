@@ -1,0 +1,475 @@
+/* =====================================================
+   FORNECEDORES ERP — Dark Purple Enterprise Theme
+   ===================================================== */
+
+:root {
+  --ferp-bg: #07030f;
+  --ferp-bg2: #0d0520;
+  --ferp-surface: rgba(20, 8, 45, 0.85);
+  --ferp-surface2: rgba(30, 12, 60, 0.7);
+  --ferp-border: rgba(139, 92, 246, 0.2);
+  --ferp-border-active: rgba(139, 92, 246, 0.55);
+  --ferp-primary: #7c3aed;
+  --ferp-primary-glow: rgba(124, 58, 237, 0.45);
+  --ferp-accent: #a855f7;
+  --ferp-accent-bright: #c084fc;
+  --ferp-neon: #b57bee;
+  --ferp-text: #f1f5f9;
+  --ferp-text-muted: #94a3b8;
+  --ferp-text-dim: #64748b;
+  --ferp-sidebar-w: 240px;
+  --ferp-topbar-h: 60px;
+}
+
+/* ===== ROOT SHELL ===== */
+.ferp-shell {
+  display: flex;
+  height: 100dvh;
+  width: 100%;
+  overflow: hidden;
+  background: linear-gradient(145deg, var(--ferp-bg) 0%, var(--ferp-bg2) 100%);
+  font-family: 'Inter', 'Sora', system-ui, sans-serif;
+  color: var(--ferp-text);
+}
+
+/* ===== SIDEBAR ===== */
+.ferp-sidebar {
+  width: var(--ferp-sidebar-w);
+  min-width: var(--ferp-sidebar-w);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, rgba(15, 5, 35, 0.97) 0%, rgba(10, 3, 25, 0.99) 100%);
+  border-right: 1px solid var(--ferp-border);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  position: relative;
+  z-index: 100;
+}
+
+.ferp-sidebar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: radial-gradient(ellipse at 50% 0%, rgba(124, 58, 237, 0.2) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.ferp-sidebar::-webkit-scrollbar { display: none; }
+
+.ferp-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid var(--ferp-border);
+  text-decoration: none;
+  cursor: pointer;
+  background: transparent;
+  border-left: none;
+  border-top: none;
+  border-right: none;
+}
+
+.ferp-sidebar-brand-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 16px rgba(124, 58, 237, 0.55);
+  flex-shrink: 0;
+}
+
+.ferp-sidebar-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.ferp-sidebar-brand-name {
+  font-size: 13px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+
+.ferp-sidebar-brand-sub {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ferp-accent);
+}
+
+.ferp-sidebar-nav {
+  flex: 1;
+  padding: 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ferp-sidebar-section-title {
+  font-size: 9px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--ferp-text-dim);
+  padding: 10px 18px 4px;
+}
+
+.ferp-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--ferp-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.ferp-sidebar-item:hover {
+  background: rgba(139, 92, 246, 0.12);
+  color: var(--ferp-text);
+}
+
+.ferp-sidebar-item.active {
+  background: linear-gradient(90deg, rgba(124, 58, 237, 0.25), rgba(124, 58, 237, 0.1));
+  color: #fff;
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  box-shadow: 0 0 14px rgba(124, 58, 237, 0.18);
+}
+
+.ferp-sidebar-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  bottom: 20%;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, #a855f7, #7c3aed);
+  box-shadow: 0 0 8px #a855f7;
+}
+
+.ferp-sidebar-item-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.ferp-sidebar-footer {
+  padding: 14px 12px;
+  border-top: 1px solid var(--ferp-border);
+}
+
+/* ===== MAIN AREA ===== */
+.ferp-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ===== TOPBAR ===== */
+.ferp-topbar {
+  height: var(--ferp-topbar-h);
+  min-height: var(--ferp-topbar-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  background: rgba(10, 3, 25, 0.8);
+  border-bottom: 1px solid var(--ferp-border);
+  backdrop-filter: blur(16px);
+  gap: 16px;
+}
+
+.ferp-topbar-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+
+.ferp-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ===== CONTENT AREA ===== */
+.ferp-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
+  padding: 24px;
+  background: transparent;
+}
+
+.ferp-content::-webkit-scrollbar { width: 5px; }
+.ferp-content::-webkit-scrollbar-track { background: transparent; }
+.ferp-content::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.3); border-radius: 4px; }
+
+/* ===== CARD ===== */
+.ferp-card {
+  background: var(--ferp-surface);
+  border: 1px solid var(--ferp-border);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ferp-card:hover {
+  border-color: var(--ferp-border-active);
+}
+
+.ferp-card-glow {
+  box-shadow: 0 0 32px rgba(124, 58, 237, 0.15), 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* ===== STAT CARD ===== */
+.ferp-stat-card {
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.ferp-stat-card::after {
+  content: '';
+  position: absolute;
+  bottom: -20px;
+  right: -20px;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--ferp-primary-glow), transparent);
+  pointer-events: none;
+}
+
+/* ===== BADGE ===== */
+.ferp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.ferp-badge-active { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3); }
+.ferp-badge-pending { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); }
+.ferp-badge-inactive { background: rgba(148, 163, 184, 0.1); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.2); }
+.ferp-badge-paid { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3); }
+.ferp-badge-overdue { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+.ferp-badge-approved { background: rgba(124, 58, 237, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
+
+/* ===== BUTTON ===== */
+.ferp-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
+  white-space: nowrap;
+}
+.ferp-btn-primary:hover {
+  box-shadow: 0 0 28px rgba(124, 58, 237, 0.6);
+  transform: translateY(-1px);
+}
+
+.ferp-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: rgba(139, 92, 246, 0.1);
+  color: var(--ferp-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--ferp-border);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ferp-btn-ghost:hover {
+  background: rgba(139, 92, 246, 0.18);
+  color: #fff;
+  border-color: var(--ferp-border-active);
+}
+
+/* ===== INPUT ===== */
+.ferp-input {
+  width: 100%;
+  padding: 9px 14px;
+  border-radius: 10px;
+  background: rgba(15, 5, 40, 0.7);
+  border: 1px solid var(--ferp-border);
+  color: var(--ferp-text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.ferp-input:focus {
+  border-color: rgba(139, 92, 246, 0.6);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+.ferp-input::placeholder { color: var(--ferp-text-dim); }
+
+/* ===== TABLE ===== */
+.ferp-table-wrap {
+  overflow-x: auto;
+  border-radius: 14px;
+  border: 1px solid var(--ferp-border);
+}
+.ferp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.ferp-table thead th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ferp-text-dim);
+  background: rgba(10, 3, 25, 0.6);
+  border-bottom: 1px solid var(--ferp-border);
+  white-space: nowrap;
+}
+.ferp-table tbody tr {
+  border-bottom: 1px solid rgba(139, 92, 246, 0.08);
+  transition: background 0.12s ease;
+}
+.ferp-table tbody tr:hover {
+  background: rgba(124, 58, 237, 0.07);
+}
+.ferp-table tbody tr:last-child { border-bottom: none; }
+.ferp-table tbody td {
+  padding: 13px 16px;
+  color: var(--ferp-text);
+  vertical-align: middle;
+}
+
+/* ===== AVATAR ===== */
+.ferp-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.3), rgba(168, 85, 247, 0.2));
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #c084fc;
+  flex-shrink: 0;
+}
+
+/* ===== CHART BAR ===== */
+.ferp-bar {
+  background: linear-gradient(to top, rgba(124, 58, 237, 0.8), rgba(168, 85, 247, 0.4));
+  border-radius: 6px 6px 0 0;
+  transition: opacity 0.2s;
+}
+.ferp-bar:hover { opacity: 0.85; }
+
+/* ===== GLOW DECORATION ===== */
+.ferp-glow-bg {
+  pointer-events: none;
+  position: fixed;
+  top: -120px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(124, 58, 237, 0.12) 0%, transparent 70%);
+  filter: blur(60px);
+  z-index: 0;
+}
+
+/* ===== SCROLLBAR FOR CONTENT ===== */
+.ferp-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes ferp-fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.ferp-animate { animation: ferp-fade-in 0.25s ease forwards; }
+
+/* ===== RATING STARS ===== */
+.ferp-star { color: #fbbf24; }
+.ferp-star-empty { color: rgba(251, 191, 36, 0.2); }
+
+/* ===== PROGRESS BAR ===== */
+.ferp-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(139, 92, 246, 0.15);
+  overflow: hidden;
+}
+.ferp-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #7c3aed, #c084fc);
+  transition: width 0.5s ease;
+}
+
+/* ===== TIMELINE ===== */
+.ferp-timeline-line {
+  position: absolute;
+  left: 15px;
+  top: 24px;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.4), transparent);
+}
+
+.ferp-timeline-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #7c3aed;
+  box-shadow: 0 0 8px rgba(124, 58, 237, 0.8);
+  flex-shrink: 0;
+}

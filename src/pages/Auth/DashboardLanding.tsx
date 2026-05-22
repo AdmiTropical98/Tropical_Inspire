@@ -5,6 +5,7 @@ import {
   Bus,
   Boxes,
   Grid3X3,
+  HandshakeIcon,
   Network,
   Shield,
   Truck,
@@ -104,6 +105,28 @@ export default function DashboardLanding() {
       cardShadow: '0 0 40px rgba(249,115,22,0.38), 0 15px 40px rgba(0,0,0,0.35)',
       imagePosition: 'center 58%',
       route: '/operacoes/login',
+    },
+    {
+      key: 'fornecedores',
+      title: 'Fornecedores',
+      description: 'Gestão enterprise de fornecedores e parceiros da empresa.',
+      image: assetPath('Fornecedores.png'),
+      icon: HandshakeIcon,
+      features: [
+        'Cadastro e avaliação',
+        'Contratos e documentos',
+        'Histórico de pagamentos',
+        'Requisições e aprovações',
+        'Desempenho e indicadores',
+      ],
+      buttonText: 'Entrar em Fornecedores',
+      buttonClass: 'from-[#7c3aed] to-[#a855f7] shadow-[0_0_28px_rgba(124,58,237,0.6)]',
+      iconClass: 'bg-[#7c3aed] shadow-[0_0_22px_rgba(124,58,237,0.7)]',
+      accent: '#a855f7',
+      borderColor: 'rgba(139,92,246,0.75)',
+      cardShadow: '0 0 40px rgba(124,58,237,0.4), 0 15px 40px rgba(0,0,0,0.35)',
+      imagePosition: 'center 40%',
+      route: '/fornecedores-erp/login',
     },
   ];
 
@@ -267,10 +290,10 @@ export default function DashboardLanding() {
         </div>
 
         <div
-          className="grid grid-cols-3"
+          className="grid grid-cols-4"
           style={{
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '18px',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '14px',
             height: 'clamp(330px, calc(100vh - 304px), 440px)',
           }}
         >
@@ -313,7 +336,7 @@ export default function DashboardLanding() {
                     <module.icon className="h-6 w-6 text-white" strokeWidth={2.2} />
                   </div>
                   <h3
-                    className="text-[34px] leading-none font-extrabold tracking-[-1px] text-white"
+                    className="text-[26px] leading-none font-extrabold tracking-[-1px] text-white"
                     style={{ textShadow: '0 2px 8px rgba(0,0,0,0.45)', fontFamily: "'Sora', sans-serif", fontWeight:800, letterSpacing:'-1.2px' }}
                   >
                     {module.title}
@@ -322,7 +345,7 @@ export default function DashboardLanding() {
 
                 <div className="mb-2.5 h-[2px] w-9 rounded-full" style={{ backgroundColor: module.accent }} />
                 <p
-                  className="mb-3 max-w-[88%] text-[15px] leading-[1.2] font-medium text-[rgba(255,255,255,0.97)]"
+                  className="mb-3 max-w-[95%] text-[13px] leading-[1.2] font-medium text-[rgba(255,255,255,0.97)]"
                   style={{ textShadow: '0 2px 8px rgba(0,0,0,0.45)', fontFamily: "'Sora', sans-serif", fontWeight:500 }}
                 >
                   {module.description}
@@ -333,7 +356,7 @@ export default function DashboardLanding() {
                     <div key={idx} className="flex items-center gap-1.5">
                       <div className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: module.accent }} />
                       <span
-                        className="text-[13px] leading-tight font-medium text-[rgba(255,255,255,0.92)]"
+                        className="text-[12px] leading-tight font-medium text-[rgba(255,255,255,0.92)]"
                         style={{ textShadow: '0 2px 8px rgba(0,0,0,0.45)', fontFamily: "'Sora', sans-serif", fontWeight:500 }}
                       >
                         {feature}
@@ -344,7 +367,7 @@ export default function DashboardLanding() {
 
                 <button
                   onClick={() => navigate(module.route)}
-                  className={`group mt-auto flex h-[62px] w-full items-center justify-center gap-2 rounded-[18px] bg-gradient-to-r ${module.buttonClass} px-4 text-[18px] font-bold leading-none text-white transition-all duration-[350ms] ease-[ease] hover:brightness-110`}
+                  className={`group mt-auto flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] bg-gradient-to-r ${module.buttonClass} px-4 text-[15px] font-bold leading-none text-white transition-all duration-[350ms] ease-[ease] hover:brightness-110`}
                   style={{ boxShadow: `0 12px 28px rgba(0,0,0,0.35), 0 0 20px ${module.accent}88`, fontFamily: "'Sora', sans-serif", fontWeight:700 }}
                 >
                   {module.buttonText}

@@ -11,7 +11,9 @@
     "predist": "node scripts/prepare-installer-assets.cjs",
     "dist": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false VITE_ELECTRON=true npm run build && electron-builder --win nsis",
     "predist:inno": "node scripts/prepare-installer-assets.cjs",
-    "dist:inno": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false VITE_ELECTRON=true npm run build && electron-builder --win dir && node scripts/set-exe-icon.cjs && node scripts/build-inno-installer.cjs",
+    "dist:inno": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false VITE_ELECTRON=true npm run build && electron-builder --win dir && node scripts/set-exe-icon.cjs && node scripts/build-inno-installer.cjs && node scripts/release-integrity.cjs",
+    "release:hash": "node scripts/release-integrity.cjs --write",
+    "release:verify": "node scripts/release-integrity.cjs --check",
     "postdist": "node scripts/set-exe-icon.cjs",
     "build:mobile": "npm run build && npx cap sync",
     "sync:mobile": "npx cap sync",
@@ -24,7 +26,7 @@
   "build": {
     "appId": "com.algartempo.programa",
     "productName": "ALGARTEMPO",
-    "asar": true,
+    "asar": false,
     "icon": "build/exeicon.ico",
     "directories": {
       "output": "release"
@@ -41,6 +43,7 @@
       "target": [
         "nsis"
       ],
+      "executableName": "ALGARTEMPO",
       "icon": "build/exeicon.ico",
       "signAndEditExecutable": false,
       "artifactName": "${productName}-Setup-${version}.${ext}"
@@ -75,6 +78,7 @@
     "clsx": "^2.1.1",
     "cross-env": "^7.0.3",
     "dotenv": "^17.2.3",
+    "framer-motion": "^12.40.0",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.7",
     "leaflet": "^1.9.4",

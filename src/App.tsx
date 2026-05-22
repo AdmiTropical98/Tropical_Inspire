@@ -55,6 +55,8 @@ import InventoryModule from './pages/Inventario/InventoryModule';
 import OperacoesModule from './pages/Operacoes/OperacoesModule';
 import OperacoesLogin from './pages/Auth/OperacoesLogin';
 import DashboardLanding from './pages/Auth/DashboardLanding';
+import FornecedoresLogin from './pages/FornecedoresERP/FornecedoresLogin';
+import FornecedoresModule from './pages/FornecedoresERP/FornecedoresModule';
 import { isAndroidAuto } from './utils/isAndroidAuto';
 
 // Lazy loading backoffice
@@ -394,6 +396,12 @@ function App() {
     const isOperacoesArea =
       location.pathname === '/operacoes' ||
       location.pathname.startsWith('/operacoes/');
+  const isFornecedoresERPLoginArea =
+    location.pathname === '/fornecedores-erp/login' ||
+    location.pathname.startsWith('/fornecedores-erp/login/');
+  const isFornecedoresERPArea =
+    location.pathname === '/fornecedores-erp' ||
+    location.pathname.startsWith('/fornecedores-erp/');
   const normalizedRole = String(userRole || '').toUpperCase();
   const isAdminRole = normalizedRole === 'ADMIN' || normalizedRole === 'ADMIN_MASTER';
   const isGestorRole = normalizedRole === 'GESTOR';
@@ -463,7 +471,12 @@ function App() {
     if (isFrotaLoginArea) return <Login />;
     if (isOperacoesLoginArea || isOperacoesArea) return <OperacoesLogin />;
     if (isInventoryLoginArea || isInventoryArea) return <InventoryLogin />;
+    if (isFornecedoresERPLoginArea || isFornecedoresERPArea) return <FornecedoresLogin />;
     return <DashboardLanding />;
+  }
+
+  if (isFornecedoresERPArea) {
+    return <FornecedoresModule />;
   }
 
   if (isInventoryArea) {

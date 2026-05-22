@@ -45,8 +45,22 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "..\\..\\release\\win-unpacked\\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\\ALGARTEMPO"; Filename: "{app}\\{#MyAppExeName}"
-Name: "{autodesktop}\\ALGARTEMPO"; Filename: "{app}\\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{autoprograms}\\ALGARTEMPO"; Filename: "{app}\\ALGARTEMPO.exe"; Check: MainExeIsAlgartempo
+Name: "{autoprograms}\\ALGARTEMPO"; Filename: "{app}\\electron.exe"; Check: MainExeIsElectron
+Name: "{autodesktop}\\ALGARTEMPO"; Filename: "{app}\\ALGARTEMPO.exe"; Tasks: desktopicon; Check: MainExeIsAlgartempo
+Name: "{autodesktop}\\ALGARTEMPO"; Filename: "{app}\\electron.exe"; Tasks: desktopicon; Check: MainExeIsElectron
 
 [Run]
-Filename: "{app}\\{#MyAppExeName}"; Description: "Iniciar ALGARTEMPO agora"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\\ALGARTEMPO.exe"; Description: "Iniciar ALGARTEMPO agora"; Flags: nowait postinstall skipifsilent; Check: MainExeIsAlgartempo
+Filename: "{app}\\electron.exe"; Description: "Iniciar ALGARTEMPO agora"; Flags: nowait postinstall skipifsilent; Check: MainExeIsElectron
+
+[Code]
+function MainExeIsAlgartempo: Boolean;
+begin
+  Result := FileExists(ExpandConstant('{app}\\ALGARTEMPO.exe'));
+end;
+
+function MainExeIsElectron: Boolean;
+begin
+  Result := FileExists(ExpandConstant('{app}\\electron.exe'));
+end;
