@@ -8,7 +8,7 @@ import {
   UserCheck, Activity,
   Settings2, UserCog as UserCogIcon, LogOut,
   Navigation, AlertTriangle, ClipboardCheck, Fuel, BatteryCharging,
-  History, IdCard, Settings
+  History, IdCard, Settings, Shield
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -23,6 +23,7 @@ import Dashboard from './pages/Dashboard';
 import AlertsPage from './pages/Alerts';
 import Viaturas from './pages/Viaturas';
 import VehicleProfile from './pages/Viaturas/VehicleProfile';
+import VehicleInsurance from './pages/Viaturas/VehicleInsurance';
 import Drivers from './pages/Motoristas';
 import Requisicoes from './pages/Requisicoes';
 import EscalasHistory from './pages/Escalas/EscalasHistory';
@@ -678,6 +679,13 @@ function App() {
           active: activeTab === 'avaliacao-drivers',
         } as NavItem]
         : []),
+      {
+        key: 'seguros-viaturas',
+        label: 'Seguros',
+        icon: Shield,
+        path: '/seguros-viaturas',
+        active: activeTab === 'seguros-viaturas',
+      },
     ],
   };
 
@@ -776,7 +784,7 @@ function App() {
       key: 'bottom-frota',
       label: 'Frota',
       icon: Car,
-      active: ['viaturas', 'vehicles', 'motoristas', 'avaliacao-drivers'].includes(activeTab),
+      active: ['viaturas', 'vehicles', 'motoristas', 'avaliacao-drivers', 'seguros-viaturas'].includes(activeTab),
       onClick: () => handleNavigate('/viaturas'),
     },
     {
@@ -826,6 +834,7 @@ function App() {
         <Route path="/viaturas" element={<Viaturas />} />
         <Route path="/viaturas/:viaturaId" element={<VehicleProfile />} />
         <Route path="/vehicles/:viaturaId" element={<VehicleProfile />} />
+        <Route path="/seguros-viaturas" element={<VehicleInsurance />} />
         <Route path="/motoristas" element={<Drivers />} />
         <Route path="/requisicoes" element={<Requisicoes />} />
         <Route path="/escalas" element={<Navigate to="/operacoes/escalas" replace />} />

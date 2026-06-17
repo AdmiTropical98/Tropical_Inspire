@@ -38,11 +38,40 @@ export default defineConfig({
         navigateFallbackDenylist: [
           /^\/api\//,
           /^\/public_html_api\//,
-          /\/download-requisicao\.php/,
-        ],
+        ]
       }
     })
   ],
+  build: {
+    rollupOptions: {
+      input: {
+        main: 'src/main.tsx',
+        fornecedores: 'src/fornecedores-main.tsx',
+      },
+      output: {
+        entryFileNames: (chunkInfo) => {
+          if (chunkInfo.name === 'fornecedores') {
+            return 'fornecedores/[name].js';
+          }
+          return 'assets/[name].js';
+        },
+        chunkFileNames: (chunkInfo) => {
+          if (chunkInfo.name && chunkInfo.name.startsWith('fornecedores')) {
+            return 'fornecedores/[name]-[hash].js';
+          }
+          return 'assets/[name]-[hash].js';
+        },
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name && assetInfo.name.startsWith('fornecedores')) {
+            return 'fornecedores/[name]-[hash][extname]';
+          }
+          return 'assets/[name]-[hash][extname]';
+        },
+      },
+    },
+    outDir: 'dist',
+    emptyOutDir: true,
+  },
   base: isElectronBuild ? './' : '/',
   server: {
     host: '0.0.0.0',
@@ -65,4 +94,4 @@ export default defineConfig({
       }
     }
   }
-})
+});

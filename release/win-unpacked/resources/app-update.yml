@@ -1,0 +1,3 @@
+provider: generic
+url: https://algartempo.pt/updates/fornecedores/
+updaterCacheDirName: gestao_oficina-updater

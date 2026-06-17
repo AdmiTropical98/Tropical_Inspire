@@ -156,7 +156,7 @@ export default function FornecedoresModule() {
           </div>
           <button
             type="button"
-            onClick={() => { logout(); navigate('/'); }}
+            onClick={() => { logout(); navigate('/login'); }}
             className="ferp-btn-ghost mt-2 w-full justify-center"
             style={{ padding: '7px 10px', color: '#f87171', borderColor: 'rgba(239,68,68,0.2)' }}
             title="Sair"

@@ -2,33 +2,38 @@ directories:
   output: release
   buildResources: build
 appId: com.algartempo.programa
-productName: ALGARTEMPO
-asar: false
-icon: build/exeicon.ico
-extraMetadata:
-  main: electron/main.cjs
-  type: commonjs
+productName: ALGARTEMPO FORNECEDORES
 files:
   - filter:
       - dist/**/*
       - electron/**/*
 win:
   target:
-    - nsis
-  executableName: ALGARTEMPO
+    - target: nsis
+      arch:
+        - x64
   icon: build/exeicon.ico
+  artifactName: ALGARTEMPO-FORNECEDORES-Setup-${version}.exe
+  legalTrademarks: ALGARTEMPO FORNECEDORES
+  publish:
+    - provider: generic
+      url: https://algartempo.pt/updates/fornecedores/
   signAndEditExecutable: false
-  artifactName: ${productName}-Setup-${version}.${ext}
 nsis:
   oneClick: false
+  perMachine: false
+  allowElevation: true
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  installerSidebar: build/installer/sidebar.bmp
-  uninstallerSidebar: build/installer/sidebar-uninstall.bmp
-  installerHeader: build/installer/header.bmp
-  include: build/installer/installer.nsh
+  shortcutName: ALGARTEMPO FORNECEDORES
+  uninstallDisplayName: ALGARTEMPO FORNECEDORES
   installerIcon: build/exeicon.ico
   uninstallerIcon: build/exeicon.ico
   installerHeaderIcon: build/exeicon.ico
+  displayLanguageSelector: true
+  artifactName: ALGARTEMPO-FORNECEDORES-Setup-${version}.exe
+publish:
+  - provider: generic
+    url: https://algartempo.pt/updates/
 electronVersion: 42.1.0

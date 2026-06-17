@@ -17,7 +17,7 @@ function createWindow() {
   if (startUrl) {
     win.loadURL(startUrl);
   } else {
-    win.loadFile(path.join(__dirname, "../dist/index.html"));
+    win.loadFile(path.join(__dirname, "../dist/fornecedores/index.html"));
   }
 }
 
