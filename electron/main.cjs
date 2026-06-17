@@ -20,17 +20,17 @@ function createWindow() {
     return;
   }
 
-  const fornecedoresHtml = path.join(__dirname, "../dist/fornecedores/index.html");
-  const mainHtml = path.join(__dirname, "../dist/index.html");
+  const htmlCandidates = [
+    path.join(__dirname, "../dist/fornecedores.html"),
+    path.join(__dirname, "../dist/fornecedores/index.html"),
+    path.join(__dirname, "../dist/index.html")
+  ];
 
-  if (fs.existsSync(fornecedoresHtml)) {
-    win.loadFile(fornecedoresHtml);
-    return;
-  }
-
-  if (fs.existsSync(mainHtml)) {
-    win.loadFile(mainHtml);
-    return;
+  for (const filePath of htmlCandidates) {
+    if (fs.existsSync(filePath)) {
+      win.loadFile(filePath);
+      return;
+    }
   }
 
   win.loadURL("data:text/html;charset=utf-8,<h2>Build output não encontrado</h2><p>Falta dist/index.html</p>");

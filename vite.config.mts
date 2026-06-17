@@ -45,29 +45,9 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        main: 'src/main.tsx',
-        fornecedores: 'src/fornecedores-main.tsx',
-      },
-      output: {
-        entryFileNames: (chunkInfo) => {
-          if (chunkInfo.name === 'fornecedores') {
-            return 'fornecedores/[name].js';
-          }
-          return 'assets/[name].js';
-        },
-        chunkFileNames: (chunkInfo) => {
-          if (chunkInfo.name && chunkInfo.name.startsWith('fornecedores')) {
-            return 'fornecedores/[name]-[hash].js';
-          }
-          return 'assets/[name]-[hash].js';
-        },
-        assetFileNames: (assetInfo) => {
-          if (assetInfo.name && assetInfo.name.startsWith('fornecedores')) {
-            return 'fornecedores/[name]-[hash][extname]';
-          }
-          return 'assets/[name]-[hash][extname]';
-        },
-      },
+        main: 'index.html',
+        fornecedores: 'fornecedores.html',
+      }
     },
     outDir: 'dist',
     emptyOutDir: true,
