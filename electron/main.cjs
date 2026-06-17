@@ -1,4 +1,5 @@
 const { app, BrowserWindow } = require("electron");
+const fs = require("fs");
 const path = require("path");
 
 function createWindow() {
@@ -16,9 +17,23 @@ function createWindow() {
 
   if (startUrl) {
     win.loadURL(startUrl);
-  } else {
-    win.loadFile(path.join(__dirname, "../dist/fornecedores/index.html"));
+    return;
   }
+
+  const fornecedoresHtml = path.join(__dirname, "../dist/fornecedores/index.html");
+  const mainHtml = path.join(__dirname, "../dist/index.html");
+
+  if (fs.existsSync(fornecedoresHtml)) {
+    win.loadFile(fornecedoresHtml);
+    return;
+  }
+
+  if (fs.existsSync(mainHtml)) {
+    win.loadFile(mainHtml);
+    return;
+  }
+
+  win.loadURL("data:text/html;charset=utf-8,<h2>Build output não encontrado</h2><p>Falta dist/index.html</p>");
 }
 
 app.whenReady().then(() => {

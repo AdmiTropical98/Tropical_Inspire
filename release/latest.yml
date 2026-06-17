@@ -1,8 +1,8 @@
 version: 1.9.1
 files:
   - url: ALGARTEMPO-FORNECEDORES-Setup-1.9.1.exe
-    sha512: 21GMUV36Ohj5wHWztM6Cx2/D/LI6kiyyobxd0PcwWA2Ft5REdYnjJaUUjjKgLJXqjPYvC7UMpP7G67F9R0CcYw==
-    size: 166530497
+    sha512: wLT2Iq72gnh9ly7hofukdn6ogAcSzvXLvHMIMCxqUsF2DU2e0qhxe98gmrm4JwnbSIcwhoQ+tWa34Cqx5XnHHg==
+    size: 166530517
 path: ALGARTEMPO-FORNECEDORES-Setup-1.9.1.exe
-sha512: 21GMUV36Ohj5wHWztM6Cx2/D/LI6kiyyobxd0PcwWA2Ft5REdYnjJaUUjjKgLJXqjPYvC7UMpP7G67F9R0CcYw==
-releaseDate: '2026-06-17T14:12:58.325Z'
+sha512: wLT2Iq72gnh9ly7hofukdn6ogAcSzvXLvHMIMCxqUsF2DU2e0qhxe98gmrm4JwnbSIcwhoQ+tWa34Cqx5XnHHg==
+releaseDate: '2026-06-17T14:30:13.820Z'
