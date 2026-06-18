@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Car, Fuel, Wrench, ClipboardList, Gauge, CalendarClock, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Car, Fuel, Wrench, ClipboardList, Gauge, CalendarClock, AlertTriangle, ShieldCheck, FileSearch, Receipt, PlusCircle } from 'lucide-react';
 import {
     ResponsiveContainer,
     BarChart,
@@ -16,7 +16,18 @@ import {
 } from 'recharts';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { supabase } from '../../lib/supabase';
-import type { Requisicao, FuelTransaction, Manutencao } from '../../types';
+import type {
+    Requisicao,
+    FuelTransaction,
+    Manutencao,
+    VehicleInsurancePolicy,
+    VehicleInspection,
+    VehicleIucRecord,
+    VehicleOtherCost,
+    VehicleCostHistoryRow,
+    VehicleFinancialSummary,
+    VehicleComplianceAlert
+} from '../../types';
 
 const normalizePlate = (value?: string | null) => (value || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 const isLikelyUUID = (value?: string | null) => !!value && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
@@ -53,17 +64,71 @@ export default function VehicleProfile() {
     const [monthlyFuelSql, setMonthlyFuelSql] = useState<Array<{ month: string; cost: number; liters: number }>>([]);
     const [monthlyMaintenanceSql, setMonthlyMaintenanceSql] = useState<Array<{ month: string; cost: number }>>([]);
     const [consumptionSql, setConsumptionSql] = useState<Array<{ month: string; average_consumption: number }>>([]);
+    const [financialSummarySql, setFinancialSummarySql] = useState<VehicleFinancialSummary | null>(null);
+    const [costHistorySql, setCostHistorySql] = useState<VehicleCostHistoryRow[]>([]);
+    const [complianceAlertsSql, setComplianceAlertsSql] = useState<VehicleComplianceAlert[]>([]);
+    const [insurancePolicies, setInsurancePolicies] = useState<VehicleInsurancePolicy[]>([]);
+    const [inspectionRecords, setInspectionRecords] = useState<VehicleInspection[]>([]);
+    const [iucRecords, setIucRecords] = useState<VehicleIucRecord[]>([]);
+    const [otherCosts, setOtherCosts] = useState<VehicleOtherCost[]>([]);
+    const [historyCategoryFilter, setHistoryCategoryFilter] = useState<'all' | VehicleCostHistoryRow['category']>('all');
+    const [historyStartDate, setHistoryStartDate] = useState('');
+    const [historyEndDate, setHistoryEndDate] = useState('');
+    const [isSavingCost, setIsSavingCost] = useState(false);
+
+    const [insuranceForm, setInsuranceForm] = useState({
+        insurer: '',
+        policy_number: '',
+        start_date: '',
+        end_date: '',
+        premium_amount: '',
+        payment_frequency: 'annual' as VehicleInsurancePolicy['payment_frequency'],
+        document_url: ''
+    });
+
+    const [inspectionForm, setInspectionForm] = useState({
+        inspection_date: '',
+        valid_until: '',
+        result: 'approved',
+        cost: '',
+        document_url: ''
+    });
+
+    const [iucForm, setIucForm] = useState({
+        fiscal_year: String(new Date().getFullYear()),
+        amount: '',
+        due_date: '',
+        payment_date: '',
+        status: 'pending' as VehicleIucRecord['status'],
+        document_url: ''
+    });
+
+    const [otherCostForm, setOtherCostForm] = useState({
+        cost_category: 'outros' as VehicleOtherCost['cost_category'],
+        cost_date: new Date().toISOString().slice(0, 10),
+        description: '',
+        amount: '',
+        km: '',
+        driver_id: '',
+        document_url: ''
+    });
 
     const viatura = viaturas.find(v => v.id === viaturaId);
 
-    useEffect(() => {
-        const loadVehicleProfileAggregates = async () => {
+    const loadVehicleProfileAggregates = async () => {
             if (!viaturaId || !viatura) {
                 setSummarySql(null);
                 setMonthlyFuelSql([]);
                 setMonthlyMaintenanceSql([]);
                 setConsumptionSql([]);
                 setMaintenanceRecords([]);
+                setFinancialSummarySql(null);
+                setCostHistorySql([]);
+                setComplianceAlertsSql([]);
+                setInsurancePolicies([]);
+                setInspectionRecords([]);
+                setIucRecords([]);
+                setOtherCosts([]);
                 return;
             }
 
@@ -74,7 +139,14 @@ export default function VehicleProfile() {
                 monthlyFuelResult,
                 monthlyMaintenanceResult,
                 consumptionResult,
-                maintenanceResult
+                maintenanceResult,
+                financialSummaryResult,
+                costHistoryResult,
+                complianceResult,
+                insuranceResult,
+                inspectionsResult,
+                iucResult,
+                otherCostsResult
             ] = await Promise.all([
                 supabase
                     .from('vehicle_profile_summary')
@@ -100,13 +172,67 @@ export default function VehicleProfile() {
                     .from('manutencoes')
                     .select('id,data,tipo,km,oficina,custo,descricao,pdf_url,vehicle_id,license_plate,matricula')
                     .or(`vehicle_id.eq.${viaturaId},license_plate.eq.${plate},matricula.eq.${plate}`)
-                    .order('data', { ascending: false })
+                    .order('data', { ascending: false }),
+                supabase
+                    .from('vehicle_financial_summary')
+                    .select('*')
+                    .eq('vehicle_id', viaturaId)
+                    .maybeSingle(),
+                supabase
+                    .from('vehicle_cost_history')
+                    .select('*')
+                    .eq('vehicle_id', viaturaId)
+                    .order('event_date', { ascending: false })
+                    .limit(1500),
+                supabase
+                    .from('vehicle_compliance_alerts')
+                    .select('*')
+                    .eq('vehicle_id', viaturaId)
+                    .order('severity', { ascending: false }),
+                supabase
+                    .from('vehicle_insurance_policies')
+                    .select('*')
+                    .eq('vehicle_id', viaturaId)
+                    .order('end_date', { ascending: true }),
+                supabase
+                    .from('vehicle_inspections')
+                    .select('*')
+                    .eq('vehicle_id', viaturaId)
+                    .order('inspection_date', { ascending: false }),
+                supabase
+                    .from('vehicle_iuc_records')
+                    .select('*')
+                    .eq('vehicle_id', viaturaId)
+                    .order('fiscal_year', { ascending: false }),
+                supabase
+                    .from('vehicle_other_costs')
+                    .select('*')
+                    .eq('vehicle_id', viaturaId)
+                    .order('cost_date', { ascending: false })
             ]);
 
             if (!summaryResult.error) setSummarySql(summaryResult.data as VehicleProfileSummaryRow | null);
             if (!monthlyFuelResult.error) setMonthlyFuelSql((monthlyFuelResult.data || []).map(row => ({ month: row.month, cost: Number(row.cost || 0), liters: Number(row.liters || 0) })));
             if (!monthlyMaintenanceResult.error) setMonthlyMaintenanceSql((monthlyMaintenanceResult.data || []).map(row => ({ month: row.month, cost: Number(row.cost || 0) })));
             if (!consumptionResult.error) setConsumptionSql((consumptionResult.data || []).map(row => ({ month: row.month, average_consumption: Number(row.average_consumption || 0) })));
+            if (!financialSummaryResult.error) setFinancialSummarySql(financialSummaryResult.data as VehicleFinancialSummary | null);
+            if (!costHistoryResult.error) {
+                setCostHistorySql((costHistoryResult.data || []).map((row: any) => ({
+                    ...row,
+                    amount: Number(row.amount || 0)
+                })));
+            }
+            if (!complianceResult.error) setComplianceAlertsSql((complianceResult.data || []) as VehicleComplianceAlert[]);
+            if (!insuranceResult.error) setInsurancePolicies((insuranceResult.data || []) as VehicleInsurancePolicy[]);
+            if (!inspectionsResult.error) setInspectionRecords((inspectionsResult.data || []) as VehicleInspection[]);
+            if (!iucResult.error) setIucRecords((iucResult.data || []) as VehicleIucRecord[]);
+            if (!otherCostsResult.error) {
+                setOtherCosts((otherCostsResult.data || []).map((row: any) => ({
+                    ...row,
+                    amount: Number(row.amount || 0),
+                    km: row.km === null || row.km === undefined ? undefined : Number(row.km)
+                })) as VehicleOtherCost[]);
+            }
 
             if (!maintenanceResult.error) {
                 setMaintenanceRecords((maintenanceResult.data || []).map((item: any) => ({
@@ -120,9 +246,10 @@ export default function VehicleProfile() {
                     pdfUrl: item.pdf_url || undefined
                 })));
             }
-        };
+    };
 
-        loadVehicleProfileAggregates();
+    useEffect(() => {
+        void loadVehicleProfileAggregates();
     }, [viaturaId, viatura]);
 
     const resolveVehicleRef = useMemo(() => {
@@ -244,13 +371,18 @@ export default function VehicleProfile() {
     const monthlyMaintenance = monthlyMaintenanceSql.length ? monthlyMaintenanceSql : monthlyMaintenanceFallback;
 
     const averageConsumption = summarySql?.average_consumption ?? averageConsumptionBase;
-    const totalFuelCost = summarySql?.total_fuel_cost ?? totalFuelCostBase;
+    const totalFuelCost = financialSummarySql?.total_fuel_cost ?? summarySql?.total_fuel_cost ?? totalFuelCostBase;
     const totalLiters = summarySql?.total_liters ?? totalLitersBase;
-    const totalMaintenanceCost = summarySql?.total_maintenance_cost ?? totalMaintenanceCostBase;
-    const totalGeneralCost = summarySql?.total_cost ?? totalGeneralCostBase;
+    const totalMaintenanceCost = financialSummarySql?.total_maintenance_cost ?? summarySql?.total_maintenance_cost ?? totalMaintenanceCostBase;
+    const totalInsuranceCost = financialSummarySql?.total_insurance_cost ?? insurancePolicies.reduce((acc, item) => acc + Number(item.premium_amount || 0), 0);
+    const totalIucCost = financialSummarySql?.total_iuc_cost ?? iucRecords.reduce((acc, item) => acc + Number(item.amount || 0), 0);
+    const totalTollsCost = financialSummarySql?.total_tolls_cost ?? costHistorySql.filter(item => item.category === 'portagens').reduce((acc, item) => acc + Number(item.amount || 0), 0);
+    const totalOtherCosts = financialSummarySql?.total_other_costs ?? otherCosts.reduce((acc, item) => acc + Number(item.amount || 0), 0);
+    const totalInspectionCost = financialSummarySql?.total_inspection_cost ?? inspectionRecords.reduce((acc, item) => acc + Number(item.cost || 0), 0);
+    const totalGeneralCost = financialSummarySql?.total_vehicle_cost ?? summarySql?.total_cost ?? totalGeneralCostBase;
     const currentKm = summarySql?.current_km ?? currentKmBase;
     const kmTravelled = summarySql?.km_travelled ?? kmTravelledBase;
-    const costPerKm = summarySql?.cost_per_km ?? costPerKmBase;
+    const costPerKm = financialSummarySql?.cost_per_km ?? summarySql?.cost_per_km ?? costPerKmBase;
     const totalRequisitionsCount = summarySql?.total_requisitions ?? vehicleRequisitions.length;
     const totalRefuelsCount = summarySql?.total_refuels ?? vehicleFuelTransactions.length;
     const pendingReq = vehicleRequisitions.filter(r => (r.status || 'pendente') !== 'concluida').length;
@@ -284,6 +416,120 @@ export default function VehicleProfile() {
             ? { id: 'km-no-record', title: 'Km sem registo recente', description: `${daysWithoutFuelRecord} dias sem abastecimento registado` }
             : null
     ].filter(Boolean) as Array<{ id: string; title: string; description: string }>;
+
+    const sqlAlerts = complianceAlertsSql.map(alert => ({
+        id: `sql-${alert.id}`,
+        title: alert.title,
+        description: alert.message
+    }));
+
+    const mergedAlerts = [...sqlAlerts, ...profileAlerts].filter((alert, index, arr) => arr.findIndex(item => item.title === alert.title && item.description === alert.description) === index);
+
+    const filteredCostHistory = costHistorySql.filter(item => {
+        if (historyCategoryFilter !== 'all' && item.category !== historyCategoryFilter) return false;
+
+        const d = new Date(item.event_date);
+        if (Number.isNaN(d.getTime())) return false;
+
+        if (historyStartDate) {
+            const start = new Date(`${historyStartDate}T00:00:00`);
+            if (d < start) return false;
+        }
+
+        if (historyEndDate) {
+            const end = new Date(`${historyEndDate}T23:59:59`);
+            if (d > end) return false;
+        }
+
+        return true;
+    });
+
+    const addInsurancePolicy = async () => {
+        if (!viaturaId || !insuranceForm.insurer || !insuranceForm.policy_number || !insuranceForm.start_date || !insuranceForm.end_date) return;
+        setIsSavingCost(true);
+        const payload = {
+            vehicle_id: viaturaId,
+            insurer: insuranceForm.insurer,
+            policy_number: insuranceForm.policy_number,
+            start_date: insuranceForm.start_date,
+            end_date: insuranceForm.end_date,
+            premium_amount: Number(insuranceForm.premium_amount || 0),
+            payment_frequency: insuranceForm.payment_frequency,
+            document_url: insuranceForm.document_url || null
+        };
+
+        const { error } = await supabase.from('vehicle_insurance_policies').insert(payload);
+        setIsSavingCost(false);
+        if (error) {
+            alert(`Erro ao registar seguro: ${error.message}`);
+            return;
+        }
+        setInsuranceForm({ insurer: '', policy_number: '', start_date: '', end_date: '', premium_amount: '', payment_frequency: 'annual', document_url: '' });
+        await loadVehicleProfileAggregates();
+    };
+
+    const addInspection = async () => {
+        if (!viaturaId || !inspectionForm.inspection_date) return;
+        setIsSavingCost(true);
+        const { error } = await supabase.from('vehicle_inspections').insert({
+            vehicle_id: viaturaId,
+            inspection_date: inspectionForm.inspection_date,
+            valid_until: inspectionForm.valid_until || null,
+            result: inspectionForm.result,
+            cost: Number(inspectionForm.cost || 0),
+            document_url: inspectionForm.document_url || null
+        });
+        setIsSavingCost(false);
+        if (error) {
+            alert(`Erro ao registar inspeção: ${error.message}`);
+            return;
+        }
+        setInspectionForm({ inspection_date: '', valid_until: '', result: 'approved', cost: '', document_url: '' });
+        await loadVehicleProfileAggregates();
+    };
+
+    const addIuc = async () => {
+        if (!viaturaId || !iucForm.fiscal_year) return;
+        setIsSavingCost(true);
+        const { error } = await supabase.from('vehicle_iuc_records').upsert({
+            vehicle_id: viaturaId,
+            fiscal_year: Number(iucForm.fiscal_year),
+            amount: Number(iucForm.amount || 0),
+            due_date: iucForm.due_date || null,
+            payment_date: iucForm.payment_date || null,
+            status: iucForm.status,
+            document_url: iucForm.document_url || null
+        }, { onConflict: 'vehicle_id,fiscal_year' });
+        setIsSavingCost(false);
+        if (error) {
+            alert(`Erro ao registar IUC: ${error.message}`);
+            return;
+        }
+        setIucForm({ fiscal_year: String(new Date().getFullYear()), amount: '', due_date: '', payment_date: '', status: 'pending', document_url: '' });
+        await loadVehicleProfileAggregates();
+    };
+
+    const addOtherCost = async () => {
+        if (!viaturaId || !otherCostForm.cost_date) return;
+        setIsSavingCost(true);
+        const { error } = await supabase.from('vehicle_other_costs').insert({
+            vehicle_id: viaturaId,
+            cost_category: otherCostForm.cost_category,
+            cost_date: otherCostForm.cost_date,
+            description: otherCostForm.description || null,
+            amount: Number(otherCostForm.amount || 0),
+            km: otherCostForm.km ? Number(otherCostForm.km) : null,
+            driver_id: otherCostForm.driver_id || null,
+            document_url: otherCostForm.document_url || null
+        });
+        setIsSavingCost(false);
+        if (error) {
+            alert(`Erro ao registar outro custo: ${error.message}`);
+            return;
+        }
+        setOtherCostForm({ cost_category: 'outros', cost_date: new Date().toISOString().slice(0, 10), description: '', amount: '', km: '', driver_id: '', document_url: '' });
+        await loadVehicleProfileAggregates();
+    };
 
     const timeline = useMemo(() => {
         if (!viatura) return [] as Array<{ id: string; date: string; type: 'fuel' | 'req' | 'maintenance' | 'alert'; title: string; subtitle: string }>;
@@ -328,7 +574,7 @@ export default function VehicleProfile() {
             subtitle: `Estado atual: ${vehicleStatus}`
         });
 
-        profileAlerts.forEach(alert => {
+        mergedAlerts.forEach(alert => {
             events.push({
                 id: `alert-${alert.id}`,
                 date: new Date().toISOString(),
@@ -339,7 +585,7 @@ export default function VehicleProfile() {
         });
 
         return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }, [viatura, vehicleFuelTransactions, vehicleRequisitions, maintenanceHistory, profileAlerts, vehicleStatus]);
+    }, [viatura, vehicleFuelTransactions, vehicleRequisitions, maintenanceHistory, mergedAlerts, vehicleStatus]);
 
     if (!viatura) {
         return (
@@ -392,7 +638,12 @@ export default function VehicleProfile() {
                 {[
                     { label: 'Total combustível', value: `${totalFuelCost.toFixed(2)}€`, icon: Fuel, color: 'text-blue-400' },
                     { label: 'Total manutenção', value: `${totalMaintenanceCost.toFixed(2)}€`, icon: Wrench, color: 'text-amber-400' },
-                    { label: 'Custo total', value: `${totalGeneralCost.toFixed(2)}€`, icon: ClipboardList, color: 'text-purple-400' },
+                        { label: 'Total seguros', value: `${totalInsuranceCost.toFixed(2)}€`, icon: ShieldCheck, color: 'text-emerald-400' },
+                        { label: 'Total IUC', value: `${totalIucCost.toFixed(2)}€`, icon: Receipt, color: 'text-rose-400' },
+                        { label: 'Total portagens', value: `${totalTollsCost.toFixed(2)}€`, icon: Car, color: 'text-sky-400' },
+                        { label: 'Total outros custos', value: `${totalOtherCosts.toFixed(2)}€`, icon: FileSearch, color: 'text-orange-400' },
+                        { label: 'Total inspeções', value: `${totalInspectionCost.toFixed(2)}€`, icon: ClipboardList, color: 'text-lime-400' },
+                        { label: 'Custo total da viatura', value: `${totalGeneralCost.toFixed(2)}€`, icon: ClipboardList, color: 'text-purple-400' },
                     { label: 'Custo por km', value: `${costPerKm.toFixed(3)}€/km`, icon: Gauge, color: 'text-violet-400' },
                     { label: 'Consumo médio', value: `${averageConsumption.toFixed(2)} L/100km`, icon: Gauge, color: 'text-emerald-400' },
                     { label: 'Km percorridos', value: `${kmTravelled.toLocaleString('pt-PT')} km`, icon: Car, color: 'text-indigo-400' },
@@ -414,7 +665,7 @@ export default function VehicleProfile() {
             <div className="bg-white/90 border border-slate-200 rounded-2xl p-5">
                 <h2 className="text-lg font-bold text-[#1f2957] mb-4">Alertas Automáticos</h2>
                 <div className="space-y-3">
-                    {profileAlerts.map(alert => (
+                    {mergedAlerts.map(alert => (
                         <div key={alert.id} className="flex items-start gap-3 p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl">
                             <AlertTriangle className="w-4 h-4 mt-0.5 text-amber-400" />
                             <div>
@@ -423,7 +674,153 @@ export default function VehicleProfile() {
                             </div>
                         </div>
                     ))}
-                    {profileAlerts.length === 0 && <p className="text-slate-500 text-sm">Sem alertas ativos para esta viatura.</p>}
+                    {mergedAlerts.length === 0 && <p className="text-slate-500 text-sm">Sem alertas ativos para esta viatura.</p>}
+                </div>
+            </div>
+
+            <div className="bg-white/90 border border-slate-200 rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-lg font-bold text-[#1f2957]">Registo de Custos</h2>
+                    <span className="text-xs text-slate-500">Seguro, IPO, IUC e outros custos</span>
+                </div>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                    <form
+                        className="border border-slate-200 rounded-xl p-4 space-y-3"
+                        onSubmit={(e) => { e.preventDefault(); void addInsurancePolicy(); }}
+                    >
+                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900"><ShieldCheck className="w-4 h-4" /> Seguro</div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <input className="px-3 py-2 rounded-lg border border-slate-200" placeholder="Seguradora" value={insuranceForm.insurer} onChange={(e) => setInsuranceForm(prev => ({ ...prev, insurer: e.target.value }))} />
+                            <input className="px-3 py-2 rounded-lg border border-slate-200" placeholder="Nº apólice" value={insuranceForm.policy_number} onChange={(e) => setInsuranceForm(prev => ({ ...prev, policy_number: e.target.value }))} />
+                            <input type="date" className="px-3 py-2 rounded-lg border border-slate-200" value={insuranceForm.start_date} onChange={(e) => setInsuranceForm(prev => ({ ...prev, start_date: e.target.value }))} />
+                            <input type="date" className="px-3 py-2 rounded-lg border border-slate-200" value={insuranceForm.end_date} onChange={(e) => setInsuranceForm(prev => ({ ...prev, end_date: e.target.value }))} />
+                            <input type="number" step="0.01" className="px-3 py-2 rounded-lg border border-slate-200" placeholder="Valor" value={insuranceForm.premium_amount} onChange={(e) => setInsuranceForm(prev => ({ ...prev, premium_amount: e.target.value }))} />
+                            <select className="px-3 py-2 rounded-lg border border-slate-200" value={insuranceForm.payment_frequency} onChange={(e) => setInsuranceForm(prev => ({ ...prev, payment_frequency: e.target.value as VehicleInsurancePolicy['payment_frequency'] }))}>
+                                <option value="monthly">Mensal</option>
+                                <option value="quarterly">Trimestral</option>
+                                <option value="annual">Anual</option>
+                            </select>
+                            <input className="px-3 py-2 rounded-lg border border-slate-200 md:col-span-2" placeholder="URL documento PDF" value={insuranceForm.document_url} onChange={(e) => setInsuranceForm(prev => ({ ...prev, document_url: e.target.value }))} />
+                        </div>
+                        <button disabled={isSavingCost} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-60"><PlusCircle className="w-4 h-4" /> Guardar Seguro</button>
+                    </form>
+
+                    <form
+                        className="border border-slate-200 rounded-xl p-4 space-y-3"
+                        onSubmit={(e) => { e.preventDefault(); void addInspection(); }}
+                    >
+                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900"><FileSearch className="w-4 h-4" /> Inspeção (IPO)</div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <input type="date" className="px-3 py-2 rounded-lg border border-slate-200" value={inspectionForm.inspection_date} onChange={(e) => setInspectionForm(prev => ({ ...prev, inspection_date: e.target.value }))} />
+                            <input type="date" className="px-3 py-2 rounded-lg border border-slate-200" value={inspectionForm.valid_until} onChange={(e) => setInspectionForm(prev => ({ ...prev, valid_until: e.target.value }))} />
+                            <select className="px-3 py-2 rounded-lg border border-slate-200" value={inspectionForm.result} onChange={(e) => setInspectionForm(prev => ({ ...prev, result: e.target.value }))}>
+                                <option value="approved">Aprovada</option>
+                                <option value="conditional">Aprovada com anotações</option>
+                                <option value="failed">Reprovada</option>
+                            </select>
+                            <input type="number" step="0.01" className="px-3 py-2 rounded-lg border border-slate-200" placeholder="Custo" value={inspectionForm.cost} onChange={(e) => setInspectionForm(prev => ({ ...prev, cost: e.target.value }))} />
+                            <input className="px-3 py-2 rounded-lg border border-slate-200 md:col-span-2" placeholder="URL documento PDF" value={inspectionForm.document_url} onChange={(e) => setInspectionForm(prev => ({ ...prev, document_url: e.target.value }))} />
+                        </div>
+                        <button disabled={isSavingCost} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-60"><PlusCircle className="w-4 h-4" /> Guardar Inspeção</button>
+                    </form>
+
+                    <form
+                        className="border border-slate-200 rounded-xl p-4 space-y-3"
+                        onSubmit={(e) => { e.preventDefault(); void addIuc(); }}
+                    >
+                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900"><Receipt className="w-4 h-4" /> IUC</div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <input type="number" className="px-3 py-2 rounded-lg border border-slate-200" placeholder="Ano fiscal" value={iucForm.fiscal_year} onChange={(e) => setIucForm(prev => ({ ...prev, fiscal_year: e.target.value }))} />
+                            <input type="number" step="0.01" className="px-3 py-2 rounded-lg border border-slate-200" placeholder="Valor" value={iucForm.amount} onChange={(e) => setIucForm(prev => ({ ...prev, amount: e.target.value }))} />
+                            <input type="date" className="px-3 py-2 rounded-lg border border-slate-200" value={iucForm.due_date} onChange={(e) => setIucForm(prev => ({ ...prev, due_date: e.target.value }))} />
+                            <input type="date" className="px-3 py-2 rounded-lg border border-slate-200" value={iucForm.payment_date} onChange={(e) => setIucForm(prev => ({ ...prev, payment_date: e.target.value }))} />
+                            <select className="px-3 py-2 rounded-lg border border-slate-200" value={iucForm.status} onChange={(e) => setIucForm(prev => ({ ...prev, status: e.target.value as VehicleIucRecord['status'] }))}>
+                                <option value="pending">Pendente</option>
+                                <option value="paid">Pago</option>
+                            </select>
+                            <input className="px-3 py-2 rounded-lg border border-slate-200" placeholder="URL comprovativo" value={iucForm.document_url} onChange={(e) => setIucForm(prev => ({ ...prev, document_url: e.target.value }))} />
+                        </div>
+                        <button disabled={isSavingCost} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-60"><PlusCircle className="w-4 h-4" /> Guardar IUC</button>
+                    </form>
+
+                    <form
+                        className="border border-slate-200 rounded-xl p-4 space-y-3"
+                        onSubmit={(e) => { e.preventDefault(); void addOtherCost(); }}
+                    >
+                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900"><ClipboardList className="w-4 h-4" /> Outros Custos</div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <select className="px-3 py-2 rounded-lg border border-slate-200" value={otherCostForm.cost_category} onChange={(e) => setOtherCostForm(prev => ({ ...prev, cost_category: e.target.value as VehicleOtherCost['cost_category'] }))}>
+                                <option value="lavagem">Lavagem</option>
+                                <option value="pneus">Pneus</option>
+                                <option value="estacionamento">Estacionamento</option>
+                                <option value="multa">Multa</option>
+                                <option value="pecas">Peças</option>
+                                <option value="reparacao_extraordinaria">Reparação Extraordinária</option>
+                                <option value="outros">Outros</option>
+                            </select>
+                            <input type="date" className="px-3 py-2 rounded-lg border border-slate-200" value={otherCostForm.cost_date} onChange={(e) => setOtherCostForm(prev => ({ ...prev, cost_date: e.target.value }))} />
+                            <input type="number" step="0.01" className="px-3 py-2 rounded-lg border border-slate-200" placeholder="Valor" value={otherCostForm.amount} onChange={(e) => setOtherCostForm(prev => ({ ...prev, amount: e.target.value }))} />
+                            <input type="number" className="px-3 py-2 rounded-lg border border-slate-200" placeholder="Km (opcional)" value={otherCostForm.km} onChange={(e) => setOtherCostForm(prev => ({ ...prev, km: e.target.value }))} />
+                            <select className="px-3 py-2 rounded-lg border border-slate-200" value={otherCostForm.driver_id} onChange={(e) => setOtherCostForm(prev => ({ ...prev, driver_id: e.target.value }))}>
+                                <option value="">Sem motorista</option>
+                                {motoristas.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                            </select>
+                            <input className="px-3 py-2 rounded-lg border border-slate-200" placeholder="URL comprovativo" value={otherCostForm.document_url} onChange={(e) => setOtherCostForm(prev => ({ ...prev, document_url: e.target.value }))} />
+                            <input className="px-3 py-2 rounded-lg border border-slate-200 md:col-span-2" placeholder="Descrição" value={otherCostForm.description} onChange={(e) => setOtherCostForm(prev => ({ ...prev, description: e.target.value }))} />
+                        </div>
+                        <button disabled={isSavingCost} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-60"><PlusCircle className="w-4 h-4" /> Guardar Custo</button>
+                    </form>
+                </div>
+            </div>
+
+            <div className="bg-white/90 border border-slate-200 rounded-2xl p-5">
+                <h2 className="text-lg font-bold text-[#1f2957] mb-4">Histórico de Custos</h2>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+                    <input type="date" className="px-3 py-2 rounded-lg border border-slate-200" value={historyStartDate} onChange={(e) => setHistoryStartDate(e.target.value)} />
+                    <input type="date" className="px-3 py-2 rounded-lg border border-slate-200" value={historyEndDate} onChange={(e) => setHistoryEndDate(e.target.value)} />
+                    <select className="px-3 py-2 rounded-lg border border-slate-200" value={historyCategoryFilter} onChange={(e) => setHistoryCategoryFilter(e.target.value as 'all' | VehicleCostHistoryRow['category'])}>
+                        <option value="all">Todas as categorias</option>
+                        <option value="combustivel">Combustível</option>
+                        <option value="manutencao">Manutenção</option>
+                        <option value="seguros">Seguros</option>
+                        <option value="inspecoes">Inspeções</option>
+                        <option value="iuc">IUC</option>
+                        <option value="portagens">Portagens</option>
+                        <option value="outros">Outros</option>
+                    </select>
+                    <select className="px-3 py-2 rounded-lg border border-slate-200" value={viaturaId || ''} disabled>
+                        <option value={viaturaId || ''}>{viatura.matricula}</option>
+                    </select>
+                </div>
+
+                <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                        <thead>
+                            <tr className="text-slate-500 border-b border-slate-200">
+                                <th className="text-left py-2">Data</th>
+                                <th className="text-left py-2">Categoria</th>
+                                <th className="text-left py-2">Descrição</th>
+                                <th className="text-left py-2">Valor</th>
+                                <th className="text-left py-2">Documento</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredCostHistory.map(item => (
+                                <tr key={`${item.source_table}-${item.source_id}`} className="border-b border-slate-200/60 text-slate-300">
+                                    <td className="py-2">{new Date(item.event_date).toLocaleDateString('pt-PT')}</td>
+                                    <td className="py-2 capitalize">{item.category}</td>
+                                    <td className="py-2">{item.description || '—'}</td>
+                                    <td className="py-2 font-semibold">{Number(item.amount || 0).toFixed(2)}€</td>
+                                    <td className="py-2">
+                                        {item.document_url
+                                            ? <a href={item.document_url} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">Abrir</a>
+                                            : <span className="text-slate-500">—</span>}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    {filteredCostHistory.length === 0 && <p className="text-slate-500 text-sm py-4 text-center">Sem custos no filtro selecionado.</p>}
                 </div>
             </div>
 

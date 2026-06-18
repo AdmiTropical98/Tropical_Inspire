@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Search, Trash2, Car, Calendar, Info, LayoutTemplate,
@@ -9,6 +9,32 @@ import * as XLSX from 'xlsx';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { Viatura } from '../../types';
+import { supabase } from '../../lib/supabase';
+
+type FleetFinancialDashboard = {
+    total_fleet_cost: number;
+    total_fuel_cost: number;
+    total_maintenance_cost: number;
+    total_insurance_cost: number;
+    total_iuc_cost: number;
+    total_tolls_cost: number;
+    total_inspection_cost: number;
+    total_other_costs: number;
+    most_expensive_vehicle_id?: string;
+    most_expensive_vehicle_plate?: string;
+    most_expensive_vehicle_cost?: number;
+};
+
+type FleetMonthlyCost = {
+    month: string;
+    category: string;
+    total_amount: number;
+};
+
+type VehicleFinancialSummaryRow = {
+    vehicle_id: string;
+    total_vehicle_cost: number;
+};
 
 export default function Viaturas() {
     const navigate = useNavigate();
@@ -19,6 +45,66 @@ export default function Viaturas() {
     const [activeTab, setActiveTab] = useState<'overview' | 'list' | 'create'>('overview');
 
     const [filter, setFilter] = useState('');
+    const [financialDashboard, setFinancialDashboard] = useState<FleetFinancialDashboard | null>(null);
+    const [fleetMonthlyCosts, setFleetMonthlyCosts] = useState<FleetMonthlyCost[]>([]);
+    const [vehicleCostRows, setVehicleCostRows] = useState<VehicleFinancialSummaryRow[]>([]);
+
+    useEffect(() => {
+        const loadFleetFinancials = async () => {
+            const [dashboardResult, monthlyResult, vehicleRowsResult] = await Promise.all([
+                supabase.from('fleet_financial_dashboard').select('*').limit(1).maybeSingle(),
+                supabase.from('fleet_financial_monthly').select('*').order('month', { ascending: true }).limit(200),
+                supabase.from('vehicle_financial_summary').select('vehicle_id,total_vehicle_cost').order('total_vehicle_cost', { ascending: false }).limit(10)
+            ]);
+
+            if (!dashboardResult.error) {
+                const row = dashboardResult.data as any;
+                setFinancialDashboard(row ? {
+                    ...row,
+                    total_fleet_cost: Number(row.total_fleet_cost || 0),
+                    total_fuel_cost: Number(row.total_fuel_cost || 0),
+                    total_maintenance_cost: Number(row.total_maintenance_cost || 0),
+                    total_insurance_cost: Number(row.total_insurance_cost || 0),
+                    total_iuc_cost: Number(row.total_iuc_cost || 0),
+                    total_tolls_cost: Number(row.total_tolls_cost || 0),
+                    total_inspection_cost: Number(row.total_inspection_cost || 0),
+                    total_other_costs: Number(row.total_other_costs || 0),
+                    most_expensive_vehicle_cost: Number(row.most_expensive_vehicle_cost || 0)
+                } : null);
+            }
+
+            if (!monthlyResult.error) {
+                setFleetMonthlyCosts((monthlyResult.data || []).map((row: any) => ({
+                    month: row.month,
+                    category: row.category,
+                    total_amount: Number(row.total_amount || 0)
+                })));
+            }
+
+            if (!vehicleRowsResult.error) {
+                setVehicleCostRows((vehicleRowsResult.data || []).map((row: any) => ({
+                    vehicle_id: row.vehicle_id,
+                    total_vehicle_cost: Number(row.total_vehicle_cost || 0)
+                })));
+            }
+        };
+
+        void loadFleetFinancials();
+    }, []);
+
+    const monthlyTotalSeries = useMemo(() => {
+        const grouped = fleetMonthlyCosts.reduce((acc, row) => {
+            acc[row.month] = (acc[row.month] || 0) + row.total_amount;
+            return acc;
+        }, {} as Record<string, number>);
+
+        return Object.entries(grouped)
+            .map(([month, total]) => ({ month, total }))
+            .sort((a, b) => a.month.localeCompare(b.month))
+            .slice(-12);
+    }, [fleetMonthlyCosts]);
+
+    const maxMonthly = monthlyTotalSeries.length ? Math.max(...monthlyTotalSeries.map(item => item.total), 1) : 1;
 
     const [formData, setFormData] = useState<Omit<Viatura, 'id'>>({
         matricula: '',
@@ -234,6 +320,84 @@ export default function Viaturas() {
                                                 <span className="text-4xl font-black text-slate-900">7.8</span>
                                                 <span className="text-base text-slate-400 font-medium">L/100km</span>
                                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="surface-card p-6">
+                                    <h3 className="text-base font-bold text-slate-800 mb-4">Dashboard Geral da Frota</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                                        <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                                            <p className="text-xs uppercase text-slate-500">Custo Total da Frota</p>
+                                            <p className="text-2xl font-black text-slate-900 mt-1">{(financialDashboard?.total_fleet_cost || 0).toFixed(2)}€</p>
+                                        </div>
+                                        <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                                            <p className="text-xs uppercase text-slate-500">Veículo Mais Caro</p>
+                                            <p className="text-lg font-black text-slate-900 mt-1">{financialDashboard?.most_expensive_vehicle_plate || '—'}</p>
+                                            <p className="text-sm text-slate-500">{(financialDashboard?.most_expensive_vehicle_cost || 0).toFixed(2)}€</p>
+                                        </div>
+                                        <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                                            <p className="text-xs uppercase text-slate-500">Combustível</p>
+                                            <p className="text-lg font-black text-slate-900 mt-1">{(financialDashboard?.total_fuel_cost || 0).toFixed(2)}€</p>
+                                        </div>
+                                        <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                                            <p className="text-xs uppercase text-slate-500">Manutenção</p>
+                                            <p className="text-lg font-black text-slate-900 mt-1">{(financialDashboard?.total_maintenance_cost || 0).toFixed(2)}€</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
+                                        <div className="p-4 rounded-xl border border-slate-200">
+                                            <h4 className="text-sm font-bold text-slate-700 mb-3">Evolução mensal dos custos</h4>
+                                            <div className="space-y-2">
+                                                {monthlyTotalSeries.map(item => (
+                                                    <div key={item.month} className="space-y-1">
+                                                        <div className="flex items-center justify-between text-xs text-slate-500">
+                                                            <span>{item.month}</span>
+                                                            <span>{item.total.toFixed(2)}€</span>
+                                                        </div>
+                                                        <div className="h-2 rounded bg-slate-100 overflow-hidden">
+                                                            <div className="h-full bg-blue-500" style={{ width: `${(item.total / maxMonthly) * 100}%` }} />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                {monthlyTotalSeries.length === 0 && <p className="text-sm text-slate-500">Sem dados mensais.</p>}
+                                            </div>
+                                        </div>
+
+                                        <div className="p-4 rounded-xl border border-slate-200">
+                                            <h4 className="text-sm font-bold text-slate-700 mb-3">Top viaturas por custo</h4>
+                                            <div className="space-y-2">
+                                                {vehicleCostRows.map((row) => {
+                                                    const vehicle = viaturas.find(v => v.id === row.vehicle_id);
+                                                    return (
+                                                        <div key={row.vehicle_id} className="flex items-center justify-between text-sm border-b border-slate-100 pb-2">
+                                                            <span className="text-slate-700 font-medium">{vehicle?.matricula || row.vehicle_id}</span>
+                                                            <span className="font-bold text-slate-900">{row.total_vehicle_cost.toFixed(2)}€</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                                {vehicleCostRows.length === 0 && <p className="text-sm text-slate-500">Sem custos por viatura.</p>}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 text-sm">
+                                        <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
+                                            <p className="text-xs text-amber-700 uppercase">Seguros</p>
+                                            <p className="font-bold text-amber-900">{(financialDashboard?.total_insurance_cost || 0).toFixed(2)}€</p>
+                                        </div>
+                                        <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+                                            <p className="text-xs text-emerald-700 uppercase">IUC</p>
+                                            <p className="font-bold text-emerald-900">{(financialDashboard?.total_iuc_cost || 0).toFixed(2)}€</p>
+                                        </div>
+                                        <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+                                            <p className="text-xs text-blue-700 uppercase">Portagens</p>
+                                            <p className="font-bold text-blue-900">{(financialDashboard?.total_tolls_cost || 0).toFixed(2)}€</p>
+                                        </div>
+                                        <div className="p-3 rounded-lg bg-violet-50 border border-violet-200">
+                                            <p className="text-xs text-violet-700 uppercase">Outros</p>
+                                            <p className="font-bold text-violet-900">{(financialDashboard?.total_other_costs || 0).toFixed(2)}€</p>
                                         </div>
                                     </div>
                                 </div>

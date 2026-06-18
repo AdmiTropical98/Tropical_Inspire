@@ -404,6 +404,99 @@ export interface FuelTransaction {
     station?: string;
     consumoCalculado?: number;
     isAnormal?: boolean;
+    fuelType?: 'gasoleo' | 'gasolina' | 'eletrico' | 'gnv' | 'adblue' | 'outro';
+    receiptUrl?: string;
+}
+
+export interface VehicleInsurancePolicy {
+    id: string;
+    vehicle_id: string;
+    insurer: string;
+    policy_number: string;
+    start_date: string;
+    end_date: string;
+    premium_amount: number;
+    payment_frequency: 'monthly' | 'quarterly' | 'annual';
+    document_url?: string;
+    notes?: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface VehicleInspection {
+    id: string;
+    vehicle_id: string;
+    inspection_date: string;
+    result: string;
+    valid_until?: string;
+    cost: number;
+    document_url?: string;
+    notes?: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface VehicleIucRecord {
+    id: string;
+    vehicle_id: string;
+    fiscal_year: number;
+    amount: number;
+    due_date?: string;
+    payment_date?: string;
+    status: 'paid' | 'pending';
+    document_url?: string;
+    notes?: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface VehicleOtherCost {
+    id: string;
+    vehicle_id: string;
+    cost_category: 'lavagem' | 'pneus' | 'estacionamento' | 'multa' | 'pecas' | 'reparacao_extraordinaria' | 'outros';
+    cost_date: string;
+    description?: string;
+    amount: number;
+    km?: number;
+    driver_id?: string;
+    document_url?: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface VehicleCostHistoryRow {
+    vehicle_id: string;
+    source_id: string;
+    source_table: string;
+    category: 'combustivel' | 'manutencao' | 'seguros' | 'inspecoes' | 'iuc' | 'portagens' | 'outros';
+    event_date: string;
+    amount: number;
+    description: string;
+    document_url?: string;
+}
+
+export interface VehicleFinancialSummary {
+    vehicle_id: string;
+    total_fuel_cost: number;
+    total_maintenance_cost: number;
+    total_insurance_cost: number;
+    total_iuc_cost: number;
+    total_tolls_cost: number;
+    total_inspection_cost: number;
+    total_other_costs: number;
+    total_vehicle_cost: number;
+    cost_per_km: number;
+}
+
+export interface VehicleComplianceAlert {
+    id: string;
+    vehicle_id: string;
+    category: 'seguros' | 'inspecoes' | 'iuc' | 'manutencao' | 'documentacao';
+    title: string;
+    message: string;
+    due_date?: string;
+    severity: 'high' | 'medium' | 'low';
+    status: 'open' | 'resolved';
 }
 
 export interface TankRefillLog {
@@ -760,6 +853,7 @@ export interface TollRecord {
     distance?: number;
     cost_center_id?: string; // NEW
     type?: 'toll' | 'parking'; // NEW
+    receipt_url?: string;
     created_at: string;
     created_by: string;
     vehicle?: Viatura;

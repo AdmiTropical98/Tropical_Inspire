@@ -1865,7 +1865,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 pricePerLiter: t.price_per_liter,
                 totalCost: t.total_cost,
                 centroCustoId: t.centro_custo_id,
-                isExternal: t.is_external
+                isExternal: t.is_external,
+                fuelType: t.fuel_type,
+                receiptUrl: t.receipt_url
             })));
 
             const { data: refillData } = await supabase.from('tank_refills').select('*');
@@ -2593,7 +2595,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             pump_counter_after: transactionToSave.pumpCounterAfter,
             is_external: transactionToSave.isExternal,
             consumo_calculado: transactionToSave.consumoCalculado,
-            is_anormal: transactionToSave.isAnormal
+            is_anormal: transactionToSave.isAnormal,
+            fuel_type: (transactionToSave as any).fuelType || null,
+            receipt_url: (transactionToSave as any).receiptUrl || null
         });
 
         if (insertError) {
@@ -2666,7 +2670,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 vehicle_id: updates.vehicleId,
                 status: updates.status,
                 is_anormal: updates.isAnormal,
-                consumo_calculado: updates.consumoCalculado
+                consumo_calculado: updates.consumoCalculado,
+                fuel_type: (updates as any).fuelType,
+                receipt_url: (updates as any).receiptUrl
             })
             .eq('id', id);
 

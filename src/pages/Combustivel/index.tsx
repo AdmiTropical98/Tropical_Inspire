@@ -81,6 +81,8 @@ export default function Combustivel() {
         liters: '',
         km: '',
         centroCustoId: '',
+        fuelType: 'gasoleo',
+        receiptUrl: '',
         notes: '',
         manualDate: new Date().toISOString().split('T')[0],
         manualTime: new Date().toTimeString().split(' ')[0].slice(0, 5)
@@ -258,6 +260,8 @@ export default function Combustivel() {
                 liters: liters,
                 km: Number(refuelForm.km),
                 centroCustoId: refuelForm.centroCustoId || undefined,
+                fuelType: refuelForm.fuelType || 'gasoleo',
+                receiptUrl: refuelForm.receiptUrl || undefined,
                 status: isConfirmed ? 'confirmed' : 'pending',
                 timestamp: refuelDate.toISOString(),
                 staffId: currentUser?.id || 'admin',
@@ -276,6 +280,8 @@ export default function Combustivel() {
                 liters: '',
                 km: '',
                 centroCustoId: '',
+                fuelType: 'gasoleo',
+                receiptUrl: '',
                 notes: '',
                 manualDate: new Date().toISOString().split('T')[0],
                 manualTime: new Date().toTimeString().split(' ')[0].slice(0, 5)
@@ -1045,7 +1051,9 @@ export default function Combustivel() {
                 km: Number(editingTransaction.km),
                 totalCost: Number(editingTransaction.totalCost),
                 timestamp: editingTransaction.timestamp,
-                centroCustoId: editingTransaction.centroCustoId
+                centroCustoId: editingTransaction.centroCustoId,
+                fuelType: editingTransaction.fuelType,
+                receiptUrl: editingTransaction.receiptUrl
             });
             if (error) throw error;
             setEditingTransaction(null);
@@ -1665,6 +1673,33 @@ export default function Combustivel() {
                                                 <option value="">Nenhum (Geral)</option>
                                                 {centrosCustos.map(cc => <option key={cc.id} value={cc.id}>{cc.nome}</option>)}
                                             </select>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider pl-1">Tipo de Combustível</label>
+                                            <select
+                                                value={refuelForm.fuelType}
+                                                onChange={(e) => setRefuelForm({ ...refuelForm, fuelType: e.target.value })}
+                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400/50 outline-none text-slate-800"
+                                            >
+                                                <option value="gasoleo">Gasóleo</option>
+                                                <option value="gasolina">Gasolina</option>
+                                                <option value="eletrico">Elétrico</option>
+                                                <option value="gnv">GNV</option>
+                                                <option value="adblue">AdBlue</option>
+                                                <option value="outro">Outro</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="space-y-2 md:col-span-2">
+                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider pl-1">Comprovativo (URL)</label>
+                                            <input
+                                                type="url"
+                                                value={refuelForm.receiptUrl}
+                                                onChange={(e) => setRefuelForm({ ...refuelForm, receiptUrl: e.target.value })}
+                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400/50 outline-none text-slate-800"
+                                                placeholder="https://.../comprovativo.pdf"
+                                            />
                                         </div>
 
                                         <div className="space-y-2">
@@ -2880,6 +2915,21 @@ export default function Combustivel() {
                                                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-slate-900 transition-all"
                                             />
                                         </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Tipo Combustível</label>
+                                            <select
+                                                value={editingTransaction.fuelType || 'gasoleo'}
+                                                onChange={e => setEditingTransaction({ ...editingTransaction, fuelType: e.target.value })}
+                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-slate-900 transition-all"
+                                            >
+                                                <option value="gasoleo">Gasóleo</option>
+                                                <option value="gasolina">Gasolina</option>
+                                                <option value="eletrico">Elétrico</option>
+                                                <option value="gnv">GNV</option>
+                                                <option value="adblue">AdBlue</option>
+                                                <option value="outro">Outro</option>
+                                            </select>
+                                        </div>
                                         <div className="col-span-2 space-y-2">
                                             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Data e Hora</label>
                                             <input
@@ -2899,6 +2949,16 @@ export default function Combustivel() {
                                                 <option value="">Sem Centro de Custo</option>
                                                 {centrosCustos.map(cc => <option key={cc.id} value={cc.id}>{cc.nome}</option>)}
                                             </select>
+                                        </div>
+                                        <div className="col-span-2 space-y-2">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Comprovativo (URL)</label>
+                                            <input
+                                                type="url"
+                                                value={editingTransaction.receiptUrl || ''}
+                                                onChange={e => setEditingTransaction({ ...editingTransaction, receiptUrl: e.target.value })}
+                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-slate-900 transition-all"
+                                                placeholder="https://.../comprovativo.pdf"
+                                            />
                                         </div>
                                     </div>
                                     <div className="flex gap-4 pt-4">
