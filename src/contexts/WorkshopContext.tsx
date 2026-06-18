@@ -2884,6 +2884,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             modelo: v.modelo,
             ano: v.ano,
             obs: v.obs,
+            seguro: v.seguro ?? null,
             preco_diario: v.precoDiario,
             vehicle_capacity: v.vehicleCapacity ?? 8,
             centro_custo_id: v.centro_custo_id // Fix: Persist Cost Center
@@ -2891,7 +2892,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         if (!error) setViaturas(prev => [...prev, v]);
     };
     const updateViatura = async (v: Viatura) => {
-        const { error } = await supabase.from('viaturas').update({
+        const payload: Record<string, any> = {
             matricula: v.matricula,
             marca: v.marca,
             modelo: v.modelo,
@@ -2900,7 +2901,13 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             preco_diario: v.precoDiario,
             vehicle_capacity: v.vehicleCapacity ?? 8,
             centro_custo_id: v.centro_custo_id // Fix: Persist Cost Center
-        }).eq('id', v.id);
+        };
+
+        if (typeof v.seguro !== 'undefined') {
+            payload.seguro = v.seguro;
+        }
+
+        const { error } = await supabase.from('viaturas').update(payload).eq('id', v.id);
         if (!error) setViaturas(prev => prev.map(curr => curr.id === v.id ? v : curr));
     };
     const deleteViatura = async (id: string) => {

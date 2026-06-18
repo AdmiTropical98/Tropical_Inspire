@@ -3,12 +3,32 @@ import { useNavigate } from 'react-router-dom';
 import {
     Search, Trash2, Car, Calendar, Info, LayoutTemplate,
     List, PlusCircle, Wrench, AlertTriangle, Fuel, CheckCircle, ArrowRight,
+    Shield,
     Upload, Download, Filter
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { Viatura } from '../../types';
+
+type VehicleFormData = Omit<Viatura, 'id'> & {
+    seguroApolice: string;
+    seguroCompanhia: string;
+    seguroValidade: string;
+    seguroPdfUrl: string;
+};
+
+const initialFormData: VehicleFormData = {
+    matricula: '',
+    marca: '',
+    modelo: '',
+    ano: '',
+    obs: '',
+    seguroApolice: '',
+    seguroCompanhia: '',
+    seguroValidade: '',
+    seguroPdfUrl: ''
+};
 
 export default function Viaturas() {
     const navigate = useNavigate();
@@ -20,13 +40,7 @@ export default function Viaturas() {
 
     const [filter, setFilter] = useState('');
 
-    const [formData, setFormData] = useState<Omit<Viatura, 'id'>>({
-        matricula: '',
-        marca: '',
-        modelo: '',
-        ano: '',
-        obs: ''
-    });
+    const [formData, setFormData] = useState<VehicleFormData>(initialFormData);
 
     // Mock Status Logic
     const getVehicleStatus = (v: Viatura) => {
@@ -46,16 +60,41 @@ export default function Viaturas() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        const hasInsuranceInput = Boolean(
+            formData.seguroApolice.trim() ||
+            formData.seguroCompanhia.trim() ||
+            formData.seguroValidade ||
+            formData.seguroPdfUrl.trim()
+        );
+
+        if (hasInsuranceInput && (!formData.seguroApolice.trim() || !formData.seguroCompanhia.trim() || !formData.seguroValidade)) {
+            alert('Para registar seguro, preencha Apólice, Companhia e Validade.');
+            return;
+        }
+
+        const seguro = hasInsuranceInput
+            ? {
+                apolice: formData.seguroApolice.trim(),
+                companhia: formData.seguroCompanhia.trim(),
+                validade: formData.seguroValidade,
+                pdfUrl: formData.seguroPdfUrl.trim() || undefined
+            }
+            : undefined;
+
+        const { seguroApolice, seguroCompanhia, seguroValidade, seguroPdfUrl, ...viaturaData } = formData;
+
         addViatura({
-            ...formData,
+            ...viaturaData,
+            seguro,
             id: crypto.randomUUID()
         });
         setActiveTab('list');
-        setFormData({ matricula: '', marca: '', modelo: '', ano: '', obs: '' });
+        setFormData(initialFormData);
     };
 
     const handleDownloadTemplate = () => {
-        const headers = ['Matricula', 'Marca', 'Modelo', 'Ano', 'PrecoDiario', 'Obs'];
+        const headers = ['Matricula', 'Marca', 'Modelo', 'Ano', 'PrecoDiario', 'Obs', 'SeguroApolice', 'SeguroCompanhia', 'SeguroValidade', 'SeguroPdfUrl'];
         const ws = XLSX.utils.aoa_to_sheet([headers]);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Template");
@@ -77,6 +116,7 @@ export default function Viaturas() {
             let importedCount = 0;
             data.forEach((row: any) => {
                 if (row.Matricula && row.Marca) {
+                    const hasInsuranceData = Boolean(row.SeguroApolice || row.SeguroCompanhia || row.SeguroValidade || row.SeguroPdfUrl);
                     addViatura({
                         id: crypto.randomUUID(),
                         matricula: String(row.Matricula).toUpperCase(),
@@ -84,7 +124,15 @@ export default function Viaturas() {
                         modelo: String(row.Modelo || ''),
                         ano: String(row.Ano || new Date().getFullYear()),
                         obs: String(row.Obs || ''),
-                        precoDiario: Number(row.PrecoDiario) || 0
+                        precoDiario: Number(row.PrecoDiario) || 0,
+                        seguro: hasInsuranceData
+                            ? {
+                                apolice: String(row.SeguroApolice || ''),
+                                companhia: String(row.SeguroCompanhia || ''),
+                                validade: String(row.SeguroValidade || ''),
+                                pdfUrl: row.SeguroPdfUrl ? String(row.SeguroPdfUrl) : undefined
+                            }
+                            : undefined
                     });
                     importedCount++;
                 }
@@ -291,6 +339,13 @@ export default function Viaturas() {
                                                 </span>
                                                 <ArrowRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" />
                                             </button>
+                                            <button onClick={() => navigate('/seguros-viaturas')} className="w-full flex items-center justify-between p-4 bg-white border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 rounded-xl transition-all group shadow-sm">
+                                                <span className="flex items-center gap-3 font-medium">
+                                                    <Shield className="w-5 h-5" />
+                                                    Gerir Seguros
+                                                </span>
+                                                <ArrowRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -370,6 +425,10 @@ export default function Viaturas() {
                                                             {viatura.obs}
                                                         </div>
                                                     )}
+                                                    <div className={`inline-flex items-center gap-2 text-xs font-semibold px-2 py-1 rounded-lg border ${viatura.seguro?.apolice && viatura.seguro?.validade ? 'bg-emerald-500/10 text-emerald-600 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                                                        <Shield className="w-3.5 h-3.5" />
+                                                        {viatura.seguro?.apolice && viatura.seguro?.validade ? 'Seguro registado' : 'Sem seguro'}
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
@@ -440,6 +499,52 @@ export default function Viaturas() {
                                                         onChange={e => setFormData({ ...formData, modelo: e.target.value })}
                                                         placeholder="Ex: Sprinter"
                                                     />
+                                                </div>
+                                            </div>
+
+                                            <div className="md:col-span-2 border border-slate-200 rounded-2xl p-5 bg-slate-50/60">
+                                                <div className="flex items-center gap-2 mb-4">
+                                                    <Shield className="w-4 h-4 text-indigo-600" />
+                                                    <h3 className="text-sm font-bold text-[#1f2957]">Seguro (opcional)</h3>
+                                                </div>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Apólice</label>
+                                                        <input
+                                                            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none text-slate-900 transition-all"
+                                                            value={formData.seguroApolice}
+                                                            onChange={e => setFormData({ ...formData, seguroApolice: e.target.value })}
+                                                            placeholder="Ex: AP-2026-001"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Companhia</label>
+                                                        <input
+                                                            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none text-slate-900 transition-all"
+                                                            value={formData.seguroCompanhia}
+                                                            onChange={e => setFormData({ ...formData, seguroCompanhia: e.target.value })}
+                                                            placeholder="Ex: Fidelidade"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Validade</label>
+                                                        <input
+                                                            type="date"
+                                                            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none text-slate-900 transition-all"
+                                                            value={formData.seguroValidade}
+                                                            onChange={e => setFormData({ ...formData, seguroValidade: e.target.value })}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">URL PDF (opcional)</label>
+                                                        <input
+                                                            type="url"
+                                                            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none text-slate-900 transition-all"
+                                                            value={formData.seguroPdfUrl}
+                                                            onChange={e => setFormData({ ...formData, seguroPdfUrl: e.target.value })}
+                                                            placeholder="https://..."
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
 
