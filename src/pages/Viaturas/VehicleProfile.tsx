@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Car, Fuel, Wrench, ClipboardList, Gauge, CalendarClock, AlertTriangle, ShieldCheck, FileSearch, Receipt, PlusCircle } from 'lucide-react';
+import { ArrowLeft, Car, Fuel, Wrench, ClipboardList, Gauge, CalendarClock, AlertTriangle, BarChart2, History, DollarSign } from 'lucide-react';
+import VehicleCostsTab from './VehicleCostsTab';
 import {
     ResponsiveContainer,
     BarChart,
@@ -67,51 +68,11 @@ export default function VehicleProfile() {
     const [financialSummarySql, setFinancialSummarySql] = useState<VehicleFinancialSummary | null>(null);
     const [costHistorySql, setCostHistorySql] = useState<VehicleCostHistoryRow[]>([]);
     const [complianceAlertsSql, setComplianceAlertsSql] = useState<VehicleComplianceAlert[]>([]);
-    const [insurancePolicies, setInsurancePolicies] = useState<VehicleInsurancePolicy[]>([]);
-    const [inspectionRecords, setInspectionRecords] = useState<VehicleInspection[]>([]);
-    const [iucRecords, setIucRecords] = useState<VehicleIucRecord[]>([]);
-    const [otherCosts, setOtherCosts] = useState<VehicleOtherCost[]>([]);
     const [historyCategoryFilter, setHistoryCategoryFilter] = useState<'all' | VehicleCostHistoryRow['category']>('all');
     const [historyStartDate, setHistoryStartDate] = useState('');
     const [historyEndDate, setHistoryEndDate] = useState('');
-    const [isSavingCost, setIsSavingCost] = useState(false);
-
-    const [insuranceForm, setInsuranceForm] = useState({
-        insurer: '',
-        policy_number: '',
-        start_date: '',
-        end_date: '',
-        premium_amount: '',
-        payment_frequency: 'annual' as VehicleInsurancePolicy['payment_frequency'],
-        document_url: ''
-    });
-
-    const [inspectionForm, setInspectionForm] = useState({
-        inspection_date: '',
-        valid_until: '',
-        result: 'approved',
-        cost: '',
-        document_url: ''
-    });
-
-    const [iucForm, setIucForm] = useState({
-        fiscal_year: String(new Date().getFullYear()),
-        amount: '',
-        due_date: '',
-        payment_date: '',
-        status: 'pending' as VehicleIucRecord['status'],
-        document_url: ''
-    });
-
-    const [otherCostForm, setOtherCostForm] = useState({
-        cost_category: 'outros' as VehicleOtherCost['cost_category'],
-        cost_date: new Date().toISOString().slice(0, 10),
-        description: '',
-        amount: '',
-        km: '',
-        driver_id: '',
-        document_url: ''
-    });
+    const [historyYearFilter, setHistoryYearFilter] = useState('all');
+    const [profileTab, setProfileTab] = useState<'overview' | 'costs' | 'history' | 'analysis'>('overview');
 
     const viatura = viaturas.find(v => v.id === viaturaId);
 
@@ -223,16 +184,6 @@ export default function VehicleProfile() {
                 })));
             }
             if (!complianceResult.error) setComplianceAlertsSql((complianceResult.data || []) as VehicleComplianceAlert[]);
-            if (!insuranceResult.error) setInsurancePolicies((insuranceResult.data || []) as VehicleInsurancePolicy[]);
-            if (!inspectionsResult.error) setInspectionRecords((inspectionsResult.data || []) as VehicleInspection[]);
-            if (!iucResult.error) setIucRecords((iucResult.data || []) as VehicleIucRecord[]);
-            if (!otherCostsResult.error) {
-                setOtherCosts((otherCostsResult.data || []).map((row: any) => ({
-                    ...row,
-                    amount: Number(row.amount || 0),
-                    km: row.km === null || row.km === undefined ? undefined : Number(row.km)
-                })) as VehicleOtherCost[]);
-            }
 
             if (!maintenanceResult.error) {
                 setMaintenanceRecords((maintenanceResult.data || []).map((item: any) => ({
@@ -425,25 +376,19 @@ export default function VehicleProfile() {
 
     const mergedAlerts = [...sqlAlerts, ...profileAlerts].filter((alert, index, arr) => arr.findIndex(item => item.title === alert.title && item.description === alert.description) === index);
 
+    const historyYears = Array.from(new Set(costHistorySql.map(r => new Date(r.event_date).getFullYear().toString()))).sort().reverse();
+
     const filteredCostHistory = costHistorySql.filter(item => {
         if (historyCategoryFilter !== 'all' && item.category !== historyCategoryFilter) return false;
-
         const d = new Date(item.event_date);
         if (Number.isNaN(d.getTime())) return false;
-
-        if (historyStartDate) {
-            const start = new Date(`${historyStartDate}T00:00:00`);
-            if (d < start) return false;
-        }
-
-        if (historyEndDate) {
-            const end = new Date(`${historyEndDate}T23:59:59`);
-            if (d > end) return false;
-        }
-
+        if (historyYearFilter !== 'all' && d.getFullYear().toString() !== historyYearFilter) return false;
+        if (historyStartDate && d < new Date(`${historyStartDate}T00:00:00`)) return false;
+        if (historyEndDate && d > new Date(`${historyEndDate}T23:59:59`)) return false;
         return true;
     });
 
+    const _unusedPlaceholder = null; // forms moved to VehicleCostsTab
     const addInsurancePolicy = async () => {
         if (!viaturaId || !insuranceForm.insurer || !insuranceForm.policy_number || !insuranceForm.start_date || !insuranceForm.end_date) return;
         setIsSavingCost(true);
@@ -605,24 +550,33 @@ export default function VehicleProfile() {
 
     const statusColor = vehicleStatus === 'Operacional' ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' : 'text-amber-400 border-amber-500/30 bg-amber-500/10';
 
+    const PROFILE_TABS: { id: 'overview' | 'costs' | 'history' | 'analysis'; label: string; Icon: React.FC<any> }[] = [
+        { id: 'overview', label: 'Visão Geral', Icon: Car },
+        { id: 'costs', label: 'Custos da Viatura', Icon: DollarSign },
+        { id: 'history', label: 'Histórico', Icon: History },
+        { id: 'analysis', label: 'Análise', Icon: BarChart2 },
+    ];
+
     return (
-        <div className="space-y-8">
+        <div className="space-y-6">
+            {/* Back + header */}
             <div className="flex items-center justify-between">
                 <button
                     onClick={() => navigate('/viaturas')}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-white/90 border border-slate-200 text-slate-300 hover:text-slate-900 rounded-lg"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-white/90 border border-slate-200 text-slate-500 hover:text-slate-900 rounded-lg transition-colors"
                 >
                     <ArrowLeft className="w-4 h-4" /> Voltar à Frota
                 </button>
             </div>
 
+            {/* Vehicle card */}
             <div className="bg-white/90 border border-slate-200 rounded-2xl p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                         <div className="text-slate-400 text-sm">Perfil da Viatura</div>
                         <h1 className="text-3xl font-black text-slate-900 mt-1">{viatura.marca} {viatura.modelo}</h1>
                         <div className="mt-3 flex items-center gap-3 text-sm">
-                            <span className="px-2 py-1 rounded bg-slate-100 border border-slate-200 text-slate-200 font-mono">{viatura.matricula}</span>
+                            <span className="px-2 py-1 rounded bg-slate-100 border border-slate-200 text-slate-700 font-mono">{viatura.matricula}</span>
                             <span className="text-slate-400">Ano {viatura.ano || 'N/A'}</span>
                             <span className={`px-2 py-1 rounded border ${statusColor}`}>{vehicleStatus}</span>
                         </div>
@@ -630,7 +584,31 @@ export default function VehicleProfile() {
                     <div className="text-right">
                         <div className="text-xs uppercase tracking-wider text-slate-500">Quilometragem Atual</div>
                         <div className="text-2xl font-black text-slate-900">{currentKm.toLocaleString('pt-PT')} km</div>
+                        <div className="text-sm text-slate-400 mt-0.5">{totalGeneralCost.toFixed(2)}€ custo total</div>
                     </div>
+                </div>
+            </div>
+
+            {/* Main tab bar */}
+            <div className="border-b border-slate-200">
+                <div className="flex gap-1">
+                    {PROFILE_TABS.map(({ id, label, Icon }) => {
+                        const active = profileTab === id;
+                        return (
+                            <button
+                                key={id}
+                                onClick={() => setProfileTab(id)}
+                                className={`inline-flex items-center gap-2 px-5 py-3.5 text-sm font-semibold border-b-2 transition-all ${
+                                    active
+                                        ? 'border-[#d59d31] text-[#1f2957] bg-amber-50/60'
+                                        : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                                }`}
+                            >
+                                <Icon className="w-4 h-4" />
+                                {label}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 
@@ -678,103 +656,58 @@ export default function VehicleProfile() {
                 </div>
             </div>
 
-            <div className="bg-white/90 border border-slate-200 rounded-2xl p-5 space-y-4">
-                <div className="flex items-center justify-between gap-3">
-                    <h2 className="text-lg font-bold text-[#1f2957]">Registo de Custos</h2>
-                    <span className="text-xs text-slate-500">Seguro, IPO, IUC e outros custos</span>
-                </div>
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                    <form
-                        className="border border-slate-200 rounded-xl p-4 space-y-3"
-                        onSubmit={(e) => { e.preventDefault(); void addInsurancePolicy(); }}
-                    >
-                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900"><ShieldCheck className="w-4 h-4" /> Seguro</div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            <input className="px-3 py-2 rounded-lg border border-slate-200" placeholder="Seguradora" value={insuranceForm.insurer} onChange={(e) => setInsuranceForm(prev => ({ ...prev, insurer: e.target.value }))} />
-                            <input className="px-3 py-2 rounded-lg border border-slate-200" placeholder="Nº apólice" value={insuranceForm.policy_number} onChange={(e) => setInsuranceForm(prev => ({ ...prev, policy_number: e.target.value }))} />
-                            <input type="date" className="px-3 py-2 rounded-lg border border-slate-200" value={insuranceForm.start_date} onChange={(e) => setInsuranceForm(prev => ({ ...prev, start_date: e.target.value }))} />
-                            <input type="date" className="px-3 py-2 rounded-lg border border-slate-200" value={insuranceForm.end_date} onChange={(e) => setInsuranceForm(prev => ({ ...prev, end_date: e.target.value }))} />
-                            <input type="number" step="0.01" className="px-3 py-2 rounded-lg border border-slate-200" placeholder="Valor" value={insuranceForm.premium_amount} onChange={(e) => setInsuranceForm(prev => ({ ...prev, premium_amount: e.target.value }))} />
-                            <select className="px-3 py-2 rounded-lg border border-slate-200" value={insuranceForm.payment_frequency} onChange={(e) => setInsuranceForm(prev => ({ ...prev, payment_frequency: e.target.value as VehicleInsurancePolicy['payment_frequency'] }))}>
-                                <option value="monthly">Mensal</option>
-                                <option value="quarterly">Trimestral</option>
-                                <option value="annual">Anual</option>
-                            </select>
-                            <input className="px-3 py-2 rounded-lg border border-slate-200 md:col-span-2" placeholder="URL documento PDF" value={insuranceForm.document_url} onChange={(e) => setInsuranceForm(prev => ({ ...prev, document_url: e.target.value }))} />
-                        </div>
-                        <button disabled={isSavingCost} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-60"><PlusCircle className="w-4 h-4" /> Guardar Seguro</button>
-                    </form>
+            <div className="bg-white/90 border border-slate-200 rounded-2xl p-5 space-y-3">
+                <h2 className="text-base font-bold text-[#1f2957]">Custos da Viatura</h2>
+                <p className="text-sm text-slate-500">Registe seguros, manutenções, IPO, IUC, portagens, combustível e outros custos com suporte a upload de documentos.</p>
+                <button
+                    onClick={() => setProfileTab('costs')}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-500 transition-colors"
+                >
+                    Abrir Gestão de Custos →
+                </button>
+            </div>
 
-                    <form
-                        className="border border-slate-200 rounded-xl p-4 space-y-3"
-                        onSubmit={(e) => { e.preventDefault(); void addInspection(); }}
-                    >
-                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900"><FileSearch className="w-4 h-4" /> Inspeção (IPO)</div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            <input type="date" className="px-3 py-2 rounded-lg border border-slate-200" value={inspectionForm.inspection_date} onChange={(e) => setInspectionForm(prev => ({ ...prev, inspection_date: e.target.value }))} />
-                            <input type="date" className="px-3 py-2 rounded-lg border border-slate-200" value={inspectionForm.valid_until} onChange={(e) => setInspectionForm(prev => ({ ...prev, valid_until: e.target.value }))} />
-                            <select className="px-3 py-2 rounded-lg border border-slate-200" value={inspectionForm.result} onChange={(e) => setInspectionForm(prev => ({ ...prev, result: e.target.value }))}>
-                                <option value="approved">Aprovada</option>
-                                <option value="conditional">Aprovada com anotações</option>
-                                <option value="failed">Reprovada</option>
-                            </select>
-                            <input type="number" step="0.01" className="px-3 py-2 rounded-lg border border-slate-200" placeholder="Custo" value={inspectionForm.cost} onChange={(e) => setInspectionForm(prev => ({ ...prev, cost: e.target.value }))} />
-                            <input className="px-3 py-2 rounded-lg border border-slate-200 md:col-span-2" placeholder="URL documento PDF" value={inspectionForm.document_url} onChange={(e) => setInspectionForm(prev => ({ ...prev, document_url: e.target.value }))} />
+            {/* Timeline in overview */}
+            <div className="bg-white/90 border border-slate-200 rounded-2xl p-5">
+                <h2 className="text-base font-bold text-[#1f2957] mb-3 flex items-center gap-2"><CalendarClock className="w-4 h-4" /> Cronograma</h2>
+                <div className="space-y-2 max-h-72 overflow-y-auto">
+                    {timeline.slice(0, 20).map(event => (
+                        <div key={event.id} className="flex items-start gap-3 p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                            <div className={`mt-0.5 shrink-0 ${event.type === 'alert' ? 'text-amber-400' : 'text-blue-400'}`}>
+                                {event.type === 'alert' ? <AlertTriangle className="w-4 h-4" /> : <CalendarClock className="w-4 h-4" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="text-slate-900 font-semibold text-sm">{event.title}</div>
+                                <div className="text-slate-400 text-xs truncate">{event.subtitle}</div>
+                            </div>
+                            <div className="text-slate-500 text-xs whitespace-nowrap shrink-0">{new Date(event.date).toLocaleDateString('pt-PT')}</div>
                         </div>
-                        <button disabled={isSavingCost} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-60"><PlusCircle className="w-4 h-4" /> Guardar Inspeção</button>
-                    </form>
-
-                    <form
-                        className="border border-slate-200 rounded-xl p-4 space-y-3"
-                        onSubmit={(e) => { e.preventDefault(); void addIuc(); }}
-                    >
-                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900"><Receipt className="w-4 h-4" /> IUC</div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            <input type="number" className="px-3 py-2 rounded-lg border border-slate-200" placeholder="Ano fiscal" value={iucForm.fiscal_year} onChange={(e) => setIucForm(prev => ({ ...prev, fiscal_year: e.target.value }))} />
-                            <input type="number" step="0.01" className="px-3 py-2 rounded-lg border border-slate-200" placeholder="Valor" value={iucForm.amount} onChange={(e) => setIucForm(prev => ({ ...prev, amount: e.target.value }))} />
-                            <input type="date" className="px-3 py-2 rounded-lg border border-slate-200" value={iucForm.due_date} onChange={(e) => setIucForm(prev => ({ ...prev, due_date: e.target.value }))} />
-                            <input type="date" className="px-3 py-2 rounded-lg border border-slate-200" value={iucForm.payment_date} onChange={(e) => setIucForm(prev => ({ ...prev, payment_date: e.target.value }))} />
-                            <select className="px-3 py-2 rounded-lg border border-slate-200" value={iucForm.status} onChange={(e) => setIucForm(prev => ({ ...prev, status: e.target.value as VehicleIucRecord['status'] }))}>
-                                <option value="pending">Pendente</option>
-                                <option value="paid">Pago</option>
-                            </select>
-                            <input className="px-3 py-2 rounded-lg border border-slate-200" placeholder="URL comprovativo" value={iucForm.document_url} onChange={(e) => setIucForm(prev => ({ ...prev, document_url: e.target.value }))} />
-                        </div>
-                        <button disabled={isSavingCost} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-60"><PlusCircle className="w-4 h-4" /> Guardar IUC</button>
-                    </form>
-
-                    <form
-                        className="border border-slate-200 rounded-xl p-4 space-y-3"
-                        onSubmit={(e) => { e.preventDefault(); void addOtherCost(); }}
-                    >
-                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900"><ClipboardList className="w-4 h-4" /> Outros Custos</div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            <select className="px-3 py-2 rounded-lg border border-slate-200" value={otherCostForm.cost_category} onChange={(e) => setOtherCostForm(prev => ({ ...prev, cost_category: e.target.value as VehicleOtherCost['cost_category'] }))}>
-                                <option value="lavagem">Lavagem</option>
-                                <option value="pneus">Pneus</option>
-                                <option value="estacionamento">Estacionamento</option>
-                                <option value="multa">Multa</option>
-                                <option value="pecas">Peças</option>
-                                <option value="reparacao_extraordinaria">Reparação Extraordinária</option>
-                                <option value="outros">Outros</option>
-                            </select>
-                            <input type="date" className="px-3 py-2 rounded-lg border border-slate-200" value={otherCostForm.cost_date} onChange={(e) => setOtherCostForm(prev => ({ ...prev, cost_date: e.target.value }))} />
-                            <input type="number" step="0.01" className="px-3 py-2 rounded-lg border border-slate-200" placeholder="Valor" value={otherCostForm.amount} onChange={(e) => setOtherCostForm(prev => ({ ...prev, amount: e.target.value }))} />
-                            <input type="number" className="px-3 py-2 rounded-lg border border-slate-200" placeholder="Km (opcional)" value={otherCostForm.km} onChange={(e) => setOtherCostForm(prev => ({ ...prev, km: e.target.value }))} />
-                            <select className="px-3 py-2 rounded-lg border border-slate-200" value={otherCostForm.driver_id} onChange={(e) => setOtherCostForm(prev => ({ ...prev, driver_id: e.target.value }))}>
-                                <option value="">Sem motorista</option>
-                                {motoristas.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
-                            </select>
-                            <input className="px-3 py-2 rounded-lg border border-slate-200" placeholder="URL comprovativo" value={otherCostForm.document_url} onChange={(e) => setOtherCostForm(prev => ({ ...prev, document_url: e.target.value }))} />
-                            <input className="px-3 py-2 rounded-lg border border-slate-200 md:col-span-2" placeholder="Descrição" value={otherCostForm.description} onChange={(e) => setOtherCostForm(prev => ({ ...prev, description: e.target.value }))} />
-                        </div>
-                        <button disabled={isSavingCost} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-60"><PlusCircle className="w-4 h-4" /> Guardar Custo</button>
-                    </form>
+                    ))}
+                    {timeline.length === 0 && <p className="text-slate-500 text-center py-4 text-sm">Sem eventos.</p>}
                 </div>
             </div>
 
-            <div className="bg-white/90 border border-slate-200 rounded-2xl p-5">
-                <h2 className="text-lg font-bold text-[#1f2957] mb-4">Histórico de Custos</h2>
+            </>) /* END overview tab */}
+
+            {/* ====================================================
+                TAB: CUSTOS DA VIATURA
+            ==================================================== */}
+            {profileTab === 'costs' && viaturaId && (
+                <VehicleCostsTab
+                    viaturaId={viaturaId}
+                    viatura={viatura}
+                    motoristas={motoristas}
+                    vehicleFuelTransactions={vehicleFuelTransactions}
+                    onRefresh={loadVehicleProfileAggregates}
+                />
+            )}
+
+            {/* ====================================================
+                TAB: HISTÓRICO
+            ==================================================== */}
+            {profileTab === 'history' && (
+            <div className="bg-white/90 border border-slate-200 rounded-2xl p-5 space-y-4">
+                <h2 className="text-base font-bold text-[#1f2957]">Histórico de Custos</h2>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
                     <input type="date" className="px-3 py-2 rounded-lg border border-slate-200" value={historyStartDate} onChange={(e) => setHistoryStartDate(e.target.value)} />
                     <input type="date" className="px-3 py-2 rounded-lg border border-slate-200" value={historyEndDate} onChange={(e) => setHistoryEndDate(e.target.value)} />
@@ -788,10 +721,12 @@ export default function VehicleProfile() {
                         <option value="portagens">Portagens</option>
                         <option value="outros">Outros</option>
                     </select>
-                    <select className="px-3 py-2 rounded-lg border border-slate-200" value={viaturaId || ''} disabled>
-                        <option value={viaturaId || ''}>{viatura.matricula}</option>
+                    <select className="px-3 py-2 rounded-lg border border-slate-200" value={historyYearFilter} onChange={(e) => setHistoryYearFilter(e.target.value)}>
+                        <option value="all">Todos os anos</option>
+                        {historyYears.map(y => <option key={y} value={y}>{y}</option>)}
                     </select>
                 </div>
+                <div className="text-xs text-slate-500">{filteredCostHistory.length} registos • Total: {filteredCostHistory.reduce((a, r) => a + Number(r.amount || 0), 0).toLocaleString('pt-PT', { minimumFractionDigits: 2 })}€</div>
 
                 <div className="overflow-x-auto">
                     <table className="min-w-full text-sm">
@@ -823,10 +758,16 @@ export default function VehicleProfile() {
                     {filteredCostHistory.length === 0 && <p className="text-slate-500 text-sm py-4 text-center">Sem custos no filtro selecionado.</p>}
                 </div>
             </div>
+            )} {/* END history tab */}
+
+            {/* ====================================================
+                TAB: ANÁLISE
+            ==================================================== */}
+            {profileTab === 'analysis' && (<>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <div className="bg-white/90 border border-slate-200 rounded-2xl p-5">
-                    <h2 className="text-lg font-bold text-[#1f2957] mb-4">Histórico de Requisições</h2>
+                    <h2 className="text-base font-bold text-[#1f2957] mb-4">Requisições por viatura</h2>
                     <div className="overflow-x-auto">
                         <table className="min-w-full text-sm">
                             <thead>
@@ -921,25 +862,6 @@ export default function VehicleProfile() {
                 </div>
             </div>
 
-            <div className="bg-white/90 border border-slate-200 rounded-2xl p-5">
-                <h2 className="text-lg font-bold text-[#1f2957] mb-4">Cronograma / Timeline</h2>
-                <div className="space-y-3">
-                    {timeline.map(event => (
-                        <div key={event.id} className="flex items-start gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                            <div className={`mt-0.5 ${event.type === 'alert' ? 'text-amber-400' : 'text-blue-400'}`}>
-                                {event.type === 'alert' ? <AlertTriangle className="w-4 h-4" /> : <CalendarClock className="w-4 h-4" />}
-                            </div>
-                            <div className="flex-1">
-                                <div className="text-slate-900 font-semibold text-sm">{event.title}</div>
-                                <div className="text-slate-400 text-xs">{event.subtitle}</div>
-                            </div>
-                            <div className="text-slate-500 text-xs whitespace-nowrap">{new Date(event.date).toLocaleDateString('pt-PT')}</div>
-                        </div>
-                    ))}
-                    {timeline.length === 0 && <p className="text-slate-500 text-center py-4">Sem eventos para esta viatura.</p>}
-                </div>
-            </div>
-
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <div className="bg-white/90 border border-slate-200 rounded-2xl p-5">
                     <h3 className="text-slate-900 font-bold mb-4">Combustível por mês</h3>
@@ -1005,6 +927,7 @@ export default function VehicleProfile() {
                     </div>
                 </div>
             </div>
+            </>) /* END analysis tab */}
         </div>
     );
 }
