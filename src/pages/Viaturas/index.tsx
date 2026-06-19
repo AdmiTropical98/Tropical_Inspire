@@ -6,9 +6,11 @@ import {
     Upload, Download, Filter
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useTranslation } from '../../hooks/useTranslation';
-import type { Viatura } from '../../types';
+import type { VehicleInsurancePolicy, Viatura } from '../../types';
 import { supabase } from '../../lib/supabase';
 
 type FleetFinancialDashboard = {
@@ -36,6 +38,24 @@ type VehicleFinancialSummaryRow = {
     total_vehicle_cost: number;
 };
 
+type InsuranceExportStatus = 'active' | 'expiring_soon' | 'expired' | 'all';
+
+type InsuranceExportRow = {
+    matricula: string;
+    marca: string;
+    modelo: string;
+    ano: string;
+    seguradora: string;
+    apolice: string;
+    dataInicio: string;
+    dataFim: string;
+    premio: number;
+    frequencia: string;
+    estado: string;
+    documento: string;
+    criadoEm: string;
+};
+
 export default function Viaturas() {
     const navigate = useNavigate();
     const { viaturas, addViatura, deleteViatura } = useWorkshop();
@@ -45,6 +65,11 @@ export default function Viaturas() {
     const [activeTab, setActiveTab] = useState<'overview' | 'list' | 'create'>('overview');
 
     const [filter, setFilter] = useState('');
+    const [insuranceExportStatus, setInsuranceExportStatus] = useState<InsuranceExportStatus>('active');
+    const [insuranceExportStartDate, setInsuranceExportStartDate] = useState('');
+    const [insuranceExportEndDate, setInsuranceExportEndDate] = useState('');
+    const [isExportingInsuranceExcel, setIsExportingInsuranceExcel] = useState(false);
+    const [isExportingInsurancePdf, setIsExportingInsurancePdf] = useState(false);
     const [financialDashboard, setFinancialDashboard] = useState<FleetFinancialDashboard | null>(null);
     const [fleetMonthlyCosts, setFleetMonthlyCosts] = useState<FleetMonthlyCost[]>([]);
     const [vehicleCostRows, setVehicleCostRows] = useState<VehicleFinancialSummaryRow[]>([]);
@@ -148,6 +173,177 @@ export default function Viaturas() {
         XLSX.writeFile(wb, "Template_Viaturas.xlsx");
     };
 
+    const getInsuranceFrequencyLabel = (frequency: VehicleInsurancePolicy['payment_frequency']) => {
+        if (frequency === 'monthly') return 'Mensal';
+        if (frequency === 'quarterly') return 'Trimestral';
+        return 'Anual';
+    };
+
+    const getInsuranceStatus = (policy: VehicleInsurancePolicy, now = new Date()) => {
+        const endDate = new Date(policy.end_date);
+
+        if (Number.isNaN(endDate.getTime())) return 'Ativo';
+        if (endDate < now) return 'Expirado';
+        if (endDate <= new Date(now.getTime() + 30 * 86400000)) return 'Expira em breve';
+        return 'Ativo';
+    };
+
+    const matchesInsuranceExportFilters = (policy: VehicleInsurancePolicy) => {
+        const now = new Date();
+        const endDate = new Date(policy.end_date);
+        const status = getInsuranceStatus(policy, now);
+
+        if (insuranceExportStatus === 'active' && status !== 'Ativo') return false;
+        if (insuranceExportStatus === 'expiring_soon' && status !== 'Expira em breve') return false;
+        if (insuranceExportStatus === 'expired' && status !== 'Expirado') return false;
+
+        if (insuranceExportStartDate) {
+            const startLimit = new Date(`${insuranceExportStartDate}T00:00:00`);
+            if (Number.isNaN(endDate.getTime()) || endDate < startLimit) return false;
+        }
+
+        if (insuranceExportEndDate) {
+            const endLimit = new Date(`${insuranceExportEndDate}T23:59:59`);
+            if (Number.isNaN(endDate.getTime()) || endDate > endLimit) return false;
+        }
+
+        return true;
+    };
+
+    const buildInsuranceExportRows = (policies: VehicleInsurancePolicy[]): InsuranceExportRow[] => {
+        const vehicleById = new Map(viaturas.map(vehicle => [vehicle.id, vehicle]));
+
+        return policies
+            .filter(matchesInsuranceExportFilters)
+            .map((policy) => {
+                const vehicle = vehicleById.get(policy.vehicle_id);
+
+                return {
+                    matricula: vehicle?.matricula ?? 'Sem matrícula',
+                    marca: vehicle?.marca ?? '',
+                    modelo: vehicle?.modelo ?? '',
+                    ano: vehicle?.ano ?? '',
+                    seguradora: policy.insurer,
+                    apolice: policy.policy_number,
+                    dataInicio: policy.start_date,
+                    dataFim: policy.end_date,
+                    premio: Number(policy.premium_amount ?? 0),
+                    frequencia: getInsuranceFrequencyLabel(policy.payment_frequency),
+                    estado: getInsuranceStatus(policy),
+                    documento: policy.document_url ?? '',
+                    criadoEm: policy.created_at ?? '',
+                };
+            });
+    };
+
+    const fetchInsuranceExportRows = async () => {
+        const { data, error } = await supabase
+            .from('vehicle_insurance_policies')
+            .select('*')
+            .order('end_date', { ascending: true });
+
+        if (error) {
+            throw new Error(error.message);
+        }
+
+        return buildInsuranceExportRows((data ?? []) as VehicleInsurancePolicy[]);
+    };
+
+    const insuranceExportSummary = useMemo(() => {
+        const parts = [];
+
+        if (insuranceExportStatus === 'active') parts.push('ativos');
+        if (insuranceExportStatus === 'expiring_soon') parts.push('a expirar');
+        if (insuranceExportStatus === 'expired') parts.push('expirados');
+        if (insuranceExportStatus === 'all') parts.push('todos os estados');
+        if (insuranceExportStartDate) parts.push(`de ${insuranceExportStartDate}`);
+        if (insuranceExportEndDate) parts.push(`até ${insuranceExportEndDate}`);
+
+        return parts.join(' • ');
+    }, [insuranceExportEndDate, insuranceExportStartDate, insuranceExportStatus]);
+
+    const handleExportInsuranceExcel = async () => {
+        setIsExportingInsuranceExcel(true);
+
+        try {
+            const rows = await fetchInsuranceExportRows();
+
+            if (rows.length === 0) {
+                alert('Não existem seguros com os filtros selecionados para exportar.');
+                return;
+            }
+
+            const worksheet = XLSX.utils.json_to_sheet(rows.map(row => ({
+                'Matricula': row.matricula,
+                'Marca': row.marca,
+                'Modelo': row.modelo,
+                'Ano': row.ano,
+                'Seguradora': row.seguradora,
+                'Apólice': row.apolice,
+                'Data Início': row.dataInicio,
+                'Data Fim': row.dataFim,
+                'Prémio (€)': row.premio,
+                'Frequência': row.frequencia,
+                'Estado': row.estado,
+                'Documento': row.documento,
+                'Criado Em': row.criadoEm,
+            })));
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Seguros');
+            XLSX.writeFile(workbook, `Seguros_Viaturas_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        } catch (error) {
+            alert(`Erro ao exportar seguros: ${error instanceof Error ? error.message : 'Erro desconhecido.'}`);
+        } finally {
+            setIsExportingInsuranceExcel(false);
+        }
+    };
+
+    const handleExportInsurancePdf = async () => {
+        setIsExportingInsurancePdf(true);
+
+        try {
+            const rows = await fetchInsuranceExportRows();
+
+            if (rows.length === 0) {
+                alert('Não existem seguros com os filtros selecionados para exportar.');
+                return;
+            }
+
+            const doc = new jsPDF('l', 'mm', 'a4');
+            doc.setFontSize(16);
+            doc.text('Seguros das Viaturas', 14, 16);
+            doc.setFontSize(10);
+            doc.text(`Gerado em ${new Date().toLocaleString('pt-PT')}`, 14, 22);
+            if (insuranceExportSummary) {
+                doc.text(`Filtros: ${insuranceExportSummary}`, 14, 28);
+            }
+
+            autoTable(doc, {
+                startY: insuranceExportSummary ? 34 : 28,
+                head: [['Matrícula', 'Seguradora', 'Apólice', 'Início', 'Fim', 'Prémio', 'Freq.', 'Estado']],
+                body: rows.map(row => [
+                    row.matricula,
+                    row.seguradora,
+                    row.apolice,
+                    row.dataInicio || '—',
+                    row.dataFim || '—',
+                    `${row.premio.toFixed(2)} €`,
+                    row.frequencia,
+                    row.estado,
+                ]),
+                styles: { fontSize: 8, cellPadding: 2 },
+                headStyles: { fillColor: [31, 41, 87] },
+                alternateRowStyles: { fillColor: [248, 250, 252] },
+            });
+
+            doc.save(`Seguros_Viaturas_${new Date().toISOString().slice(0, 10)}.pdf`);
+        } catch (error) {
+            alert(`Erro ao exportar PDF dos seguros: ${error instanceof Error ? error.message : 'Erro desconhecido.'}`);
+        } finally {
+            setIsExportingInsurancePdf(false);
+        }
+    };
+
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -216,26 +412,92 @@ export default function Viaturas() {
                             </p>
                         </div>
 
-                        <div className="frota-page-toolbar flex items-center gap-3">
-                            <button
-                                onClick={handleDownloadTemplate}
-                                className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 rounded-xl font-medium transition-all shadow-sm"
-                            >
-                                <Download className="w-4 h-4" />
-                                <span className="hidden md:inline">Template</span>
-                            </button>
-                            <label className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 rounded-xl font-medium transition-all shadow-sm cursor-pointer">
-                                <Upload className="w-4 h-4" />
-                                <span className="hidden md:inline">Importar</span>
-                                <input type="file" accept=".xlsx,.xls" onChange={handleFileUpload} className="hidden" />
-                            </label>
-                            <button
-                                onClick={() => setActiveTab('create')}
-                                className="flex items-center gap-2 px-6 py-2.5 btn-primary rounded-xl font-bold transition-all"
-                            >
-                                <PlusCircle className="w-5 h-5" />
-                                <span>Nova Viatura</span>
-                            </button>
+                        <div className="w-full md:w-auto space-y-3">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                <label className="flex items-center gap-2 px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 shadow-sm">
+                                    <Filter className="w-4 h-4 text-slate-400" />
+                                    <select
+                                        value={insuranceExportStatus}
+                                        onChange={(e) => setInsuranceExportStatus(e.target.value as InsuranceExportStatus)}
+                                        className="bg-transparent text-sm font-medium outline-none w-full"
+                                    >
+                                        <option value="active">Ativos</option>
+                                        <option value="expiring_soon">A expirar em 30 dias</option>
+                                        <option value="expired">Expirados</option>
+                                        <option value="all">Todos</option>
+                                    </select>
+                                </label>
+                                <label className="flex items-center gap-2 px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 shadow-sm">
+                                    <Calendar className="w-4 h-4 text-slate-400" />
+                                    <input
+                                        type="date"
+                                        value={insuranceExportStartDate}
+                                        onChange={(e) => setInsuranceExportStartDate(e.target.value)}
+                                        className="bg-transparent text-sm font-medium outline-none w-full"
+                                    />
+                                </label>
+                                <label className="flex items-center gap-2 px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 shadow-sm">
+                                    <Calendar className="w-4 h-4 text-slate-400" />
+                                    <input
+                                        type="date"
+                                        value={insuranceExportEndDate}
+                                        onChange={(e) => setInsuranceExportEndDate(e.target.value)}
+                                        className="bg-transparent text-sm font-medium outline-none w-full"
+                                    />
+                                </label>
+                                <button
+                                    onClick={() => {
+                                        setInsuranceExportStatus('active');
+                                        setInsuranceExportStartDate('');
+                                        setInsuranceExportEndDate('');
+                                    }}
+                                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-all"
+                                >
+                                    Limpar Filtros
+                                </button>
+                            </div>
+
+                            <div className="frota-page-toolbar flex flex-wrap items-center gap-3">
+                                <button
+                                    onClick={() => void handleExportInsuranceExcel()}
+                                    disabled={isExportingInsuranceExcel || isExportingInsurancePdf}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 rounded-xl font-medium transition-all shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    <Download className="w-4 h-4" />
+                                    <span className="hidden md:inline">{isExportingInsuranceExcel ? 'A exportar Excel...' : 'Exportar Seguros Excel'}</span>
+                                </button>
+                                <button
+                                    onClick={() => void handleExportInsurancePdf()}
+                                    disabled={isExportingInsuranceExcel || isExportingInsurancePdf}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 rounded-xl font-medium transition-all shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    <Download className="w-4 h-4" />
+                                    <span className="hidden md:inline">{isExportingInsurancePdf ? 'A exportar PDF...' : 'Exportar Seguros PDF'}</span>
+                                </button>
+                                <button
+                                    onClick={handleDownloadTemplate}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 rounded-xl font-medium transition-all shadow-sm"
+                                >
+                                    <Download className="w-4 h-4" />
+                                    <span className="hidden md:inline">Template</span>
+                                </button>
+                                <label className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 rounded-xl font-medium transition-all shadow-sm cursor-pointer">
+                                    <Upload className="w-4 h-4" />
+                                    <span className="hidden md:inline">Importar</span>
+                                    <input type="file" accept=".xlsx,.xls" onChange={handleFileUpload} className="hidden" />
+                                </label>
+                                <button
+                                    onClick={() => setActiveTab('create')}
+                                    className="flex items-center gap-2 px-6 py-2.5 btn-primary rounded-xl font-bold transition-all"
+                                >
+                                    <PlusCircle className="w-5 h-5" />
+                                    <span>Nova Viatura</span>
+                                </button>
+                            </div>
+
+                            <div className="text-xs text-slate-500">
+                                Exportação de seguros: {insuranceExportSummary || 'ativos'}
+                            </div>
                         </div>
                     </div>
 
