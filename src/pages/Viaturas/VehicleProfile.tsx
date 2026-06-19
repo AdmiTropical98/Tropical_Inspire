@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Car, Fuel, Wrench, ClipboardList, Gauge, CalendarClock, AlertTriangle, BarChart2, History, DollarSign } from 'lucide-react';
+import { ArrowLeft, Car, Fuel, Wrench, ClipboardList, Gauge, CalendarClock, AlertTriangle, BarChart2, History, DollarSign, ShieldCheck } from 'lucide-react';
 import VehicleCostsTab from './VehicleCostsTab';
 import {
     ResponsiveContainer,
