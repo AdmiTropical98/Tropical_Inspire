@@ -73,6 +73,10 @@ export default function VehicleProfile() {
     const [historyEndDate, setHistoryEndDate] = useState('');
     const [historyYearFilter, setHistoryYearFilter] = useState('all');
     const [profileTab, setProfileTab] = useState<'overview' | 'costs' | 'history' | 'analysis'>('overview');
+    const [insurancePolicies, setInsurancePolicies] = useState<VehicleInsurancePolicy[]>([]);
+    const [inspectionRecords, setInspectionRecords] = useState<VehicleInspection[]>([]);
+    const [iucRecords, setIucRecords] = useState<VehicleIucRecord[]>([]);
+    const [otherCosts, setOtherCosts] = useState<VehicleOtherCost[]>([]);
 
     const viatura = viaturas.find(v => v.id === viaturaId);
 
@@ -197,6 +201,11 @@ export default function VehicleProfile() {
                     pdfUrl: item.pdf_url || undefined
                 })));
             }
+
+            if (!insuranceResult.error) setInsurancePolicies((insuranceResult.data || []) as VehicleInsurancePolicy[]);
+            if (!inspectionsResult.error) setInspectionRecords((inspectionsResult.data || []) as VehicleInspection[]);
+            if (!iucResult.error) setIucRecords((iucResult.data || []) as VehicleIucRecord[]);
+            if (!otherCostsResult.error) setOtherCosts((otherCostsResult.data || []) as VehicleOtherCost[]);
     };
 
     useEffect(() => {
@@ -388,93 +397,7 @@ export default function VehicleProfile() {
         return true;
     });
 
-    const _unusedPlaceholder = null; // forms moved to VehicleCostsTab
-    const addInsurancePolicy = async () => {
-        if (!viaturaId || !insuranceForm.insurer || !insuranceForm.policy_number || !insuranceForm.start_date || !insuranceForm.end_date) return;
-        setIsSavingCost(true);
-        const payload = {
-            vehicle_id: viaturaId,
-            insurer: insuranceForm.insurer,
-            policy_number: insuranceForm.policy_number,
-            start_date: insuranceForm.start_date,
-            end_date: insuranceForm.end_date,
-            premium_amount: Number(insuranceForm.premium_amount || 0),
-            payment_frequency: insuranceForm.payment_frequency,
-            document_url: insuranceForm.document_url || null
-        };
 
-        const { error } = await supabase.from('vehicle_insurance_policies').insert(payload);
-        setIsSavingCost(false);
-        if (error) {
-            alert(`Erro ao registar seguro: ${error.message}`);
-            return;
-        }
-        setInsuranceForm({ insurer: '', policy_number: '', start_date: '', end_date: '', premium_amount: '', payment_frequency: 'annual', document_url: '' });
-        await loadVehicleProfileAggregates();
-    };
-
-    const addInspection = async () => {
-        if (!viaturaId || !inspectionForm.inspection_date) return;
-        setIsSavingCost(true);
-        const { error } = await supabase.from('vehicle_inspections').insert({
-            vehicle_id: viaturaId,
-            inspection_date: inspectionForm.inspection_date,
-            valid_until: inspectionForm.valid_until || null,
-            result: inspectionForm.result,
-            cost: Number(inspectionForm.cost || 0),
-            document_url: inspectionForm.document_url || null
-        });
-        setIsSavingCost(false);
-        if (error) {
-            alert(`Erro ao registar inspeção: ${error.message}`);
-            return;
-        }
-        setInspectionForm({ inspection_date: '', valid_until: '', result: 'approved', cost: '', document_url: '' });
-        await loadVehicleProfileAggregates();
-    };
-
-    const addIuc = async () => {
-        if (!viaturaId || !iucForm.fiscal_year) return;
-        setIsSavingCost(true);
-        const { error } = await supabase.from('vehicle_iuc_records').upsert({
-            vehicle_id: viaturaId,
-            fiscal_year: Number(iucForm.fiscal_year),
-            amount: Number(iucForm.amount || 0),
-            due_date: iucForm.due_date || null,
-            payment_date: iucForm.payment_date || null,
-            status: iucForm.status,
-            document_url: iucForm.document_url || null
-        }, { onConflict: 'vehicle_id,fiscal_year' });
-        setIsSavingCost(false);
-        if (error) {
-            alert(`Erro ao registar IUC: ${error.message}`);
-            return;
-        }
-        setIucForm({ fiscal_year: String(new Date().getFullYear()), amount: '', due_date: '', payment_date: '', status: 'pending', document_url: '' });
-        await loadVehicleProfileAggregates();
-    };
-
-    const addOtherCost = async () => {
-        if (!viaturaId || !otherCostForm.cost_date) return;
-        setIsSavingCost(true);
-        const { error } = await supabase.from('vehicle_other_costs').insert({
-            vehicle_id: viaturaId,
-            cost_category: otherCostForm.cost_category,
-            cost_date: otherCostForm.cost_date,
-            description: otherCostForm.description || null,
-            amount: Number(otherCostForm.amount || 0),
-            km: otherCostForm.km ? Number(otherCostForm.km) : null,
-            driver_id: otherCostForm.driver_id || null,
-            document_url: otherCostForm.document_url || null
-        });
-        setIsSavingCost(false);
-        if (error) {
-            alert(`Erro ao registar outro custo: ${error.message}`);
-            return;
-        }
-        setOtherCostForm({ cost_category: 'outros', cost_date: new Date().toISOString().slice(0, 10), description: '', amount: '', km: '', driver_id: '', document_url: '' });
-        await loadVehicleProfileAggregates();
-    };
 
     const timeline = useMemo(() => {
         if (!viatura) return [] as Array<{ id: string; date: string; type: 'fuel' | 'req' | 'maintenance' | 'alert'; title: string; subtitle: string }>;
