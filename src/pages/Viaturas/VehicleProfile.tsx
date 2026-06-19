@@ -612,6 +612,7 @@ export default function VehicleProfile() {
                 </div>
             </div>
 
+            {profileTab === 'overview' && (<>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 {[
                     { label: 'Total combustível', value: `${totalFuelCost.toFixed(2)}€`, icon: Fuel, color: 'text-blue-400' },

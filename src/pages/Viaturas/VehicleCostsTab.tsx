@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     Car, ClipboardList, ExternalLink, FileSearch, Fuel,
     Loader2, Plus, Receipt, ShieldCheck, Trash2, Upload, Wrench, X,
+    Download, FileSpreadsheet, Check, CheckCircle2, Copy, AlertTriangle
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type {
@@ -70,6 +71,88 @@ async function tryUpload(file: File, path: string): Promise<string | null> {
     }
     return null;
 }
+
+// ---------------------------------------------------------------------------
+// Bulk Import Helpers & Config
+// ---------------------------------------------------------------------------
+
+const parseBulkDateToIso = (rawDate: string): string | null => {
+    const value = String(rawDate || '').trim();
+    if (!value) return null;
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+
+    const match = value.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+    if (!match) return null;
+
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    const year = parseInt(match[3], 10);
+    const date = new Date(year, month - 1, day);
+
+    if (
+        date.getFullYear() !== year ||
+        date.getMonth() !== month - 1 ||
+        date.getDate() !== day
+    ) {
+        return null;
+    }
+
+    return `${year.toString().padStart(4, '0')}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+};
+
+const parseBulkValue = (rawValue: string): number | null => {
+    const source = String(rawValue || '').trim().replace(/\s+/g, '').replace(/€/g, '');
+    if (!source) return null;
+
+    let normalized = source;
+
+    if (normalized.includes(',') && normalized.includes('.')) {
+        normalized = normalized.replace(/\./g, '').replace(',', '.');
+    } else {
+        normalized = normalized.replace(',', '.');
+    }
+
+    const value = Number.parseFloat(normalized);
+    if (Number.isNaN(value) || !Number.isFinite(value)) return null;
+    return value;
+};
+
+const detectBulkDelimiter = (line: string): string => {
+    if (line.includes('\t')) return '\t';
+    if (line.includes(';')) return ';';
+    if (line.includes('|')) return '|';
+    if (line.includes(',')) return ',';
+    return '\t';
+};
+
+const BULK_SCHEMAS = {
+    seguros: {
+        headers: ['Seguradora', 'Apólice', 'Data Início', 'Data Fim', 'Prémio', 'Frequência', 'Documento URL'],
+        example: 'Fidelidade;987654321;2026-01-01;2026-12-31;450.00;anual;https://exemplo.com/doc.pdf',
+        description: 'Frequência deve ser: anual, mensal ou trimestral. Datas no formato AAAA-MM-DD ou DD/MM/AAAA.'
+    },
+    manutencoes: {
+        headers: ['Data', 'Tipo', 'Km', 'Oficina', 'Custo', 'Descrição', 'Documento URL'],
+        example: '2026-06-15;preventiva;120000;Oficina Central;150.00;Mudança de óleo e filtros;https://exemplo.com/fatura.pdf',
+        description: 'Tipo deve ser: preventiva, corretiva, inspecao ou outros.'
+    },
+    ipo: {
+        headers: ['Data Inspeção', 'Resultado', 'Válido até', 'Custo', 'Documento URL'],
+        example: '2026-06-15;aprovada;2027-06-15;35.50;https://exemplo.com/relatorio.pdf',
+        description: 'Resultado deve ser: aprovada, condicional ou reprovada.'
+    },
+    iuc: {
+        headers: ['Ano Fiscal', 'Valor', 'Data Limite', 'Data Pagamento', 'Estado', 'Documento URL'],
+        example: '2026;124.50;2026-06-30;2026-06-25;pago;https://exemplo.com/comprovativo.pdf',
+        description: 'Estado deve ser: pago ou pendente.'
+    },
+    outros: {
+        headers: ['Data', 'Categoria', 'Descrição', 'Km', 'Valor', 'Motorista', 'Documento URL'],
+        example: '2026-06-15;lavagem;Lavagem interior e exterior;120000;15.00;João Silva;https://exemplo.com/recibo.pdf',
+        description: 'Categoria deve ser: lavagem, pneus, estacionamento, multa, pecas, reparacao_extraordinaria ou outros. Motorista é opcional e tentará ser correspondido pelo nome.'
+    }
+};
 
 // ---------------------------------------------------------------------------
 // Shared small components
@@ -183,6 +266,14 @@ export default function VehicleCostsTab({
     const [isSaving, setIsSaving] = useState(false);
     const [otherCatFilter, setOtherCatFilter] = useState('all');
 
+    // --- Bulk Import ---
+    const [showBulk, setShowBulk] = useState(false);
+    const [bulkInput, setBulkInput] = useState('');
+    const [bulkRows, setBulkRows] = useState<any[]>([]);
+    const [isBulkSaving, setIsBulkSaving] = useState(false);
+    const [bulkError, setBulkError] = useState<string | null>(null);
+    const [copiedTemplate, setCopiedTemplate] = useState(false);
+
     // --- Forms ---
     const blankIns = { insurer: '', policy_number: '', start_date: '', end_date: '', premium_amount: '', payment_frequency: 'annual' as const, document_url: '' };
     const blankMaint = { data: '', tipo: 'preventiva', km: '', oficina: '', custo: '', descricao: '', pdf_url: '' };
@@ -248,7 +339,455 @@ export default function VehicleCostsTab({
     }, [viaturaId]);
 
     useEffect(() => { void loadData(); }, [loadData]);
-    useEffect(() => { setShowAdd(false); }, [subTab]);
+    
+    useEffect(() => {
+        setShowAdd(false);
+        setShowBulk(false);
+        setBulkInput('');
+        setBulkRows([]);
+        setBulkError(null);
+    }, [subTab]);
+
+    // --- Bulk parsing reactive effect ---
+    useEffect(() => {
+        const handleParseBulk = () => {
+            setBulkError(null);
+            if (!bulkInput.trim()) {
+                setBulkRows([]);
+                return;
+            }
+
+            const lines = bulkInput.split('\n').map(l => l.trim()).filter(Boolean);
+            if (lines.length === 0) {
+                setBulkRows([]);
+                return;
+            }
+
+            const currentSchema = BULK_SCHEMAS[subTab as keyof typeof BULK_SCHEMAS];
+            if (!currentSchema) return;
+
+            let dataLines = lines;
+            const firstLine = lines[0];
+            const firstDelimiter = detectBulkDelimiter(firstLine);
+            const firstCols = firstLine.split(firstDelimiter).map(c => c.trim().toLowerCase());
+
+            const isHeader = currentSchema.headers.some(h => 
+                firstCols.includes(h.toLowerCase())
+            );
+
+            if (isHeader) {
+                dataLines = lines.slice(1);
+            }
+
+            const parsed: any[] = dataLines.map((line, idx) => {
+                const delimiter = detectBulkDelimiter(line);
+                const cols = line.split(delimiter).map(c => c.replace(/^["']|["']$/g, '').trim());
+                const errors: string[] = [];
+
+                let rowData: any = {
+                    index: idx + (isHeader ? 2 : 1),
+                    raw: line,
+                    errors: errors
+                };
+
+                if (subTab === 'seguros') {
+                    const [insurer, policy_number, start_date_raw, end_date_raw, premium_amount_raw, payment_frequency_raw, document_url] = cols;
+                    
+                    if (!insurer) errors.push('Seguradora é obrigatória.');
+                    if (!policy_number) errors.push('Nº de Apólice é obrigatório.');
+                    
+                    const start_date = parseBulkDateToIso(start_date_raw);
+                    if (!start_date) errors.push('Data Início inválida (use DD/MM/AAAA ou AAAA-MM-DD).');
+                    
+                    const end_date = parseBulkDateToIso(end_date_raw);
+                    if (!end_date) errors.push('Data Fim inválida (use DD/MM/AAAA ou AAAA-MM-DD).');
+                    
+                    const premium_amount = parseBulkValue(premium_amount_raw) ?? 0;
+                    
+                    let payment_frequency: 'monthly' | 'quarterly' | 'annual' = 'annual';
+                    const freq = String(payment_frequency_raw || '').toLowerCase().trim();
+                    if (freq.includes('mens') || freq.includes('month')) payment_frequency = 'monthly';
+                    else if (freq.includes('trim') || freq.includes('quart')) payment_frequency = 'quarterly';
+                    else if (freq.includes('an') || freq.includes('year')) payment_frequency = 'annual';
+                    
+                    rowData = {
+                        ...rowData,
+                        insurer: insurer || '',
+                        policy_number: policy_number || '',
+                        start_date: start_date || '',
+                        end_date: end_date || '',
+                        premium_amount,
+                        payment_frequency,
+                        document_url: document_url || null
+                    };
+                } else if (subTab === 'manutencoes') {
+                    const [date_raw, tipo_raw, km_raw, oficina, custo_raw, descricao, pdf_url] = cols;
+                    
+                    const data = parseBulkDateToIso(date_raw);
+                    if (!data) errors.push('Data inválida.');
+                    
+                    let tipo = 'outros';
+                    const t = String(tipo_raw || '').toLowerCase().trim();
+                    if (t.includes('prev')) tipo = 'preventiva';
+                    else if (t.includes('corr')) tipo = 'corretiva';
+                    else if (t.includes('insp') || t.includes('ipo')) tipo = 'inspecao';
+                    else if (t.includes('outr') || t.includes('oth')) tipo = 'outros';
+
+                    const km = km_raw ? (parseInt(km_raw.replace(/\D/g, ''), 10) || null) : null;
+                    const custo = parseBulkValue(custo_raw) ?? 0;
+                    if (!custo_raw) errors.push('Custo é obrigatório.');
+
+                    rowData = {
+                        ...rowData,
+                        data: data || '',
+                        tipo,
+                        km,
+                        oficina: oficina || '',
+                        custo,
+                        descricao: descricao || '',
+                        pdf_url: pdf_url || null
+                    };
+                } else if (subTab === 'ipo') {
+                    const [inspection_date_raw, result_raw, valid_until_raw, cost_raw, document_url] = cols;
+                    
+                    const inspection_date = parseBulkDateToIso(inspection_date_raw);
+                    if (!inspection_date) errors.push('Data de inspeção inválida.');
+                    
+                    const valid_until = parseBulkDateToIso(valid_until_raw);
+                    
+                    let result = 'approved';
+                    const r = String(result_raw || '').toLowerCase().trim();
+                    if (r.includes('aprov') || r.includes('appr')) result = 'approved';
+                    else if (r.includes('cond')) result = 'conditional';
+                    else if (r.includes('reprov') || r.includes('fail')) result = 'failed';
+
+                    const cost = parseBulkValue(cost_raw) ?? 0;
+
+                    rowData = {
+                        ...rowData,
+                        inspection_date: inspection_date || '',
+                        result,
+                        valid_until: valid_until || null,
+                        cost,
+                        document_url: document_url || null
+                    };
+                } else if (subTab === 'iuc') {
+                    const [fiscal_year_raw, amount_raw, due_date_raw, payment_date_raw, status_raw, document_url] = cols;
+                    
+                    const fiscal_year = parseInt(String(fiscal_year_raw || '').replace(/\D/g, ''), 10);
+                    if (!fiscal_year || fiscal_year < 1900 || fiscal_year > 2100) errors.push('Ano Fiscal inválido (ex: 2026).');
+                    
+                    const amount = parseBulkValue(amount_raw) ?? 0;
+                    const due_date = parseBulkDateToIso(due_date_raw);
+                    const payment_date = parseBulkDateToIso(payment_date_raw);
+                    
+                    let status: 'paid' | 'pending' = 'pending';
+                    const s = String(status_raw || '').toLowerCase().trim();
+                    if (s.includes('pag') || s.includes('paid')) status = 'paid';
+                    else if (s.includes('pend') || s.includes('wait')) status = 'pending';
+
+                    rowData = {
+                        ...rowData,
+                        fiscal_year: fiscal_year || new Date().getFullYear(),
+                        amount,
+                        due_date: due_date || null,
+                        payment_date: payment_date || null,
+                        status,
+                        document_url: document_url || null
+                    };
+                } else if (subTab === 'outros') {
+                    const [cost_date_raw, cost_category_raw, description, km_raw, amount_raw, driver_raw, document_url] = cols;
+                    
+                    const cost_date = parseBulkDateToIso(cost_date_raw);
+                    if (!cost_date) errors.push('Data inválida.');
+                    
+                    let cost_category = 'outros';
+                    const c = String(cost_category_raw || '').toLowerCase().trim();
+                    if (c.includes('lav')) cost_category = 'lavagem';
+                    else if (c.includes('pneu')) cost_category = 'pneus';
+                    else if (c.includes('est') || c.includes('park')) cost_category = 'estacionamento';
+                    else if (c.includes('mult') || c.includes('fine')) cost_category = 'multa';
+                    else if (c.includes('pec') || c.includes('part')) cost_category = 'pecas';
+                    else if (c.includes('extra') || c.includes('rep')) cost_category = 'reparacao_extraordinaria';
+                    else if (c.includes('outr') || c.includes('oth')) cost_category = 'outros';
+
+                    const amount = parseBulkValue(amount_raw) ?? 0;
+                    if (!amount_raw) errors.push('Valor é obrigatório.');
+
+                    const km = km_raw ? (parseInt(km_raw.replace(/\D/g, ''), 10) || null) : null;
+                    
+                    let driver_id = null;
+                    if (driver_raw) {
+                        const matched = motoristas.find(m => 
+                            m.nome.toLowerCase().includes(driver_raw.toLowerCase())
+                        );
+                        if (matched) {
+                            driver_id = matched.id;
+                            rowData._driverName = matched.nome;
+                        } else {
+                            rowData._driverName = `${driver_raw} (Não encontrado)`;
+                        }
+                    }
+
+                    rowData = {
+                        ...rowData,
+                        cost_date: cost_date || '',
+                        cost_category,
+                        description: description || '',
+                        km,
+                        amount,
+                        driver_id,
+                        document_url: document_url || null
+                    };
+                }
+
+                return rowData;
+            });
+
+            setBulkRows(parsed);
+        };
+
+        handleParseBulk();
+    }, [bulkInput, subTab, motoristas]);
+
+    // --- Bulk CRUD / Actions ---
+    const handleCopyTemplate = () => {
+        const schema = BULK_SCHEMAS[subTab as keyof typeof BULK_SCHEMAS];
+        if (!schema) return;
+        
+        const templateText = `${schema.headers.join(';')}\n${schema.example}`;
+        navigator.clipboard.writeText(templateText);
+        setCopiedTemplate(true);
+        setTimeout(() => setCopiedTemplate(false), 2000);
+    };
+
+    const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const text = ev.target?.result as string;
+            if (!text) return;
+            setBulkInput(text);
+        };
+        reader.readAsText(file, 'utf-8');
+        e.target.value = '';
+    };
+
+    const handleImportBulk = async () => {
+        if (isBulkSaving) return;
+        if (bulkRows.length === 0) {
+            alert('Não existem dados para importar.');
+            return;
+        }
+
+        const rowsWithErrors = bulkRows.filter(r => r.errors.length > 0);
+        if (rowsWithErrors.length > 0) {
+            alert(`Existem ${rowsWithErrors.length} linha(s) com erros. Corrija-os antes de importar.`);
+            return;
+        }
+
+        setIsBulkSaving(true);
+        setBulkError(null);
+
+        try {
+            let errorMsg = '';
+            
+            if (subTab === 'seguros') {
+                const payload = bulkRows.map(r => ({
+                    vehicle_id: viaturaId,
+                    insurer: r.insurer,
+                    policy_number: r.policy_number,
+                    start_date: r.start_date,
+                    end_date: r.end_date,
+                    premium_amount: r.premium_amount,
+                    payment_frequency: r.payment_frequency,
+                    document_url: r.document_url
+                }));
+                const { error } = await supabase.from('vehicle_insurance_policies').insert(payload);
+                if (error) errorMsg = error.message;
+            } else if (subTab === 'manutencoes') {
+                const payload = bulkRows.map(r => ({
+                    vehicle_id: viaturaId,
+                    license_plate: viatura.matricula,
+                    matricula: viatura.matricula,
+                    data: r.data,
+                    tipo: r.tipo,
+                    km: r.km,
+                    oficina: r.oficina,
+                    custo: r.custo,
+                    descricao: r.descricao,
+                    pdf_url: r.pdf_url
+                }));
+                const { error } = await supabase.from('manutencoes').insert(payload);
+                if (error) errorMsg = error.message;
+            } else if (subTab === 'ipo') {
+                const payload = bulkRows.map(r => ({
+                    vehicle_id: viaturaId,
+                    inspection_date: r.inspection_date,
+                    valid_until: r.valid_until,
+                    result: r.result,
+                    cost: r.cost,
+                    document_url: r.document_url
+                }));
+                const { error } = await supabase.from('vehicle_inspections').insert(payload);
+                if (error) errorMsg = error.message;
+            } else if (subTab === 'iuc') {
+                const payload = bulkRows.map(r => ({
+                    vehicle_id: viaturaId,
+                    fiscal_year: r.fiscal_year,
+                    amount: r.amount,
+                    due_date: r.due_date,
+                    payment_date: r.payment_date,
+                    status: r.status,
+                    document_url: r.document_url
+                }));
+                const { error } = await supabase.from('vehicle_iuc_records').insert(payload);
+                if (error) errorMsg = error.message;
+            } else if (subTab === 'outros') {
+                const payload = bulkRows.map(r => ({
+                    vehicle_id: viaturaId,
+                    cost_category: r.cost_category,
+                    cost_date: r.cost_date,
+                    description: r.description,
+                    amount: r.amount,
+                    km: r.km,
+                    driver_id: r.driver_id,
+                    document_url: r.document_url
+                }));
+                const { error } = await supabase.from('vehicle_other_costs').insert(payload);
+                if (error) errorMsg = error.message;
+            }
+
+            if (errorMsg) {
+                setBulkError(`Erro ao guardar no Supabase: ${errorMsg}`);
+                alert(`Erro ao guardar: ${errorMsg}`);
+            } else {
+                alert(`✅ Importação de ${bulkRows.length} registo(s) concluída com sucesso!`);
+                setShowBulk(false);
+                setBulkInput('');
+                setBulkRows([]);
+                await loadData();
+                await onRefresh();
+            }
+        } catch (err: any) {
+            setBulkError(err.message || 'Erro inesperado durante a importação.');
+            alert(`Erro: ${err.message || 'Erro inesperado'}`);
+        } finally {
+            setIsBulkSaving(false);
+        }
+    };
+
+    const handleExportCSV = () => {
+        let headers: string[] = [];
+        let rows: any[][] = [];
+        let filename = `viatura_${viatura.matricula}_${subTab}`;
+
+        if (subTab === 'seguros') {
+            headers = ['Seguradora', 'Apólice', 'Data Início', 'Data Fim', 'Prémio (€)', 'Frequência', 'Documento URL'];
+            rows = insurance.map(r => [
+                r.insurer,
+                r.policy_number,
+                r.start_date,
+                r.end_date,
+                r.premium_amount,
+                r.payment_frequency === 'monthly' ? 'Mensal' : r.payment_frequency === 'quarterly' ? 'Trimestral' : 'Anual',
+                r.document_url || ''
+            ]);
+        } else if (subTab === 'manutencoes') {
+            headers = ['Data', 'Tipo', 'Km', 'Oficina', 'Custo (€)', 'Descrição', 'Documento URL'];
+            rows = maintenances.map(r => [
+                r.data,
+                r.tipo,
+                r.km || '',
+                r.oficina || '',
+                r.custo,
+                r.descricao || '',
+                r.pdfUrl || ''
+            ]);
+        } else if (subTab === 'ipo') {
+            headers = ['Data Inspeção', 'Resultado', 'Válido até', 'Custo (€)', 'Documento URL'];
+            rows = inspections.map(r => [
+                r.inspection_date,
+                r.result === 'approved' ? 'Aprovada' : r.result === 'failed' ? 'Reprovada' : 'Com anotações',
+                r.valid_until || '',
+                r.cost,
+                r.document_url || ''
+            ]);
+        } else if (subTab === 'iuc') {
+            headers = ['Ano Fiscal', 'Valor (€)', 'Data Limite', 'Data Pagamento', 'Estado', 'Documento URL'];
+            rows = iucList.map(r => [
+                r.fiscal_year,
+                r.amount,
+                r.due_date || '',
+                r.payment_date || '',
+                r.status === 'paid' ? 'Pago' : 'Pendente',
+                r.document_url || ''
+            ]);
+        } else if (subTab === 'outros') {
+            headers = ['Data', 'Categoria', 'Descrição', 'Km', 'Valor (€)', 'Motorista', 'Documento URL'];
+            rows = otherCosts.map(r => {
+                const mot = motoristas.find(m => m.id === r.driver_id);
+                return [
+                    r.cost_date,
+                    OTHER_LABELS[r.cost_category] || r.cost_category,
+                    r.description || '',
+                    r.km || '',
+                    r.amount,
+                    mot?.nome || '',
+                    r.document_url || ''
+                ];
+            });
+        } else if (subTab === 'combustivel') {
+            headers = ['Data / Hora', 'Litros', '€/L', 'Custo (€)', 'Km', 'Tipo', 'Motorista', 'Comprovativo'];
+            rows = vehicleFuelTransactions.map(tx => {
+                const mot = motoristas.find(m => m.id === tx.driverId);
+                return [
+                    tx.timestamp,
+                    tx.liters,
+                    (tx as any).pricePerLiter ?? (tx as any).price_per_liter ?? 0,
+                    (tx as any).totalCost ?? (tx as any).total_cost ?? 0,
+                    tx.km,
+                    (tx as any).fuelType || '',
+                    mot?.nome || (tx as any).staffName || '',
+                    (tx as any).receiptUrl || ''
+                ];
+            });
+        } else if (subTab === 'portagens') {
+            headers = ['Data / Hora', 'Tipo', 'Entrada', 'Saída', 'Valor (€)', 'Comprovativo'];
+            rows = tolls.map(r => [
+                r.entry_time,
+                r.type === 'parking' ? 'Estacionamento' : 'Portagem',
+                r.entry_point || '',
+                r.exit_point || '',
+                r.amount,
+                r.receipt_url || ''
+            ]);
+        }
+
+        if (headers.length === 0) return;
+
+        const csvContent = [
+            headers.join(';'),
+            ...rows.map(row => row.map(val => {
+                const str = val === null || val === undefined ? '' : String(val);
+                if (str.includes(';') || str.includes('\n') || str.includes('"')) {
+                    return `"${str.replace(/"/g, '""')}"`;
+                }
+                return str;
+            }).join(';'))
+        ].join('\n');
+
+        const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${filename}_${new Date().toISOString().slice(0, 10)}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     // --- CRUD helpers ---
     const withSave = async (fn: () => Promise<boolean>) => {
@@ -381,18 +920,302 @@ export default function VehicleCostsTab({
     ];
 
     // --- Section header with add button ---
-    const SectionHeader = ({ noun }: { noun: string }) => (
-        <div className="flex items-center justify-end mb-4">
-            <button
-                onClick={() => setShowAdd(v => !v)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-500 transition-colors"
-            >
-                {showAdd
-                    ? <><X className="w-4 h-4" /> Cancelar</>
-                    : <><Plus className="w-4 h-4" /> Adicionar {noun}</>}
-            </button>
+    const SectionHeader = ({ noun, hideImport }: { noun: string; hideImport?: boolean }) => (
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+                Lista de {SUB_TABS.find(t => t.id === subTab)?.label}
+            </h3>
+            <div className="flex flex-wrap gap-2">
+                <button
+                    onClick={handleExportCSV}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors shadow-sm"
+                >
+                    <Download className="w-3.5 h-3.5 text-slate-500" /> Exportar CSV
+                </button>
+                
+                {!hideImport && (
+                    <button
+                        onClick={() => { setShowBulk(v => !v); setShowAdd(false); }}
+                        className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-xs font-bold transition-all shadow-sm ${
+                            showBulk
+                                ? 'bg-slate-200 border-slate-300 text-slate-700'
+                                : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                        }`}
+                    >
+                        <FileSpreadsheet className="w-3.5 h-3.5 text-slate-500" /> Importação em Massa
+                    </button>
+                )}
+
+                {!hideImport && (
+                    <button
+                        onClick={() => { setShowAdd(v => !v); setShowBulk(false); }}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-500 transition-colors shadow-sm"
+                    >
+                        {showAdd ? (
+                            <><X className="w-3.5 h-3.5" /> Cancelar</>
+                        ) : (
+                            <><Plus className="w-3.5 h-3.5" /> Adicionar {noun}</>
+                        )}
+                    </button>
+                )}
+            </div>
         </div>
     );
+
+    const renderBulkPreview = () => {
+        if (bulkRows.length === 0) return null;
+        
+        return (
+            <div className="mt-4 border border-slate-200 rounded-xl overflow-hidden">
+                <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-700 uppercase">Pré-visualização dos Dados ({bulkRows.length} linhas)</span>
+                    {bulkRows.some(r => r.errors.length > 0) ? (
+                        <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3" /> {bulkRows.filter(r => r.errors.length > 0).length} linha(s) com erro
+                        </span>
+                    ) : (
+                        <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> Todos os registos são válidos
+                        </span>
+                    )}
+                </div>
+                <div className="overflow-x-auto max-h-96">
+                    <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr className="bg-slate-100 border-b border-slate-200 text-slate-600 uppercase font-semibold">
+                                <th className="p-2 w-12 text-center">Linha</th>
+                                {subTab === 'seguros' && (
+                                    <>
+                                        <th className="p-2">Seguradora</th>
+                                        <th className="p-2">Apólice</th>
+                                        <th className="p-2">Início</th>
+                                        <th className="p-2">Fim</th>
+                                        <th className="p-2 text-right">Prémio</th>
+                                        <th className="p-2">Frequência</th>
+                                    </>
+                                )}
+                                {subTab === 'manutencoes' && (
+                                    <>
+                                        <th className="p-2">Data</th>
+                                        <th className="p-2">Tipo</th>
+                                        <th className="p-2 text-right">Km</th>
+                                        <th className="p-2">Oficina</th>
+                                        <th className="p-2 text-right">Custo</th>
+                                        <th className="p-2">Descrição</th>
+                                    </>
+                                )}
+                                {subTab === 'ipo' && (
+                                    <>
+                                        <th className="p-2">Data IPO</th>
+                                        <th className="p-2">Resultado</th>
+                                        <th className="p-2">Validade</th>
+                                        <th className="p-2 text-right">Custo</th>
+                                    </>
+                                )}
+                                {subTab === 'iuc' && (
+                                    <>
+                                        <th className="p-2">Ano</th>
+                                        <th className="p-2 text-right">Valor</th>
+                                        <th className="p-2">Data Limite</th>
+                                        <th className="p-2">Data Pag.</th>
+                                        <th className="p-2">Estado</th>
+                                    </>
+                                )}
+                                {subTab === 'outros' && (
+                                    <>
+                                        <th className="p-2">Data</th>
+                                        <th className="p-2">Categoria</th>
+                                        <th className="p-2">Descrição</th>
+                                        <th className="p-2 text-right">Km</th>
+                                        <th className="p-2 text-right">Valor</th>
+                                        <th className="p-2">Motorista</th>
+                                    </>
+                                )}
+                                <th className="p-2">Documento</th>
+                                <th className="p-2">Erros / Avisos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {bulkRows.map((r, i) => {
+                                const hasErr = r.errors.length > 0;
+                                return (
+                                    <tr key={i} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${hasErr ? 'bg-red-50/50' : ''}`}>
+                                        <td className="p-2 text-center font-bold text-slate-500">{r.index}</td>
+                                        {subTab === 'seguros' && (
+                                            <>
+                                                <td className="p-2 font-semibold">{r.insurer || <span className="text-red-500 font-normal">Vazio</span>}</td>
+                                                <td className="p-2 font-mono">{r.policy_number || <span className="text-red-500 font-normal">Vazio</span>}</td>
+                                                <td className="p-2">{r.start_date || <span className="text-red-500 font-normal">Inválido</span>}</td>
+                                                <td className="p-2">{r.end_date || <span className="text-red-500 font-normal">Inválido</span>}</td>
+                                                <td className="p-2 text-right font-semibold">{fmtEur(r.premium_amount)}</td>
+                                                <td className="p-2 capitalize">{r.payment_frequency}</td>
+                                            </>
+                                        )}
+                                        {subTab === 'manutencoes' && (
+                                            <>
+                                                <td className="p-2">{r.data || <span className="text-red-500">Inválido</span>}</td>
+                                                <td className="p-2 capitalize">{r.tipo}</td>
+                                                <td className="p-2 text-right">{r.km ? `${r.km.toLocaleString()} km` : '—'}</td>
+                                                <td className="p-2">{r.oficina || '—'}</td>
+                                                <td className="p-2 text-right font-semibold">{fmtEur(r.custo)}</td>
+                                                <td className="p-2 truncate max-w-[150px]" title={r.descricao}>{r.descricao || '—'}</td>
+                                            </>
+                                        )}
+                                        {subTab === 'ipo' && (
+                                            <>
+                                                <td className="p-2">{r.inspection_date || <span className="text-red-500">Inválido</span>}</td>
+                                                <td className="p-2 capitalize">{r.result === 'approved' ? 'Aprovada' : r.result === 'failed' ? 'Reprovada' : 'Condicional'}</td>
+                                                <td className="p-2">{r.valid_until || '—'}</td>
+                                                <td className="p-2 text-right font-semibold">{fmtEur(r.cost)}</td>
+                                            </>
+                                        )}
+                                        {subTab === 'iuc' && (
+                                            <>
+                                                <td className="p-2 font-bold">{r.fiscal_year}</td>
+                                                <td className="p-2 text-right font-semibold">{fmtEur(r.amount)}</td>
+                                                <td className="p-2">{r.due_date || '—'}</td>
+                                                <td className="p-2">{r.payment_date || '—'}</td>
+                                                <td className="p-2 capitalize">{r.status === 'paid' ? 'Pago' : 'Pendente'}</td>
+                                            </>
+                                        )}
+                                        {subTab === 'outros' && (
+                                            <>
+                                                <td className="p-2">{r.cost_date || <span className="text-red-500 font-normal">Inválido</span>}</td>
+                                                <td className="p-2 capitalize">{OTHER_LABELS[r.cost_category] || r.cost_category}</td>
+                                                <td className="p-2 truncate max-w-[150px]" title={r.description}>{r.description || '—'}</td>
+                                                <td className="p-2 text-right">{r.km ? `${r.km.toLocaleString()} km` : '—'}</td>
+                                                <td className="p-2 text-right font-semibold">{fmtEur(r.amount)}</td>
+                                                <td className="p-2">{r._driverName || '—'}</td>
+                                            </>
+                                        )}
+                                        <td className="p-2 truncate max-w-[100px]" title={r.document_url || r.pdf_url || ''}>
+                                            {(r.document_url || r.pdf_url) ? (
+                                                <span className="text-blue-500 font-semibold">Sim</span>
+                                            ) : (
+                                                <span className="text-slate-400">—</span>
+                                            )}
+                                        </td>
+                                        <td className="p-2">
+                                            {hasErr ? (
+                                                <div className="text-red-600 font-medium space-y-0.5">
+                                                    {r.errors.map((err: string, errIdx: number) => (
+                                                        <div key={errIdx} className="flex items-center gap-1">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+                                                            {err}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <span className="text-emerald-600 font-medium">OK</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+    };
+
+    const renderBulkPanel = () => {
+        if (!showBulk) return null;
+        
+        const schema = BULK_SCHEMAS[subTab as keyof typeof BULK_SCHEMAS];
+        if (!schema) return null;
+        
+        return (
+            <div className="mb-6 border border-blue-200 bg-blue-50/30 rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h3 className="text-base font-bold text-slate-900">Importação em Massa - {SUB_TABS.find(t => t.id === subTab)?.label}</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">Cole linhas do Excel/Google Sheets ou faça o upload de um ficheiro CSV.</p>
+                    </div>
+                    <button
+                        onClick={() => { setShowBulk(false); setBulkInput(''); setBulkRows([]); }}
+                        className="p-1 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+                
+                <div className="bg-white border border-slate-200 rounded-xl p-3.5 text-xs text-slate-600 space-y-1.5">
+                    <p className="font-semibold text-slate-700">Formato das Colunas:</p>
+                    <div className="flex flex-wrap gap-1.5 font-mono select-all bg-slate-50 border border-slate-100 p-2 rounded">
+                        {schema.headers.map((h, i) => (
+                            <span key={i} className="bg-white border border-slate-200 px-1.5 py-0.5 rounded shadow-sm text-slate-800">
+                                {h}
+                            </span>
+                        ))}
+                    </div>
+                    <p className="text-slate-500 leading-relaxed mt-1">
+                        <strong>Nota:</strong> {schema.description} Pode incluir a linha de cabeçalho na colagem, o sistema irá ignorá-la automaticamente.
+                    </p>
+                    <div className="flex gap-3 pt-2">
+                        <button
+                            onClick={handleCopyTemplate}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold transition-all text-xs"
+                        >
+                            {copiedTemplate ? (
+                                <><Check className="w-3.5 h-3.5 text-emerald-600" /> Copiado!</>
+                            ) : (
+                                <><Copy className="w-3.5 h-3.5 text-slate-500" /> Copiar Modelo Excel</>
+                            )}
+                        </button>
+                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold cursor-pointer transition-all text-xs">
+                            <Upload className="w-3.5 h-3.5 text-slate-500" /> Carregar Ficheiro CSV
+                            <input
+                                type="file"
+                                accept=".csv,.txt"
+                                onChange={handleCSVUpload}
+                                className="hidden"
+                            />
+                        </label>
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <label className={LABEL}>Cole os dados aqui (delimitados por Tabulação do Excel, ponto e vírgula ou vírgula):</label>
+                    <textarea
+                        className="w-full h-40 px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400 outline-none"
+                        placeholder={`Exemplo:\n${schema.example}`}
+                        value={bulkInput}
+                        onChange={e => setBulkInput(e.target.value)}
+                    />
+                </div>
+
+                {bulkError && (
+                    <div className="p-3 bg-red-100 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2 font-medium">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        {bulkError}
+                    </div>
+                )}
+
+                {renderBulkPreview()}
+
+                <div className="flex gap-3 justify-end pt-2">
+                    <button
+                        onClick={() => { setShowBulk(false); setBulkInput(''); setBulkRows([]); }}
+                        className="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-bold transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        disabled={isBulkSaving || bulkRows.length === 0 || bulkRows.some(r => r.errors.length > 0)}
+                        onClick={handleImportBulk}
+                        className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-500 disabled:opacity-60 disabled:pointer-events-none transition-colors shadow-sm"
+                    >
+                        {isBulkSaving ? (
+                            <><Loader2 className="w-4 h-4 animate-spin" /> A Guardar...</>
+                        ) : (
+                            <><CheckCircle2 className="w-4 h-4" /> Importar {bulkRows.length > 0 ? `(${bulkRows.length} registos)` : ''}</>
+                        )}
+                    </button>
+                </div>
+            </div>
+        );
+    };
 
     const FormWrap = ({ children, onSave }: { children: React.ReactNode; onSave: () => void }) => (
         <div className="mb-4 border border-blue-200 bg-blue-50/50 rounded-xl p-4 space-y-3">
@@ -424,6 +1247,8 @@ export default function VehicleCostsTab({
 
                 <SectionHeader noun="Seguro" />
 
+                {renderBulkPanel()}
+
                 {showAdd && (
                     <FormWrap onSave={() => void addIns()}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -450,7 +1275,7 @@ export default function VehicleCostsTab({
                     </FormWrap>
                 )}
 
-                {insurance.length === 0 && !showAdd ? <EmptyState msg="Sem apólices registadas. Clique em «Adicionar Seguro» para começar." /> : (
+                {insurance.length === 0 && !showAdd && !showBulk ? <EmptyState msg="Sem apólices registadas. Clique em «Adicionar Seguro» para começar." /> : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
@@ -514,6 +1339,8 @@ export default function VehicleCostsTab({
 
             <SectionHeader noun="Manutenção" />
 
+            {renderBulkPanel()}
+
             {showAdd && (
                 <FormWrap onSave={() => void addMaint()}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -541,7 +1368,7 @@ export default function VehicleCostsTab({
                 </FormWrap>
             )}
 
-            {maintenances.length === 0 && !showAdd ? <EmptyState msg="Sem manutenções registadas." /> : (
+            {maintenances.length === 0 && !showAdd && !showBulk ? <EmptyState msg="Sem manutenções registadas." /> : (
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead>
@@ -597,6 +1424,8 @@ export default function VehicleCostsTab({
 
                 <SectionHeader noun="Inspeção" />
 
+                {renderBulkPanel()}
+
                 {showAdd && (
                     <FormWrap onSave={() => void addInsp()}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -621,7 +1450,7 @@ export default function VehicleCostsTab({
                     </FormWrap>
                 )}
 
-                {inspections.length === 0 && !showAdd ? <EmptyState msg="Sem inspeções registadas." /> : (
+                {inspections.length === 0 && !showAdd && !showBulk ? <EmptyState msg="Sem inspeções registadas." /> : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
@@ -686,6 +1515,8 @@ export default function VehicleCostsTab({
 
                 <SectionHeader noun="IUC" />
 
+                {renderBulkPanel()}
+
                 {showAdd && (
                     <FormWrap onSave={() => void addIuc()}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -710,7 +1541,7 @@ export default function VehicleCostsTab({
                     </FormWrap>
                 )}
 
-                {iucList.length === 0 && !showAdd ? <EmptyState msg="Sem registos de IUC." /> : (
+                {iucList.length === 0 && !showAdd && !showBulk ? <EmptyState msg="Sem registos de IUC." /> : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
@@ -785,6 +1616,8 @@ export default function VehicleCostsTab({
 
                 <SectionHeader noun="Custo" />
 
+                {renderBulkPanel()}
+
                 {showAdd && (
                     <FormWrap onSave={() => void addOther()}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -814,7 +1647,7 @@ export default function VehicleCostsTab({
                     </FormWrap>
                 )}
 
-                {filtered.length === 0 && !showAdd ? <EmptyState msg="Sem custos registados nesta categoria." /> : (
+                {filtered.length === 0 && !showAdd && !showBulk ? <EmptyState msg="Sem custos registados nesta categoria." /> : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
@@ -865,6 +1698,8 @@ export default function VehicleCostsTab({
                 <SummaryCard label="Total Litros" value={`${vehicleFuelTransactions.reduce((a, t) => a + Number(t.liters ?? 0), 0).toFixed(2)} L`} />
                 <SummaryCard label="Último" value={vehicleFuelTransactions[0] ? new Date(vehicleFuelTransactions[0].timestamp).toLocaleDateString('pt-PT') : '—'} />
             </div>
+
+            <SectionHeader noun="Combustível" hideImport={true} />
 
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
                 Os abastecimentos são geridos no módulo <strong>Combustível</strong>. Aqui visualiza os registos desta viatura de forma consolidada.
@@ -921,6 +1756,8 @@ export default function VehicleCostsTab({
                 <SummaryCard label="Custo Total" value={fmtEur(tolls.reduce((a, r) => a + Number(r.amount ?? 0), 0))} />
                 <SummaryCard label="Estacionamentos" value={String(tolls.filter(r => r.type === 'parking').length)} />
             </div>
+
+            <SectionHeader noun="Portagem" hideImport={true} />
 
             <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-800">
                 As portagens são geridas no módulo <strong>Via Verde</strong>. Aqui visualiza os registos desta viatura de forma consolidada.
