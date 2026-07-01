@@ -453,13 +453,16 @@ export interface VehicleIucRecord {
 export interface VehicleOtherCost {
     id: string;
     vehicle_id: string;
-    cost_category: 'lavagem' | 'pneus' | 'estacionamento' | 'multa' | 'pecas' | 'reparacao_extraordinaria' | 'outros';
+    cost_category: 'combustivel' | 'reparacao' | 'manutencao' | 'seguro' | 'iuc' | 'ipo' | 'pneus' | 'portagens' | 'lavagem' | 'outros' | string;
     cost_date: string;
     description?: string;
     amount: number;
     km?: number;
     driver_id?: string;
     document_url?: string;
+    fornecedor_id?: string;
+    centro_custo_id?: string;
+    notes?: string;
     created_at?: string;
     updated_at?: string;
 }
