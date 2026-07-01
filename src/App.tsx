@@ -69,6 +69,7 @@ const Relatorios = lazy(() => import('./pages/Relatorios'));
 const Mensagens = lazy(() => import('./pages/Chat'));
 const Profile = lazy(() => import('./pages/Profile/MyProfile'));
 const ColaboradorApp = lazy(() => import('./pages/Colaborador'));
+const ExploracaoFrota = lazy(() => import('./pages/ExploracaoFrota'));
 
 const LegacySupplierActionRedirect: React.FC = () => {
   const location = useLocation();
@@ -359,7 +360,7 @@ function App() {
 
   // Derive activeTab from current path
   const activeTab = location.pathname.split('/')[1] || 'dashboard';
-  const isFleetRoute = activeTab === 'viaturas' || activeTab === 'vehicles';
+  const isFleetRoute = activeTab === 'viaturas' || activeTab === 'vehicles' || activeTab === 'frota-exploracao';
   const fuelTab = new URLSearchParams(location.search).get('tab') || 'overview';
   const handleNavigate = (target: string) => {
     const path = target.startsWith('/') ? target : `/${target}`;
@@ -657,7 +658,16 @@ function App() {
           label: 'Viaturas',
           icon: Car,
           path: '/viaturas',
-          active: isFleetRoute,
+          active: activeTab === 'viaturas' || activeTab === 'vehicles',
+        } as NavItem]
+        : []),
+      ...(hasAccess(userRole, 'viaturas')
+        ? [{
+          key: 'frota-exploracao',
+          label: 'Exploração da Frota',
+          icon: BarChart3,
+          path: '/frota-exploracao',
+          active: activeTab === 'frota-exploracao',
         } as NavItem]
         : []),
       ...(hasAccess(userRole, 'motoristas')
@@ -776,7 +786,7 @@ function App() {
       key: 'bottom-frota',
       label: 'Frota',
       icon: Car,
-      active: ['viaturas', 'vehicles', 'motoristas', 'avaliacao-drivers'].includes(activeTab),
+      active: ['viaturas', 'vehicles', 'motoristas', 'avaliacao-drivers', 'frota-exploracao'].includes(activeTab),
       onClick: () => handleNavigate('/viaturas'),
     },
     {
@@ -824,6 +834,7 @@ function App() {
         <Route path="/alerts" element={<AlertsPage />} />
         <Route path="/backoffice" element={<Suspense fallback={<div className="p-8 text-slate-400">Loading Backoffice...</div>}><Backoffice /></Suspense>} />
         <Route path="/viaturas" element={<Viaturas />} />
+        <Route path="/frota-exploracao" element={<Suspense fallback={<div className="p-8 text-slate-400">A carregar Exploração...</div>}><ExploracaoFrota /></Suspense>} />
         <Route path="/viaturas/:viaturaId" element={<VehicleProfile />} />
         <Route path="/vehicles/:viaturaId" element={<VehicleProfile />} />
         <Route path="/motoristas" element={<Drivers />} />
