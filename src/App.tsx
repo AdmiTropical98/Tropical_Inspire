@@ -8,7 +8,7 @@ import {
   UserCheck, Activity,
   Settings2, UserCog as UserCogIcon, LogOut,
   AlertTriangle, ClipboardCheck, Fuel, BatteryCharging,
-  History, Bus
+  History
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -668,15 +668,6 @@ function App() {
           icon: BarChart3,
           path: '/frota-exploracao',
           active: activeTab === 'frota-exploracao',
-        } as NavItem]
-        : []),
-      ...(hasAccess(userRole, 'viaturas')
-        ? [{
-          key: 'transportes-eva',
-          label: 'Transportes EVA',
-          icon: Bus,
-          path: '/transportes-eva',
-          active: activeTab === 'transportes-eva',
         } as NavItem]
         : []),
       ...(hasAccess(userRole, 'motoristas')

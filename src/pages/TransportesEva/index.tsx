@@ -4,7 +4,15 @@ import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
 import type { EvaTransport, EvaDailyUsage } from '../../types';
 
-export default function TransportesEva() {
+export default function TransportesEva({
+  isTab = false,
+  selectedMonthProp,
+  setSelectedMonthProp
+}: {
+  isTab?: boolean;
+  selectedMonthProp?: string;
+  setSelectedMonthProp?: (m: string) => void;
+}) {
   const { evaTransports, addEvaTransport, deleteEvaTransport } = useWorkshop();
   const { currentUser } = useAuth();
 
@@ -23,7 +31,9 @@ export default function TransportesEva() {
   const [tempIncidentType, setTempIncidentType] = useState('delay');
   const [tempIncidentDesc, setTempIncidentDesc] = useState('');
 
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+  const [selectedMonthLocal, setSelectedMonthLocal] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+  const selectedMonth = selectedMonthProp || selectedMonthLocal;
+  const setSelectedMonth = setSelectedMonthProp || setSelectedMonthLocal;
 
   // Add a day to the list
   const handleAddDay = () => {
@@ -100,38 +110,40 @@ export default function TransportesEva() {
   };
 
   return (
-    <div className="flex flex-col space-y-6 min-h-screen app-content-bg p-4 sm:p-6 lg:p-8">
+    <div className={isTab ? "flex flex-col space-y-6 pt-4" : "flex flex-col space-y-6 min-h-screen app-content-bg p-4 sm:p-6 lg:p-8"}>
       {/* Top Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-[#0B2239] to-[#1f385c] p-6 rounded-2xl shadow-lg border border-slate-700 text-white relative overflow-hidden">
-        <div className="absolute right-0 top-0 opacity-5 -translate-y-4 translate-x-4">
-          <Bus className="w-64 h-64" />
-        </div>
-        <div className="relative">
-          <div className="flex items-center gap-2">
-            <span className="bg-[#d59d31] text-xs font-black px-2 py-0.5 rounded text-[#0B2239] uppercase tracking-wider flex items-center gap-1">
-              Controlo EVA
-            </span>
+      {!isTab && (
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-[#0B2239] to-[#1f385c] p-6 rounded-2xl shadow-lg border border-slate-700 text-white relative overflow-hidden">
+          <div className="absolute right-0 top-0 opacity-5 -translate-y-4 translate-x-4">
+            <Bus className="w-64 h-64" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black mt-1">Transportes EVA</h1>
-          <p className="text-slate-300 text-sm mt-1">
-            Controlo detalhado de utilização, despesas e ocorrências de autocarros contratados.
-          </p>
-        </div>
+          <div className="relative">
+            <div className="flex items-center gap-2">
+              <span className="bg-[#d59d31] text-xs font-black px-2 py-0.5 rounded text-[#0B2239] uppercase tracking-wider flex items-center gap-1">
+                Controlo EVA
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black mt-1">Transportes EVA</h1>
+            <p className="text-slate-300 text-sm mt-1">
+              Controlo detalhado de utilização, despesas e ocorrências de autocarros contratados.
+            </p>
+          </div>
 
-        {/* Month Selector inside banner */}
-        <div className="flex items-center gap-3 bg-slate-800/80 p-2.5 rounded-xl border border-slate-700/80 shadow-sm backdrop-blur-sm relative z-10">
-          <Calendar className="w-5 h-5 text-slate-400" />
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mês Selecionado</span>
-            <input
-              type="month"
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="bg-transparent border-none p-0 text-white focus:ring-0 font-bold text-xs outline-none w-28 h-5"
-            />
+          {/* Month Selector inside banner */}
+          <div className="flex items-center gap-3 bg-slate-800/80 p-2.5 rounded-xl border border-slate-700/80 shadow-sm backdrop-blur-sm relative z-10">
+            <Calendar className="w-5 h-5 text-slate-400" />
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mês Selecionado</span>
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="bg-transparent border-none p-0 text-white focus:ring-0 font-bold text-xs outline-none w-28 h-5"
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0">

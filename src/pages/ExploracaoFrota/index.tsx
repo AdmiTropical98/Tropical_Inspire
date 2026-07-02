@@ -4,12 +4,13 @@ import { useWorkshop } from '../../contexts/WorkshopContext';
 import { supabase } from '../../lib/supabase';
 import {
   Car, Calendar, Wrench, FileText, BarChart3, MapPin, DollarSign,
-  TrendingUp, ArrowUp, RefreshCw, Download, Map as MapIcon, FileSpreadsheet, Sparkles, Plus, Edit, Trash2, Paperclip
+  TrendingUp, ArrowUp, RefreshCw, Download, Map as MapIcon, FileSpreadsheet, Sparkles, Plus, Edit, Trash2, Paperclip, Bus
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, Legend, AreaChart, Area } from 'recharts';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
+import TransportesEva from '../TransportesEva';
 
 // HERE Maps Types and Global
 const H = (window as any).H;
@@ -50,7 +51,7 @@ export default function ExploracaoFrota() {
   const { viaturas, motoristas, clientes, locais, geofences, cartrackVehicles, requisicoes, centrosCustos, fornecedores } = useWorkshop();
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'costs' | 'map' | 'profitability' | 'history' | 'reports'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'costs' | 'map' | 'profitability' | 'eva' | 'history' | 'reports'>('dashboard');
 
   // Filter States
   const [selectedVehicle, setSelectedVehicle] = useState<string>('all');
@@ -1023,6 +1024,7 @@ export default function ExploracaoFrota() {
           { id: 'costs', label: 'Custos', icon: DollarSign },
           { id: 'map', label: 'Mapa de Exploração', icon: MapPin },
           { id: 'profitability', label: 'Rentabilidade', icon: TrendingUp },
+          { id: 'eva', label: 'Transportes EVA', icon: Bus },
           { id: 'history', label: 'Histórico', icon: FileText },
           { id: 'reports', label: 'Relatórios', icon: Calendar }
         ].map(tab => (
@@ -1518,6 +1520,13 @@ export default function ExploracaoFrota() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {/* TAB: TRANSPORTES EVA */}
+          {activeTab === 'eva' && (
+            <div className="animate-in fade-in duration-300">
+              <TransportesEva isTab={true} selectedMonthProp={selectedMonth} setSelectedMonthProp={setSelectedMonth} />
             </div>
           )}
 
