@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { supabase } from '../../lib/supabase';
 import {
   Car, Calendar, Wrench, FileText, BarChart3, MapPin, DollarSign,
-  TrendingUp, ArrowUp, RefreshCw, Download, Map as MapIcon, FileSpreadsheet, Sparkles, Plus, Edit, Trash2, Paperclip, Bus
+  TrendingUp, ArrowUp, RefreshCw, Download, FileSpreadsheet, Sparkles, Plus, Edit, Trash2, Paperclip, Bus
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, Legend, AreaChart, Area } from 'recharts';
 import * as XLSX from 'xlsx';
@@ -12,9 +12,7 @@ import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import TransportesEva from '../TransportesEva';
 
-// HERE Maps Types and Global
-const H = (window as any).H;
-const HERE_API_KEY = import.meta.env.VITE_HERE_API_KEY;
+
 
 const STORAGE_BUCKETS = ['vehicle-documents', 'uploads', 'documents', 'invoices'];
 
@@ -35,20 +33,23 @@ async function tryUpload(file: File, path: string): Promise<string | null> {
 
 const CATEGORIES = [
   { id: 'combustivel', label: 'Combustível', color: '#3B82F6' },
-  { id: 'reparacao', label: 'Reparações', color: '#EF4444' },
+  { id: 'reparacao', label: 'Reparações / Oficina', color: '#EF4444' },
   { id: 'manutencao', label: 'Manutenções', color: '#F59E0B' },
   { id: 'seguro', label: 'Seguros', color: '#10B981' },
   { id: 'iuc', label: 'IUC', color: '#8B5CF6' },
   { id: 'ipo', label: 'IPO (Inspeção)', color: '#EC4899' },
   { id: 'pneus', label: 'Pneus', color: '#6366F1' },
   { id: 'portagens', label: 'Portagens', color: '#06B6D4' },
+  { id: 'via_verde', label: 'Via Verde', color: '#0284C7' },
   { id: 'lavagem', label: 'Lavagens', color: '#14B8A6' },
+  { id: 'leasing', label: 'Leasings', color: '#F472B6' },
+  { id: 'ordenados', label: 'Ordenados Motoristas', color: '#22C55E' },
   { id: 'eva', label: 'Alugueres EVA (Autocarros)', color: '#D59D31' },
   { id: 'outros', label: 'Outros Custos', color: '#64748B' }
 ];
 
 export default function ExploracaoFrota() {
-  const { viaturas, motoristas, clientes, locais, geofences, cartrackVehicles, requisicoes, centrosCustos, fornecedores } = useWorkshop();
+  const { viaturas, motoristas, clientes, requisicoes, centrosCustos, fornecedores } = useWorkshop();
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<'dashboard' | 'costs' | 'map' | 'profitability' | 'eva' | 'history' | 'reports'>('dashboard');
@@ -90,18 +91,7 @@ export default function ExploracaoFrota() {
   const [formDocumentUrl, setFormDocumentUrl] = useState('');
   const [uploading, setUploading] = useState(false);
 
-  // Map States
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any>(null);
-  const uiRef = useRef<any>(null);
-  const markersGroupRef = useRef<any>(null);
-  const geofencesGroupRef = useRef<any>(null);
-  const [selectedVehicleDetails, setSelectedVehicleDetails] = useState<any>(null);
-  const [panelOpen, setPanelOpen] = useState<boolean>(false);
-  const [mapStyle, setMapStyle] = useState<'normal' | 'satellite'>('normal');
-  const [showTraffic, setShowTraffic] = useState<boolean>(false);
-  const trafficFlowLayerRef = useRef<any>(null);
-  const trafficIncidentsLayerRef = useRef<any>(null);
+
 
   // Load datasets
   const loadAllData = async () => {
@@ -303,193 +293,7 @@ export default function ExploracaoFrota() {
     };
   }, [filteredCosts, rawCosts, viaturas, selectedVehicle]);
 
-  // Map: HERE Maps drawing hook
-  useEffect(() => {
-    if (!mapContainerRef.current) return;
 
-    if (!mapRef.current) {
-      if (!HERE_API_KEY) {
-        console.error('VITE_HERE_API_KEY non-existent.');
-        return;
-      }
-      try {
-        const platform = new H.service.Platform({ apikey: HERE_API_KEY });
-        const defaultLayers = platform.createDefaultLayers({
-          engineType: H.Map.EngineType.VECTOR
-        });
-
-        const map = new H.Map(
-          mapContainerRef.current,
-          defaultLayers.vector.normal.map,
-          {
-            center: { lat: 37.0891, lng: -8.2479 }, // Algarve Loulé
-            zoom: 9,
-            pixelRatio: window.devicePixelRatio || 1
-          }
-        );
-
-        window.addEventListener('resize', () => map.getViewPort().resize());
-        new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
-        const ui = H.ui.UI.createDefault(map, defaultLayers, 'pt-PT');
-
-        mapRef.current = map;
-        uiRef.current = ui;
-
-        trafficFlowLayerRef.current = defaultLayers.vector.normal.trafficflow || null;
-        trafficIncidentsLayerRef.current = defaultLayers.vector.normal.trafficincidents || null;
-      } catch (err) {
-        console.error('Erro a inicializar mapa HERE:', err);
-      }
-    }
-  }, []);
-
-  // Update map style
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    const platform = new H.service.Platform({ apikey: HERE_API_KEY });
-    const defaultLayers = platform.createDefaultLayers({
-      engineType: H.Map.EngineType.VECTOR
-    });
-
-    if (mapStyle === 'satellite') {
-      map.setBaseLayer(defaultLayers.vector.satellite.map);
-    } else {
-      map.setBaseLayer(defaultLayers.vector.normal.map);
-    }
-  }, [mapStyle]);
-
-  // Toggle Traffic
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    if (showTraffic) {
-      if (trafficFlowLayerRef.current) map.addLayer(trafficFlowLayerRef.current);
-      if (trafficIncidentsLayerRef.current) map.addLayer(trafficIncidentsLayerRef.current);
-    } else {
-      if (trafficFlowLayerRef.current) map.removeLayer(trafficFlowLayerRef.current);
-      if (trafficIncidentsLayerRef.current) map.removeLayer(trafficIncidentsLayerRef.current);
-    }
-  }, [showTraffic]);
-
-  // Re-draw Markers & Geofences
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    if (markersGroupRef.current) map.removeObject(markersGroupRef.current);
-    if (geofencesGroupRef.current) map.removeObject(geofencesGroupRef.current);
-
-    const markersGroup = new H.map.Group();
-    const geofencesGroup = new H.map.Group();
-
-    // 1. Draw Vehicles
-    const visibleVehicles = selectedVehicle === 'all' ? viaturas : viaturas.filter(v => v.id === selectedVehicle);
-
-    visibleVehicles.forEach(v => {
-      const live = cartrackVehicles.find(cv => cv.registration.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() === v.matricula.replace(/[^a-zA-Z0-9]/g, '').toUpperCase());
-      if (live && live.latitude && live.longitude) {
-        const isIgnOn = live.ignition;
-        const color = isIgnOn ? '#10B981' : '#6B7280';
-        const speedText = live.speed > 0 ? `${Math.round(live.speed)} km/h` : 'Parado';
-
-        const markerHtml = `
-          <div style="background:${color}; padding:6px 10px; border-radius:6px; border:2px solid #fff; box-shadow:0 4px 10px rgba(0,0,0,0.35); display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; font-family:sans-serif; font-size:11px; font-weight:bold; min-width:80px;">
-            <span>${v.matricula}</span>
-            <span style="font-size:9px; opacity:0.9; margin-top:2px;">${speedText}</span>
-          </div>
-        `;
-
-        const domIcon = new H.map.DomIcon(markerHtml);
-        const marker = new H.map.DomMarker({ lat: live.latitude, lng: live.longitude }, { icon: domIcon });
-
-        // Compile strictly manual costs for side panel
-        const vCosts = rawCosts.filter(c => c.vehicle_id === v.id);
-        const fuelSum = vCosts.filter(c => c.category === 'combustivel').reduce((acc, c) => acc + c.amount, 0);
-        const maintSum = vCosts.filter(c => c.category === 'manutencao' || c.category === 'reparacao').reduce((acc, c) => acc + c.amount, 0);
-        const insSum = vCosts.filter(c => c.category === 'seguro').reduce((acc, c) => acc + c.amount, 0);
-        const iucSum = vCosts.filter(c => c.category === 'iuc').reduce((acc, c) => acc + c.amount, 0);
-        const ipoSum = vCosts.filter(c => c.category === 'ipo').reduce((acc, c) => acc + c.amount, 0);
-        const tollsSum = vCosts.filter(c => c.category === 'portagens').reduce((acc, c) => acc + c.amount, 0);
-        const otherSum = vCosts.filter(c => !['combustivel', 'manutencao', 'reparacao', 'seguro', 'iuc', 'ipo', 'portagens'].includes(c.category)).reduce((acc, c) => acc + c.amount, 0);
-        const totalCost = fuelSum + maintSum + insSum + iucSum + ipoSum + tollsSum + otherSum;
-
-        marker.addEventListener('tap', () => {
-          setSelectedVehicleDetails({
-            ...v,
-            live,
-            costs: { fuel: fuelSum, maint: maintSum, ins: insSum, iuc: iucSum, ipo: ipoSum, tolls: tollsSum, other: otherSum, total: totalCost }
-          });
-          setPanelOpen(true);
-        });
-
-        markersGroup.addObject(marker);
-      }
-    });
-
-    // 2. Draw POIs
-    locais.forEach(l => {
-      let color = '#3B82F6';
-      let icon = '📍';
-      if (l.tipo === 'oficina') { color = '#EF4444'; icon = '🔧'; }
-      else if (l.tipo === 'hotel' || l.tipo === 'aeroporto') { color = '#F59E0B'; icon = '🏨'; }
-      else if (l.nome.toLowerCase().includes('garagem') || l.nome.toLowerCase().includes('sede')) { color = '#10B981'; icon = '🚗'; }
-
-      const poiHtml = `
-        <div style="background:${color}; width:28px; height:28px; border-radius:50%; border:2px solid #fff; box-shadow:0 3px 8px rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center; font-size:14px; cursor:pointer;">
-          ${icon}
-        </div>
-      `;
-
-      const domIcon = new H.map.DomIcon(poiHtml);
-      const marker = new H.map.DomMarker({ lat: l.latitude, lng: l.longitude }, { icon: domIcon });
-
-      marker.addEventListener('tap', () => {
-        const bubble = new H.ui.InfoBubble({ lat: l.latitude, lng: l.longitude }, {
-          content: `
-            <div style="padding:10px; font-family:sans-serif; color:#1e293b;">
-              <h4 style="margin:0 0 4px 0; font-weight:bold; font-size:13px;">${l.nome}</h4>
-              <p style="margin:0; font-size:11px; color:#64748b; text-transform:capitalize;">Categoria: ${l.tipo}</p>
-            </div>
-          `
-        });
-        uiRef.current.getBubbles().forEach((b: any) => b.close());
-        uiRef.current.addBubble(bubble);
-      });
-
-      markersGroup.addObject(marker);
-    });
-
-    // 3. Draw Geofences
-    geofences.forEach(gf => {
-      if (gf.radius && gf.latitude && gf.longitude) {
-        const circle = new H.map.Circle({ lat: gf.latitude, lng: gf.longitude }, gf.radius, {
-          style: { fillColor: 'rgba(59, 130, 246, 0.1)', strokeColor: 'rgba(59, 130, 246, 0.4)', lineWidth: 1.5 }
-        });
-        geofencesGroup.addObject(circle);
-      } else if (gf.points && gf.points.length > 2) {
-        const lineString = new H.geo.LineString();
-        gf.points.forEach(p => lineString.pushPoint(p));
-        lineString.pushPoint(gf.points[0]);
-        const polygon = new H.map.Polygon(lineString, {
-          style: { fillColor: 'rgba(16, 185, 129, 0.1)', strokeColor: 'rgba(16, 185, 129, 0.4)', lineWidth: 1.5 }
-        });
-        geofencesGroup.addObject(polygon);
-      }
-    });
-
-    map.addObject(markersGroup);
-    map.addObject(geofencesGroup);
-    markersGroupRef.current = markersGroup;
-    geofencesGroupRef.current = geofencesGroup;
-
-    const bbox = markersGroup.getBoundingBox();
-    if (bbox) {
-      map.getViewModel().setLookAtData({ bounds: bbox }, true);
-    }
-  }, [filteredCosts, cartrackVehicles, locais, geofences, selectedVehicle, viaturas, rawCosts]);
 
   // Rentabilidade and Rankings strictly on manual costs
   const profitabilityRows = useMemo(() => {
@@ -545,25 +349,12 @@ export default function ExploracaoFrota() {
       catsMap[c.category] = (catsMap[c.category] || 0) + c.amount;
     });
 
-    const colors: Record<string, string> = {
-      combustivel: '#3B82F6',
-      reparacao: '#EF4444',
-      manutencao: '#F59E0B',
-      seguro: '#10B981',
-      iuc: '#8B5CF6',
-      ipo: '#EC4899',
-      pneus: '#6366F1',
-      portagens: '#06B6D4',
-      lavagem: '#14B8A6',
-      outros: '#64748B'
-    };
-
     return Object.entries(catsMap).map(([key, val]) => {
       const catObj = CATEGORIES.find(cat => cat.id === key);
       return {
         name: catObj?.label || key,
         value: val,
-        color: colors[key] || '#64748B'
+        color: catObj?.color || '#64748B'
       };
     });
   }, [filteredCosts]);
@@ -775,6 +566,49 @@ export default function ExploracaoFrota() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Custos_Manuais');
     XLSX.writeFile(workbook, `Frota_Custos_Manuais_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
+  const handleExportMatrixExcel = () => {
+    const data = viaturas.map(v => {
+      const vCosts = filteredCosts.filter(c => c.vehicle_id === v.id);
+      let total = 0;
+      const row: any = { 'Matrícula': v.matricula };
+      CATEGORIES.forEach(cat => {
+        const val = vCosts.filter(c => c.category === cat.id).reduce((sum, c) => sum + c.amount, 0);
+        row[cat.label] = val;
+        total += val;
+      });
+      row['Total'] = total;
+      return row;
+    });
+
+    // Add Frota Global Row
+    const globalCosts = filteredCosts.filter(c => c.vehicle_id === 'all' || !c.vehicle_id);
+    let globalTotal = 0;
+    const globalRow: any = { 'Matrícula': 'Frota (Global)' };
+    CATEGORIES.forEach(cat => {
+      const val = globalCosts.filter(c => c.category === cat.id).reduce((sum, c) => sum + c.amount, 0);
+      globalRow[cat.label] = val;
+      globalTotal += val;
+    });
+    globalRow['Total'] = globalTotal;
+    data.push(globalRow);
+
+    // Add Total Row
+    const totalRow: any = { 'Matrícula': 'TOTAL GERAL' };
+    let grandTotal = 0;
+    CATEGORIES.forEach(cat => {
+      const val = filteredCosts.filter(c => c.category === cat.id).reduce((sum, c) => sum + c.amount, 0);
+      totalRow[cat.label] = val;
+      grandTotal += val;
+    });
+    totalRow['Total'] = grandTotal;
+    data.push(totalRow);
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Matriz Custos');
+    XLSX.writeFile(workbook, `matriz_custos_exploracao_${selectedMonth}.xlsx`);
   };
 
   const handleExportCSV = () => {
@@ -1270,67 +1104,112 @@ export default function ExploracaoFrota() {
 
           {/* TAB: MAPA DE EXPLORAÇÃO */}
           {activeTab === 'map' && (
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[600px] relative animate-in fade-in duration-300">
-              <div className="lg:col-span-1 bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-6 overflow-y-auto">
-                <h4 className="font-extrabold text-sm text-slate-700 uppercase tracking-wider flex items-center gap-2"><MapIcon className="w-4 h-4" /> Configurações Mapa</h4>
-                
-                <div className="flex flex-col space-y-2">
-                  <span className="text-xs font-semibold text-slate-500">Estilo</span>
-                  <div className="grid grid-cols-2 gap-2 bg-slate-200/60 p-1 rounded-xl">
-                    <button onClick={() => setMapStyle('normal')} className={`py-1.5 text-xs font-bold rounded-lg ${mapStyle === 'normal' ? 'bg-white shadow text-[#0B2239]' : 'text-slate-500'}`}>Vetores</button>
-                    <button onClick={() => setMapStyle('satellite')} className={`py-1.5 text-xs font-bold rounded-lg ${mapStyle === 'satellite' ? 'bg-white shadow text-[#0B2239]' : 'text-slate-500'}`}>Satélite</button>
-                  </div>
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div>
+                  <h4 className="font-extrabold text-sm text-[#0B2239] uppercase tracking-wider flex items-center gap-2">
+                    <FileSpreadsheet className="w-5 h-5 text-[#d59d31]" />
+                    Matriz de Custos de Exploração
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-1">Consolidação de todos os gastos da frota distribuídos por viatura e categoria no período selecionado.</p>
                 </div>
-
-                <div className="flex items-center justify-between border-t border-slate-200/80 pt-4">
-                  <span className="text-xs font-semibold text-slate-500">Trânsito Live</span>
-                  <button onClick={() => setShowTraffic(!showTraffic)} className={`w-10 h-6 rounded-full transition-all relative ${showTraffic ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                    <span className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${showTraffic ? 'left-5' : 'left-1'}`} />
-                  </button>
-                </div>
-
-                <div className="border-t border-slate-200/80 pt-4 space-y-2 text-[11px] font-semibold text-slate-500">
-                  <div className="flex items-center gap-2"><span className="w-3 h-3 bg-emerald-500 rounded-full border border-white" /> Ignição Ligada</div>
-                  <div className="flex items-center gap-2"><span className="w-3 h-3 bg-slate-500 rounded-full border border-white" /> Ignição Desligada</div>
-                  <div className="flex items-center gap-2"><span>🔧</span> Oficinas</div>
-                  <div className="flex items-center gap-2"><span>🏨</span> Hotéis / Clientes</div>
-                </div>
+                <button
+                  onClick={handleExportMatrixExcel}
+                  className="flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold transition-all active:scale-95 shrink-0 w-full sm:w-auto"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" /> Exportar Matriz (Excel)
+                </button>
               </div>
 
-              <div className="lg:col-span-3 rounded-2xl overflow-hidden border border-slate-100 relative h-full">
-                <div ref={mapContainerRef} className="w-full h-full" />
+              {/* Matrix Spreadsheet Grid */}
+              <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-sm">
+                <table className="min-w-full divide-y divide-slate-200 text-left border-collapse">
+                  <thead className="bg-slate-50 sticky top-0 z-10">
+                    <tr>
+                      <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 z-20 border-r border-slate-200">Viatura / Matrícula</th>
+                      {CATEGORIES.map(cat => (
+                        <th key={cat.id} className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-wider text-right border-r border-slate-200" style={{ minWidth: '110px' }}>
+                          {cat.label}
+                        </th>
+                      ))}
+                      <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-wider text-right bg-slate-100/80 font-bold" style={{ minWidth: '120px' }}>Total Viatura</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs text-slate-700 font-semibold font-mono">
+                    {/* Render rows for each vehicle */}
+                    {viaturas.map(v => {
+                      const vCosts = filteredCosts.filter(c => c.vehicle_id === v.id);
+                      let rowTotal = 0;
 
-                {panelOpen && selectedVehicleDetails && (
-                  <div className="absolute top-4 right-4 z-50 bg-white/95 backdrop-blur border border-slate-200 rounded-2xl w-80 shadow-2xl p-6 space-y-6 max-h-[90%] overflow-y-auto animate-in slide-in-from-right duration-300 text-slate-700">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-black text-xl text-[#0B2239]">{selectedVehicleDetails.matricula}</h4>
-                        <p className="text-xs text-slate-500 font-medium capitalize">{selectedVehicleDetails.live?.make} {selectedVehicleDetails.live?.model}</p>
-                      </div>
-                      <button onClick={() => setPanelOpen(false)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-400">✕</button>
-                    </div>
+                      return (
+                        <tr key={v.id} className="hover:bg-slate-50/50">
+                          <td 
+                            onClick={() => { setSelectedVehicle(v.id); setActiveTab('costs'); }}
+                            className="px-4 py-3 font-bold text-[#0B2239] font-sans sticky left-0 bg-white z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] cursor-pointer hover:underline"
+                            title="Filtrar custos por esta viatura"
+                          >
+                            {v.matricula}
+                          </td>
+                          {CATEGORIES.map(cat => {
+                            const val = vCosts.filter(c => c.category === cat.id).reduce((sum, c) => sum + c.amount, 0);
+                            rowTotal += val;
+                            return (
+                              <td key={cat.id} className="px-4 py-3 text-right border-r border-slate-200">
+                                {val > 0 ? `${val.toFixed(2)} €` : '—'}
+                              </td>
+                            );
+                          })}
+                          <td className="px-4 py-3 text-right bg-slate-50/50 font-black text-[#0B2239]">
+                            {rowTotal > 0 ? `${rowTotal.toFixed(2)} €` : '—'}
+                          </td>
+                        </tr>
+                      );
+                    })}
 
-                    <div className="space-y-2.5 border-t border-slate-100 pt-4 text-xs font-semibold">
-                      <div className="flex justify-between"><span>Motorista:</span><span className="text-slate-900">{selectedVehicleDetails.live?.driverName || '—'}</span></div>
-                      <div className="flex justify-between"><span>Velocidade:</span><span className="text-slate-900">{selectedVehicleDetails.live?.speed > 0 ? `${Math.round(selectedVehicleDetails.live.speed)} km/h` : 'Parado'}</span></div>
-                      <div className="flex justify-between"><span>Morada:</span><span className="text-slate-900 truncate max-w-[150px]">{selectedVehicleDetails.live?.address || '—'}</span></div>
-                    </div>
+                    {/* Special Row: Frota (Global) */}
+                    {(() => {
+                      const globalCosts = filteredCosts.filter(c => c.vehicle_id === 'all' || !c.vehicle_id);
+                      let rowTotal = 0;
+                      return (
+                        <tr className="hover:bg-slate-50/50 bg-slate-50/30">
+                          <td className="px-4 py-3 font-bold text-slate-500 font-sans sticky left-0 bg-slate-50/30 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                            Frota (Global)
+                          </td>
+                          {CATEGORIES.map(cat => {
+                            const val = globalCosts.filter(c => c.category === cat.id).reduce((sum, c) => sum + c.amount, 0);
+                            rowTotal += val;
+                            return (
+                              <td key={cat.id} className="px-4 py-3 text-right border-r border-slate-200">
+                                {val > 0 ? `${val.toFixed(2)} €` : '—'}
+                              </td>
+                            );
+                          })}
+                          <td className="px-4 py-3 text-right bg-slate-50/50 font-black text-slate-500">
+                            {rowTotal > 0 ? `${rowTotal.toFixed(2)} €` : '—'}
+                          </td>
+                        </tr>
+                      );
+                    })()}
 
-                    <div className="border-t border-slate-100 pt-4 space-y-2">
-                      <h5 className="font-extrabold text-xs text-slate-700 uppercase tracking-wider mb-2">Custos Manuais</h5>
-                      <div className="grid grid-cols-2 gap-2 text-[10px] font-bold">
-                        <div className="bg-slate-50 p-2 rounded-lg"><span className="text-slate-500 block">Combustível</span><span>{selectedVehicleDetails.costs.fuel.toFixed(2)} €</span></div>
-                        <div className="bg-slate-50 p-2 rounded-lg"><span className="text-slate-500 block">Manutenção</span><span>{selectedVehicleDetails.costs.maint.toFixed(2)} €</span></div>
-                        <div className="bg-slate-50 p-2 rounded-lg"><span className="text-slate-500 block">Seguros</span><span>{selectedVehicleDetails.costs.ins.toFixed(2)} €</span></div>
-                        <div className="bg-slate-50 p-2 rounded-lg"><span className="text-slate-500 block">Portagens</span><span>{selectedVehicleDetails.costs.tolls.toFixed(2)} €</span></div>
-                      </div>
-                      <div className="bg-slate-900 p-3 rounded-xl flex justify-between items-center text-white mt-3 font-bold">
-                        <span className="text-xs">Total Registado:</span>
-                        <span className="text-sm">{selectedVehicleDetails.costs.total.toFixed(2)} €</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                    {/* Total Row */}
+                    <tr className="bg-slate-100 font-black text-xs text-[#0B2239] border-t-2 border-slate-200">
+                      <td className="px-4 py-3 font-bold font-sans sticky left-0 bg-slate-100 z-10 border-r border-slate-200">
+                        TOTAL GERAL
+                      </td>
+                      {CATEGORIES.map(cat => {
+                        const val = filteredCosts.filter(c => c.category === cat.id).reduce((sum, c) => sum + c.amount, 0);
+                        return (
+                          <td key={cat.id} className="px-4 py-3 text-right border-r border-slate-200">
+                            {val > 0 ? `${val.toFixed(2)} €` : '—'}
+                          </td>
+                        );
+                      })}
+                      <td className="px-4 py-3 text-right bg-slate-200/80 font-black">
+                        {filteredCosts.reduce((sum, c) => sum + c.amount, 0).toFixed(2)} €
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
@@ -1608,7 +1487,7 @@ export default function ExploracaoFrota() {
                     required
                     className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#d59d31]"
                   >
-                    {CATEGORIES.map(cat => (
+                    {CATEGORIES.filter(cat => cat.id !== 'eva').map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.label}</option>
                     ))}
                   </select>
