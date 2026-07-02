@@ -207,15 +207,15 @@ export default function ExploracaoFrota() {
 
       // Date Filter
       if (!item.date) return false;
-      const itemDate = new Date(item.date);
+      const itemDate = new Date(item.date + 'T12:00:00');
       if (periodType === 'month') {
         const [year, month] = selectedMonth.split('-');
         if (itemDate.getFullYear().toString() !== year || (itemDate.getMonth() + 1).toString().padStart(2, '0') !== month) return false;
       } else if (periodType === 'year') {
         if (itemDate.getFullYear().toString() !== selectedYear) return false;
       } else if (periodType === 'custom') {
-        if (startDate && itemDate < new Date(`${startDate}T00:00:00`)) return false;
-        if (endDate && itemDate > new Date(`${endDate}T23:59:59`)) return false;
+        if (startDate && itemDate < new Date(startDate + 'T00:00:00')) return false;
+        if (endDate && itemDate > new Date(endDate + 'T23:59:59')) return false;
       }
 
       return true;
@@ -229,15 +229,15 @@ export default function ExploracaoFrota() {
       if (inv.status === 'anulada') return;
 
       if (inv.data) {
-        const invDate = new Date(inv.data);
+        const invDate = new Date(inv.data + 'T12:00:00');
         if (periodType === 'month') {
           const [year, month] = selectedMonth.split('-');
           if (invDate.getFullYear().toString() !== year || (invDate.getMonth() + 1).toString().padStart(2, '0') !== month) return;
         } else if (periodType === 'year') {
           if (invDate.getFullYear().toString() !== selectedYear) return;
         } else if (periodType === 'custom') {
-          if (startDate && invDate < new Date(`${startDate}T00:00:00`)) return;
-          if (endDate && invDate > new Date(`${endDate}T23:59:59`)) return;
+          if (startDate && invDate < new Date(startDate + 'T00:00:00')) return;
+          if (endDate && invDate > new Date(endDate + 'T23:59:59')) return;
         }
       }
 
@@ -446,7 +446,15 @@ export default function ExploracaoFrota() {
     if (!formDate) { alert('Selecione a data do custo.'); return; }
     if (!formCategory) { alert('Selecione uma categoria.'); return; }
     if (!formDescription) { alert('Insira uma descrição.'); return; }
-    if (!formAmount || Number(formAmount) <= 0) { alert('Insira um valor superior a 0 €.'); return; }
+    if (!formAmount) { alert('Insira um valor.'); return; }
+
+    const cleanAmount = Number(formAmount.toString().replace(',', '.'));
+    const cleanKm = formKm ? Number(formKm.toString().replace(',', '.')) : null;
+
+    if (isNaN(cleanAmount) || cleanAmount <= 0) {
+      alert('Por favor, introduza um valor de custo válido e superior a 0 €.');
+      return;
+    }
 
     const finalNotes = formClient ? `CLIENT_ID:${formClient} | ${formNotes}` : formNotes;
 
@@ -455,8 +463,8 @@ export default function ExploracaoFrota() {
       cost_category: formCategory,
       cost_date: formDate,
       description: formDescription,
-      amount: Number(formAmount),
-      km: formKm ? Number(formKm) : null,
+      amount: cleanAmount,
+      km: cleanKm,
       driver_id: formDriver || null,
       fornecedor_id: formSupplier || null,
       centro_custo_id: formCostCenter || null,
@@ -484,7 +492,9 @@ export default function ExploracaoFrota() {
       await loadAllData();
       resetForm();
     } catch (err: any) {
-      alert(`Erro ao guardar registo: ${err.message}`);
+      console.error('Erro ao guardar custo no Supabase:', err);
+      const errMsg = err.message || err.details || JSON.stringify(err);
+      alert(`Erro ao guardar registo: ${errMsg}`);
     } finally {
       setLoadingData(false);
     }
