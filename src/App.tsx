@@ -4,11 +4,11 @@ import { Capacitor } from '@capacitor/core';
 import {
   LayoutDashboard, Car, MessageSquare,
   Building2, Briefcase,
-  BarChart3, MapPin, Award,
+  BarChart3, Award,
   UserCheck, Activity,
   Settings2, UserCog as UserCogIcon, LogOut,
-  Navigation, AlertTriangle, ClipboardCheck, Fuel, BatteryCharging,
-  History, IdCard, Settings
+  AlertTriangle, ClipboardCheck, Fuel, BatteryCharging,
+  History, Bus
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -70,6 +70,7 @@ const Mensagens = lazy(() => import('./pages/Chat'));
 const Profile = lazy(() => import('./pages/Profile/MyProfile'));
 const ColaboradorApp = lazy(() => import('./pages/Colaborador'));
 const ExploracaoFrota = lazy(() => import('./pages/ExploracaoFrota'));
+const TransportesEva = lazy(() => import('./pages/TransportesEva'));
 
 const LegacySupplierActionRedirect: React.FC = () => {
   const location = useLocation();
@@ -360,7 +361,6 @@ function App() {
 
   // Derive activeTab from current path
   const activeTab = location.pathname.split('/')[1] || 'dashboard';
-  const isFleetRoute = activeTab === 'viaturas' || activeTab === 'vehicles' || activeTab === 'frota-exploracao';
   const fuelTab = new URLSearchParams(location.search).get('tab') || 'overview';
   const handleNavigate = (target: string) => {
     const path = target.startsWith('/') ? target : `/${target}`;
@@ -670,6 +670,15 @@ function App() {
           active: activeTab === 'frota-exploracao',
         } as NavItem]
         : []),
+      ...(hasAccess(userRole, 'viaturas')
+        ? [{
+          key: 'transportes-eva',
+          label: 'Transportes EVA',
+          icon: Bus,
+          path: '/transportes-eva',
+          active: activeTab === 'transportes-eva',
+        } as NavItem]
+        : []),
       ...(hasAccess(userRole, 'motoristas')
         ? [{
           key: 'motoristas',
@@ -786,7 +795,7 @@ function App() {
       key: 'bottom-frota',
       label: 'Frota',
       icon: Car,
-      active: ['viaturas', 'vehicles', 'motoristas', 'avaliacao-drivers', 'frota-exploracao'].includes(activeTab),
+      active: ['viaturas', 'vehicles', 'motoristas', 'avaliacao-drivers', 'frota-exploracao', 'transportes-eva'].includes(activeTab),
       onClick: () => handleNavigate('/viaturas'),
     },
     {
@@ -835,6 +844,7 @@ function App() {
         <Route path="/backoffice" element={<Suspense fallback={<div className="p-8 text-slate-400">Loading Backoffice...</div>}><Backoffice /></Suspense>} />
         <Route path="/viaturas" element={<Viaturas />} />
         <Route path="/frota-exploracao" element={<Suspense fallback={<div className="p-8 text-slate-400">A carregar Exploração...</div>}><ExploracaoFrota /></Suspense>} />
+        <Route path="/transportes-eva" element={<Suspense fallback={<div className="p-8 text-slate-400">A carregar EVA...</div>}><TransportesEva /></Suspense>} />
         <Route path="/viaturas/:viaturaId" element={<VehicleProfile />} />
         <Route path="/vehicles/:viaturaId" element={<VehicleProfile />} />
         <Route path="/motoristas" element={<Drivers />} />

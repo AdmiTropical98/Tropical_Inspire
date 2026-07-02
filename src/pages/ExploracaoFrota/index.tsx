@@ -42,6 +42,7 @@ const CATEGORIES = [
   { id: 'pneus', label: 'Pneus', color: '#6366F1' },
   { id: 'portagens', label: 'Portagens', color: '#06B6D4' },
   { id: 'lavagem', label: 'Lavagens', color: '#14B8A6' },
+  { id: 'eva', label: 'Alugueres EVA (Autocarros)', color: '#D59D31' },
   { id: 'outros', label: 'Outros Custos', color: '#64748B' }
 ];
 
@@ -66,6 +67,7 @@ export default function ExploracaoFrota() {
   // Cost Data States (ONLY vehicle_other_costs + faturas for client billing revenue)
   const [otherCosts, setOtherCosts] = useState<any[]>([]);
   const [invoicesData, setInvoicesData] = useState<any[]>([]);
+  const [evaTransports, setEvaTransports] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState<boolean>(true);
 
   // Search filter inside History Tab
@@ -104,13 +106,15 @@ export default function ExploracaoFrota() {
   const loadAllData = async () => {
     setLoadingData(true);
     try {
-      const [othRes, invRes] = await Promise.all([
+      const [othRes, invRes, evaRes] = await Promise.all([
         supabase.from('vehicle_other_costs').select('*').order('cost_date', { ascending: false }),
-        supabase.from('faturas').select('*')
+        supabase.from('faturas').select('*'),
+        supabase.from('eva_transports').select('*')
       ]);
 
       if (othRes.data) setOtherCosts(othRes.data);
       if (invRes.data) setInvoicesData(invRes.data);
+      if (evaRes.data) setEvaTransports(evaRes.data);
     } catch (err) {
       console.error('Erro a carregar dados do Supabase:', err);
     } finally {
@@ -124,7 +128,7 @@ export default function ExploracaoFrota() {
 
   // Compile manual cost items (no automatic calculations / imports)
   const rawCosts = useMemo(() => {
-    return otherCosts.map(c => {
+    const list = otherCosts.map(c => {
       // Find driver from database if not explicitly set in the record
       const vehicle = viaturas.find(v => v.id === c.vehicle_id);
       const driver_id = c.driver_id || vehicle?.driver_id;
@@ -155,10 +159,33 @@ export default function ExploracaoFrota() {
         description: c.description || '',
         notes: c.notes || '',
         km: Number(c.km || 0),
-        document_url: c.document_url || ''
+        document_url: c.document_url || '',
+        is_eva: false
       };
     });
-  }, [otherCosts, viaturas, requisicoes]);
+
+    // Add EVA Transports as a cost item
+    (evaTransports || []).forEach(t => {
+      list.push({
+        id: `eva-${t.id}`,
+        vehicle_id: 'all', // EVA belongs to global fleet
+        driver_id: null,
+        cost_center_id: null,
+        fornecedor_id: null,
+        client_id: null,
+        category: 'eva',
+        date: t.reference_date,
+        amount: Number(t.amount || 0),
+        description: `Serviço EVA: ${t.route}`,
+        notes: t.notes || '',
+        km: 0,
+        document_url: '',
+        is_eva: true
+      });
+    });
+
+    return list;
+  }, [otherCosts, evaTransports, viaturas, requisicoes]);
 
   // Client side filtering logic
   const filteredCosts = useMemo(() => {
@@ -1455,7 +1482,7 @@ export default function ExploracaoFrota() {
 
                         return (
                           <tr key={c.id} className="hover:bg-slate-50/50">
-                            <td className="px-6 py-3 font-bold text-[#0B2239]">{v?.matricula || '—'}</td>
+                            <td className="px-6 py-3 font-bold text-[#0B2239]">{c.is_eva ? 'Frota (EVA)' : (v?.matricula || '—')}</td>
                             <td className="px-6 py-3 text-xs">{c.date ? new Date(c.date).toLocaleDateString('pt-PT') : '—'}</td>
                             <td className="px-6 py-3">
                               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-slate-100 text-slate-700 border border-slate-200">
@@ -1473,10 +1500,14 @@ export default function ExploracaoFrota() {
                               ) : '—'}
                             </td>
                             <td className="px-6 py-3 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <button onClick={() => handleEditRecord(c)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-800 transition-all"><Edit className="w-4 h-4" /></button>
-                                <button onClick={() => handleDeleteRecord(c.id)} className="p-1.5 hover:bg-slate-100 rounded-lg text-rose-500 hover:text-rose-700 transition-all"><Trash2 className="w-4 h-4" /></button>
-                              </div>
+                              {c.is_eva ? (
+                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider select-none pr-2" title="Registo gerido na página de Transportes EVA">EVA</span>
+                              ) : (
+                                <div className="flex items-center justify-end gap-2">
+                                  <button onClick={() => handleEditRecord(c)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-800 transition-all"><Edit className="w-4 h-4" /></button>
+                                  <button onClick={() => handleDeleteRecord(c.id)} className="p-1.5 hover:bg-slate-100 rounded-lg text-rose-500 hover:text-rose-700 transition-all"><Trash2 className="w-4 h-4" /></button>
+                                </div>
+                              )}
                             </td>
                           </tr>
                         );
