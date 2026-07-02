@@ -128,7 +128,7 @@ export default function FinancialMovements({ initialPreset }: { initialPreset?: 
         }
 
         if (movement.document_type === 'fuel') {
-            navigate('/combustivel');
+            navigate('/frota-exploracao');
             return;
         }
 

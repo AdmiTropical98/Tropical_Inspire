@@ -7,8 +7,7 @@ import {
   BarChart3, Award,
   UserCheck, Activity,
   Settings2, UserCog as UserCogIcon, LogOut,
-  AlertTriangle, ClipboardCheck, Fuel, BatteryCharging,
-  History
+  AlertTriangle, ClipboardCheck
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -27,7 +26,7 @@ import Drivers from './pages/Motoristas';
 import Requisicoes from './pages/Requisicoes';
 import EscalasHistory from './pages/Escalas/EscalasHistory';
 import Horas from './pages/Horas';
-import FuelManager from './pages/Combustivel';
+
 import UserManagementTab from './pages/Users';
 import GestoresTab from './pages/Gestores';
 import EquipaOficinaTab from './pages/EquipaOficina';
@@ -39,7 +38,7 @@ import NovaFaturaPage from './pages/Finance/NovaFaturaPage';
 import ControloOperacionalTab from './pages/ControloOperacional';
 import Fornecedores from './pages/Fornecedores';
 import SupplierProfile from './pages/Fornecedores/SupplierProfile';
-import ViaVerde from './pages/ViaVerde';
+
 import Carregamentos from './pages/Carregamentos';
 import EficienciaFrota from './pages/EficienciaFrota';
 import ClientProfile from './pages/Clientes/ClientProfile';
@@ -361,7 +360,6 @@ function App() {
 
   // Derive activeTab from current path
   const activeTab = location.pathname.split('/')[1] || 'dashboard';
-  const fuelTab = new URLSearchParams(location.search).get('tab') || 'overview';
   const handleNavigate = (target: string) => {
     const path = target.startsWith('/') ? target : `/${target}`;
     navigate(path);
@@ -691,47 +689,7 @@ function App() {
     ],
   };
 
-  const fuelGroup: NavGroup = {
-    key: 'combustivel',
-    label: 'Combustível',
-    items: [
-      {
-        key: 'fuel-overview',
-        label: 'Geral',
-        icon: Fuel,
-        path: '/combustivel?tab=overview',
-        active: activeTab === 'combustivel' && fuelTab === 'overview',
-      },
-      {
-        key: 'fuel-abastecer',
-        label: 'Abastecer',
-        icon: Fuel,
-        path: '/combustivel?tab=abastecer',
-        active: activeTab === 'combustivel' && fuelTab === 'abastecer',
-      },
-      {
-        key: 'fuel-tanque',
-        label: 'Tanque',
-        icon: BatteryCharging,
-        path: '/combustivel?tab=tanque',
-        active: activeTab === 'combustivel' && fuelTab === 'tanque',
-      },
-      {
-        key: 'fuel-historico',
-        label: 'Histórico',
-        icon: History,
-        path: '/combustivel?tab=historico',
-        active: activeTab === 'combustivel' && fuelTab === 'historico',
-      },
-      {
-        key: 'fuel-relatorios',
-        label: 'Relatórios',
-        icon: BarChart3,
-        path: '/combustivel?tab=relatorios',
-        active: activeTab === 'combustivel' && fuelTab === 'relatorios',
-      },
-    ],
-  };
+
 
   // Grupo próprio para Clientes e Fornecedores
   const clientesFornecedoresGroup: NavGroup = {
@@ -772,7 +730,7 @@ function App() {
     ],
   };
 
-  const desktopGroups = [operationsGroup, fleetGroup, clientesFornecedoresGroup, fuelGroup, moreGroup].filter(group => group.items.length > 0);
+  const desktopGroups = [operationsGroup, fleetGroup, clientesFornecedoresGroup, moreGroup].filter(group => group.items.length > 0);
 
   const bottomNavItems = [
     {
@@ -788,13 +746,6 @@ function App() {
       icon: Car,
       active: ['viaturas', 'vehicles', 'motoristas', 'avaliacao-drivers', 'frota-exploracao', 'transportes-eva'].includes(activeTab),
       onClick: () => handleNavigate('/viaturas'),
-    },
-    {
-      key: 'bottom-combustivel',
-      label: 'Combustível',
-      icon: Fuel,
-      active: activeTab === 'combustivel',
-      onClick: () => handleNavigate('/combustivel'),
     },
     {
       key: 'bottom-mais',
@@ -843,7 +794,7 @@ function App() {
         <Route path="/escalas" element={<Navigate to="/operacoes/escalas" replace />} />
         <Route path="/escalas-history" element={<EscalasHistory />} />
         <Route path="/horas" element={<Horas />} />
-        <Route path="/combustivel" element={<FuelManager />} />
+        <Route path="/combustivel" element={<Navigate to="/frota-exploracao" replace />} />
         <Route path="/utilizadores" element={<UserManagementTab />} />
         <Route path="/gestores" element={<GestoresTab />} />
         <Route path="/equipa-oficina" element={<EquipaOficinaTab />} />
@@ -857,7 +808,7 @@ function App() {
         <Route path="/controlo-operacional" element={<ControloOperacionalTab />} />
         <Route path="/fornecedores" element={<Fornecedores />} />
         <Route path="/fornecedores/:supplierId" element={<SupplierProfile />} />
-        <Route path="/via-verde" element={<ViaVerde />} />
+        <Route path="/via-verde" element={<Navigate to="/frota-exploracao" replace />} />
         <Route path="/carregamentos" element={<Carregamentos />} />
         <Route path="/eficiencia-frota" element={<EficienciaFrota />} />
         <Route path="/mensagens" element={<Suspense fallback={<div>Loading Chat...</div>}><Mensagens /></Suspense>} />
