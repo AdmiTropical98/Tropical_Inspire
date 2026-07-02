@@ -88,6 +88,7 @@ export default function ExploracaoFrota() {
   const [formKm, setFormKm] = useState('');
   const [formDriver, setFormDriver] = useState('');
   const [formNotes, setFormNotes] = useState('');
+  const [formClient, setFormClient] = useState('');
   const [formDocumentUrl, setFormDocumentUrl] = useState('');
   const [uploading, setUploading] = useState(false);
 
@@ -124,17 +125,25 @@ export default function ExploracaoFrota() {
       const vehicle = viaturas.find(v => v.id === c.vehicle_id);
       const driver_id = c.driver_id || vehicle?.driver_id;
 
-      // Find client_id by checking active requisition dates for the vehicle
+      // Check if client_id is manually encoded in notes, otherwise fallback to date matching
       let client_id = null;
-      if (c.cost_date) {
-        const itemTime = new Date(c.cost_date).getTime();
-        const matchedReq = requisicoes.find(r => {
-          const vId = r.viaturaId || (r as any).vehicle_id || (r as any).viatura_id;
-          if (vId !== c.vehicle_id) return false;
-          const reqTime = new Date(r.data).getTime();
-          return Math.abs(itemTime - reqTime) < (24 * 60 * 60 * 1000); // 1 day range
-        });
-        client_id = matchedReq?.clienteId;
+      let notes = c.notes || '';
+      if (notes.startsWith('CLIENT_ID:')) {
+        const parts = notes.split(' | ');
+        const clientIdPart = parts[0].substring(10);
+        client_id = clientIdPart === 'null' || !clientIdPart ? null : clientIdPart;
+        notes = parts.slice(1).join(' | ');
+      } else {
+        if (c.cost_date) {
+          const itemTime = new Date(c.cost_date).getTime();
+          const matchedReq = requisicoes.find(r => {
+            const vId = r.viaturaId || (r as any).vehicle_id || (r as any).viatura_id;
+            if (vId !== c.vehicle_id) return false;
+            const reqTime = new Date(r.data).getTime();
+            return Math.abs(itemTime - reqTime) < (24 * 60 * 60 * 1000); // 1 day range
+          });
+          client_id = matchedReq?.clienteId;
+        }
       }
 
       return {
@@ -148,7 +157,7 @@ export default function ExploracaoFrota() {
         date: c.cost_date,
         amount: Number(c.amount || 0),
         description: c.description || '',
-        notes: c.notes || '',
+        notes: notes,
         km: Number(c.km || 0),
         document_url: c.document_url || '',
         is_eva: false
@@ -439,6 +448,8 @@ export default function ExploracaoFrota() {
     if (!formDescription) { alert('Insira uma descrição.'); return; }
     if (!formAmount || Number(formAmount) <= 0) { alert('Insira um valor superior a 0 €.'); return; }
 
+    const finalNotes = formClient ? `CLIENT_ID:${formClient} | ${formNotes}` : formNotes;
+
     const payload: any = {
       vehicle_id: formVehicle,
       cost_category: formCategory,
@@ -449,7 +460,7 @@ export default function ExploracaoFrota() {
       driver_id: formDriver || null,
       fornecedor_id: formSupplier || null,
       centro_custo_id: formCostCenter || null,
-      notes: formNotes || null,
+      notes: finalNotes || null,
       document_url: formDocumentUrl || null
     };
 
@@ -491,6 +502,7 @@ export default function ExploracaoFrota() {
     setFormKm(rec.km ? rec.km.toString() : '');
     setFormDriver(rec.driver_id || '');
     setFormNotes(rec.notes || '');
+    setFormClient(rec.client_id || '');
     setFormDocumentUrl(rec.document_url || '');
     setModalOpen(true);
   };
@@ -521,6 +533,7 @@ export default function ExploracaoFrota() {
     setFormKm('');
     setFormDriver('');
     setFormNotes('');
+    setFormClient('');
     setFormDocumentUrl('');
   };
 
@@ -691,14 +704,22 @@ export default function ExploracaoFrota() {
             Painel operacional e financeiro alimentado exclusivamente por registos manuais.
           </p>
         </div>
-        <button
-          onClick={loadAllData}
-          disabled={loadingData}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-800/80 hover:bg-slate-800 text-white rounded-xl border border-slate-700/80 transition-all font-semibold text-xs active:scale-95 disabled:opacity-50"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loadingData ? 'animate-spin' : ''}`} />
-          Sincronizar
-        </button>
+        <div className="flex flex-wrap items-center gap-2 relative z-10 shrink-0">
+          <button
+            onClick={() => { resetForm(); setModalOpen(true); }}
+            className="flex items-center gap-1.5 px-4 py-2 bg-[#d59d31] hover:bg-[#c28c27] text-white rounded-xl shadow-md transition-all font-bold text-xs active:scale-95"
+          >
+            <Plus className="w-4 h-4" /> Novo Gasto
+          </button>
+          <button
+            onClick={loadAllData}
+            disabled={loadingData}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800/80 hover:bg-slate-800 text-white rounded-xl border border-slate-700/80 transition-all font-semibold text-xs active:scale-95 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loadingData ? 'animate-spin' : ''}`} />
+            Sincronizar
+          </button>
+        </div>
       </div>
 
       {/* FILTROS GLOBAIS */}
@@ -1565,19 +1586,35 @@ export default function ExploracaoFrota() {
                 </div>
               </div>
 
-              {/* Motorista */}
-              <div className="flex flex-col space-y-1">
-                <label className="text-xs font-bold text-slate-500">Motorista Associado (Opcional)</label>
-                <select
-                  value={formDriver}
-                  onChange={e => setFormDriver(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#d59d31]"
-                >
-                  <option value="">Nenhum...</option>
-                  {motoristas.map(m => (
-                    <option key={m.id} value={m.id}>{m.nome}</option>
-                  ))}
-                </select>
+              {/* Cliente & Motorista */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col space-y-1">
+                  <label className="text-xs font-bold text-slate-500">Cliente (Opcional)</label>
+                  <select
+                    value={formClient}
+                    onChange={e => setFormClient(e.target.value)}
+                    className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#d59d31]"
+                  >
+                    <option value="">Nenhum...</option>
+                    {clientes.map(c => (
+                      <option key={c.id} value={c.id}>{c.nome || c.name || 'Sem Nome'}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-col space-y-1">
+                  <label className="text-xs font-bold text-slate-500">Motorista Associado (Opcional)</label>
+                  <select
+                    value={formDriver}
+                    onChange={e => setFormDriver(e.target.value)}
+                    className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#d59d31]"
+                  >
+                    <option value="">Nenhum...</option>
+                    {motoristas.map(m => (
+                      <option key={m.id} value={m.id}>{m.nome}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Observações */}
