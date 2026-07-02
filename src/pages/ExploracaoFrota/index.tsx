@@ -690,7 +690,7 @@ export default function ExploracaoFrota() {
     <div className="flex flex-col space-y-6 min-h-screen app-content-bg p-4 sm:p-6 lg:p-8">
       {/* Banner */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-[#0B2239] to-[#1f385c] p-6 rounded-2xl shadow-lg border border-slate-700 text-white relative overflow-hidden">
-        <div className="absolute right-0 top-0 opacity-5 -translate-y-4 translate-x-4">
+        <div className="absolute right-0 top-0 opacity-5 -translate-y-4 translate-x-4 pointer-events-none">
           <BarChart3 className="w-64 h-64" />
         </div>
         <div className="relative">
@@ -704,14 +704,16 @@ export default function ExploracaoFrota() {
             Painel operacional e financeiro alimentado exclusivamente por registos manuais.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 relative z-10 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 relative z-20 shrink-0">
           <button
+            type="button"
             onClick={() => { resetForm(); setModalOpen(true); }}
             className="flex items-center gap-1.5 px-4 py-2 bg-[#d59d31] hover:bg-[#c28c27] text-white rounded-xl shadow-md transition-all font-bold text-xs active:scale-95"
           >
             <Plus className="w-4 h-4" /> Novo Gasto
           </button>
           <button
+            type="button"
             onClick={loadAllData}
             disabled={loadingData}
             className="flex items-center gap-2 px-4 py-2 bg-slate-800/80 hover:bg-slate-800 text-white rounded-xl border border-slate-700/80 transition-all font-semibold text-xs active:scale-95 disabled:opacity-50"
@@ -797,8 +799,8 @@ export default function ExploracaoFrota() {
               className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 font-medium focus:outline-none focus:border-[#d59d31]"
             >
               <option value="all">Todos os Clientes</option>
-              {clientes.map(c => (
-                <option key={c.id} value={c.id}>{c.nome}</option>
+              {(clientes || []).map(c => (
+                <option key={c.id} value={c.id}>{c.nome || c.name || 'Sem Nome'}</option>
               ))}
             </select>
           </div>
@@ -1481,7 +1483,7 @@ export default function ExploracaoFrota() {
                   className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#d59d31]"
                 >
                   <option value="">Selecione a Viatura...</option>
-                  {viaturas.map(v => (
+                  {(viaturas || []).map(v => (
                     <option key={v.id} value={v.id}>{v.matricula} - {v.marca} {v.modelo}</option>
                   ))}
                 </select>
@@ -1538,7 +1540,7 @@ export default function ExploracaoFrota() {
                     className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#d59d31]"
                   >
                     <option value="">Nenhum...</option>
-                    {fornecedores.map(f => (
+                    {(fornecedores || []).map(f => (
                       <option key={f.id} value={f.id}>{f.nome}</option>
                     ))}
                   </select>
@@ -1552,7 +1554,7 @@ export default function ExploracaoFrota() {
                     className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#d59d31]"
                   >
                     <option value="">Nenhum...</option>
-                    {centrosCustos.map(cc => (
+                    {(centrosCustos || []).map(cc => (
                       <option key={cc.id} value={cc.id}>{cc.name}</option>
                     ))}
                   </select>
@@ -1596,7 +1598,7 @@ export default function ExploracaoFrota() {
                     className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#d59d31]"
                   >
                     <option value="">Nenhum...</option>
-                    {clientes.map(c => (
+                    {(clientes || []).map(c => (
                       <option key={c.id} value={c.id}>{c.nome || c.name || 'Sem Nome'}</option>
                     ))}
                   </select>
@@ -1610,7 +1612,7 @@ export default function ExploracaoFrota() {
                     className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#d59d31]"
                   >
                     <option value="">Nenhum...</option>
-                    {motoristas.map(m => (
+                    {(motoristas || []).map(m => (
                       <option key={m.id} value={m.id}>{m.nome}</option>
                     ))}
                   </select>
