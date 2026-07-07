@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { X, Upload, FileText, RefreshCw } from 'lucide-react';
 import { ALLOWED_INVOICE_UNITS } from '../types';
 import type {
@@ -107,9 +107,12 @@ export default function InvoiceForm({
         total_value: 0
     });
 
-    const normalizeLine = useCallback((line: SupplierInvoiceLine, overrideIvaValue?: number | null): SupplierInvoiceLine => {
+    const normalizeLine = useCallback((line: SupplierInvoiceLine, overrideIvaValue?: string | number | null): SupplierInvoiceLine => {
         const calculated = calculateLine(line);
-        const effectiveIvaValue = Number.isFinite(overrideIvaValue) ? round2(overrideIvaValue as number) : calculated.ivaValue;
+        const parsedOverride = overrideIvaValue !== undefined && overrideIvaValue !== null
+            ? parseFloat(String(overrideIvaValue).replace(',', '.'))
+            : null;
+        const effectiveIvaValue = Number.isFinite(parsedOverride) ? round2(parsedOverride as number) : calculated.ivaValue;
 
         return {
             ...line,
@@ -152,7 +155,8 @@ export default function InvoiceForm({
         notes: '',
         pdf_url: ''
     });
-    const [manualIvaOverrides, setManualIvaOverrides] = useState<(number | null)[]>([null]);
+    const loadedInvoiceIdRef = useRef<string | null>(null);
+    const [manualIvaOverrides, setManualIvaOverrides] = useState<(string | null)[]>([null]);
     const [financialImpact, setFinancialImpact] = useState<Array<{
         date: string;
         description: string;
@@ -326,6 +330,11 @@ export default function InvoiceForm({
 
     useEffect(() => {
         if (invoice) {
+            if (loadedInvoiceIdRef.current === invoice.id) {
+                return;
+            }
+            loadedInvoiceIdRef.current = invoice.id;
+
             const linesArray = (invoice.lines || []).filter(line => !!line);
             const sourceLines = linesArray.length > 0
                 ? linesArray
@@ -344,7 +353,7 @@ export default function InvoiceForm({
             const detectedOverrides = sourceLines.map((line) => {
                 const autoIvaValue = calculateLine(line).ivaValue;
                 const incomingIvaValue = round2(line.iva_value || 0);
-                return hasMeaningfulDifference(incomingIvaValue, autoIvaValue) ? incomingIvaValue : null;
+                return hasMeaningfulDifference(incomingIvaValue, autoIvaValue) ? String(incomingIvaValue) : null;
             });
 
             const mappedLines = sourceLines.map((line, index) => normalizeLine(line, detectedOverrides[index]));
@@ -365,6 +374,8 @@ export default function InvoiceForm({
             });
 
             setManualIvaOverrides(mappedLines.map((_, index) => detectedOverrides[index] ?? null));
+        } else {
+            loadedInvoiceIdRef.current = null;
         }
 
         setHasUserRequestedOcr(false);
@@ -492,7 +503,10 @@ export default function InvoiceForm({
     const lineBreakdowns = formData.lines.map((line, index) => {
         const calculated = calculateLine(line);
         const overrideIvaValue = manualIvaOverrides[index];
-        const ivaValue = Number.isFinite(overrideIvaValue) ? round2(overrideIvaValue as number) : calculated.ivaValue;
+        const parsedOverride = overrideIvaValue !== undefined && overrideIvaValue !== null
+            ? parseFloat(String(overrideIvaValue).replace(',', '.'))
+            : null;
+        const ivaValue = Number.isFinite(parsedOverride) ? round2(parsedOverride as number) : calculated.ivaValue;
         return {
             ...calculated,
             ivaValue,
@@ -598,11 +612,9 @@ export default function InvoiceForm({
     };
 
     const updateManualIva = (index: number, rawValue: string) => {
-        const parsedValue = parseFloat(rawValue.replace(',', '.'));
         setManualIvaOverrides(prev => prev.map((value, lineIndex) => {
             if (lineIndex !== index) return value;
-            if (!Number.isFinite(parsedValue) || rawValue.trim() === '') return null;
-            return round2(Math.max(0, parsedValue));
+            return rawValue.trim() === '' ? null : rawValue;
         }));
     };
 

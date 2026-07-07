@@ -200,19 +200,26 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
 
     const computeInvoiceFromLines = (lines: NonNullable<SupplierInvoice['lines']>) => {
+        const parseVal = (val: any): number => {
+            if (val === undefined || val === null) return 0;
+            if (typeof val === 'number') return val;
+            const cleaned = String(val).replace(/\s/g, '').replace(',', '.');
+            const parsed = parseFloat(cleaned);
+            return Number.isFinite(parsed) ? parsed : 0;
+        };
+
         const normalizedLines = lines
             .map(line => {
                 const normalizedUnit = normalizeInvoiceUnit((line as any).unidade_medida);
-                const quantity = round2(line.quantity || 0);
-                const inferredUnitPrice = line.unit_price ?? (quantity !== 0 ? (line.net_value || 0) / quantity : (line.net_value || 0));
-                const unitPrice = round2(inferredUnitPrice || 0);
-                const discountPercentage = Math.max(0, round2(line.discount_percentage || 0));
+                const quantity = round2(parseVal(line.quantity));
+                const unitPrice = round2(parseVal(line.unit_price));
+                const discountPercentage = Math.max(0, round2(parseVal(line.discount_percentage)));
                 const subtotal = round2(quantity * unitPrice);
                 const discountValue = round2(subtotal * (discountPercentage / 100));
                 const netValue = round2(subtotal - discountValue);
-                const ivaRate = line.iva_rate || 0;
+                const ivaRate = parseVal(line.iva_rate);
                 const calculatedIvaValue = round2(netValue * (ivaRate / 100));
-                const providedIvaValue = round2(Number(line.iva_value || 0));
+                const providedIvaValue = round2(parseVal(line.iva_value));
                 const ivaValue = Math.abs(providedIvaValue - calculatedIvaValue) >= 0.01
                     ? providedIvaValue
                     : calculatedIvaValue;
