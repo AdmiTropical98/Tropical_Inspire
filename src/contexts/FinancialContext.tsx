@@ -261,7 +261,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         netProfit: 0,
         pendingPayments: 0,
         expenseBreakdown: [],
-        topCostCenters: []
+        topCostCenters: [],
+        topVehicles: []
     });
 
     const refreshData = async () => {
@@ -506,14 +507,24 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         ];
 
         const ccStats: Record<string, number> = {};
+        const vehicleStats: Record<string, number> = {};
         financialMovements.forEach(movement => {
-            if (!movement.cost_center_id) return;
             const movementValue = movement.account_code.startsWith('6') ? ledgerAmount(movement) : 0;
-            ccStats[movement.cost_center_id] = (ccStats[movement.cost_center_id] || 0) + movementValue;
+            if (movement.cost_center_id) {
+                ccStats[movement.cost_center_id] = (ccStats[movement.cost_center_id] || 0) + movementValue;
+            }
+            if (movement.vehicle_id) {
+                vehicleStats[movement.vehicle_id] = (vehicleStats[movement.vehicle_id] || 0) + movementValue;
+            }
         });
 
         const topCostCenters = Object.entries(ccStats)
             .map(([id, total]) => ({ id, nome: id, total: round2(total) }))
+            .sort((a, b) => b.total - a.total)
+            .slice(0, 5);
+
+        const topVehicles = Object.entries(vehicleStats)
+            .map(([id, total]) => ({ id, total: round2(total) }))
             .sort((a, b) => b.total - a.total)
             .slice(0, 5);
 
@@ -527,7 +538,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             netProfit: totalRevenue - totalExpensesVal,
             pendingPayments,
             expenseBreakdown: breakdown,
-            topCostCenters
+            topCostCenters,
+            topVehicles
         });
 
     }, [financialMovements]);

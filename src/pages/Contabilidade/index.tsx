@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import {
     Wallet, TrendingDown, DollarSign,
     Download, PieChart, BarChart3,
     ArrowUpRight, CreditCard,
-    Receipt, RefreshCcw
+    Receipt, RefreshCcw, Car
 } from 'lucide-react';
 import NovaFatura from './NovaFatura';
 import Alugueres from './Alugueres';
@@ -13,6 +12,7 @@ import FixedCostsManager from './FixedCostsManager';
 import SupplierInvoices from './SupplierInvoices';
 import FinancialMovements from './FinancialMovements';
 import { useFinancial } from '../../contexts/FinancialContext';
+import { useWorkshop } from '../../contexts/WorkshopContext';
 import { formatCurrency } from '../../utils/format';
 import { supabase } from '../../lib/supabase';
 import jsPDF from 'jspdf';
@@ -22,6 +22,7 @@ import type { Fatura } from '../../types';
 function ContabilidadeContent() {
     // Only get what actually exists in the context
     const { summary, isLoading, refreshData } = useFinancial();
+    const { centrosCustos, viaturas } = useWorkshop();
     const [activeTab, setActiveTab] = useState<'dashboard' | 'receitas' | 'despesas' | 'fixos' | 'alugueres' | 'supplier_invoices' | 'financial_movements'>('dashboard');
     const [ledgerPreset, setLedgerPreset] = useState<'all' | 'this_month_expenses' | 'revenue_only' | 'fuel_only'>('all');
     const [view, setView] = useState<'list' | 'create' | 'edit'>('list');
@@ -135,7 +136,7 @@ function ContabilidadeContent() {
                         </div>
                         {/* Charts Area */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)]">
+                            <div className="lg:col-span-3 bg-white p-6 rounded-xl border border-slate-200 shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)]">
                                 <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2"><PieChart className="w-5 h-5 text-slate-500" /> Distribuição de Custos</h3>
                                 <div className="space-y-4">
                                     {summary.expenseBreakdown.map(item => (
@@ -149,9 +150,43 @@ function ContabilidadeContent() {
                             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)]">
                                 <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2"><BarChart3 className="w-5 h-5 text-slate-500" /> Top Centros Custo</h3>
                                 <div className="space-y-4">
-                                    {summary.topCostCenters.map((cc, i) => (
-                                        <div key={cc.id} className="flex justify-between p-3 bg-slate-50 rounded-lg border border-slate-100"><span className="text-slate-700">{i + 1}. {cc.nome}</span><span className="text-indigo-600">{formatCurrency(cc.total)}</span></div>
-                                    ))}
+                                    {summary.topCostCenters.map((cc, i) => {
+                                        const foundCc = centrosCustos.find(c => c.id === cc.id);
+                                        const displayName = foundCc ? foundCc.nome : cc.nome;
+                                        return (
+                                            <div key={cc.id} className="flex justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                                <span className="text-slate-700">{i + 1}. {displayName}</span>
+                                                <span className="text-indigo-600">{formatCurrency(cc.total)}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                            <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)]">
+                                <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2"><Car className="w-5 h-5 text-slate-500" /> Top Despesas por Viatura</h3>
+                                <div className="space-y-4">
+                                    {!summary.topVehicles || summary.topVehicles.length === 0 ? (
+                                        <p className="text-sm text-slate-500 text-center py-4">Sem registo de custos por viatura.</p>
+                                    ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {summary.topVehicles.map((v, i) => {
+                                                const vehicle = viaturas.find(item => item.id === v.id);
+                                                const vehicleLabel = vehicle 
+                                                    ? `${vehicle.marca} ${vehicle.modelo} (${vehicle.matricula})`
+                                                    : `Viatura ID: ${v.id.substring(0, 8)}...`;
+                                                return (
+                                                    <div key={v.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                                        <span className="text-slate-700 text-sm font-semibold truncate pr-2" title={vehicleLabel}>
+                                                            {i + 1}. {vehicleLabel}
+                                                        </span>
+                                                        <span className="text-indigo-600 text-sm font-bold whitespace-nowrap">
+                                                            {formatCurrency(v.total)}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

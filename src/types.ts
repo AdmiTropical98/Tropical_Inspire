@@ -768,6 +768,7 @@ export interface FinancialSummary {
     pendingPayments: number;
     expenseBreakdown: { category: string; value: number; color: string }[];
     topCostCenters: { id: string; nome: string; total: number }[];
+    topVehicles?: { id: string; total: number }[];
 }
 
 export interface FinancialMovement {

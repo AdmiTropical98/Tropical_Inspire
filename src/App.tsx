@@ -7,7 +7,7 @@ import {
   BarChart3, Award,
   UserCheck, Activity,
   Settings2, UserCog as UserCogIcon, LogOut,
-  AlertTriangle, ClipboardCheck
+  AlertTriangle, ClipboardCheck, Wallet
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -710,6 +710,15 @@ function App() {
         path: '/fornecedores',
         active: activeTab === 'fornecedores',
       },
+      ...(hasAccess(userRole, 'contabilidade')
+        ? [{
+          key: 'contabilidade',
+          label: 'Gestão Financeira',
+          icon: Wallet,
+          path: '/contabilidade',
+          active: activeTab === 'contabilidade' || activeTab === 'finance',
+        } as NavItem]
+        : []),
     ],
   };
 
