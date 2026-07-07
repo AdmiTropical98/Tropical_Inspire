@@ -574,7 +574,7 @@ export default function InvoiceForm({
             const nextLines = prev.lines.map((line, lineIndex) => {
                 if (lineIndex !== index) return line;
 
-                const numericValue = parseFloat(rawValue);
+                const numericValue = parseFloat(rawValue.replace(',', '.'));
                 return {
                     ...line,
                     [field]: field === 'description'
@@ -598,7 +598,7 @@ export default function InvoiceForm({
     };
 
     const updateManualIva = (index: number, rawValue: string) => {
-        const parsedValue = parseFloat(rawValue);
+        const parsedValue = parseFloat(rawValue.replace(',', '.'));
         setManualIvaOverrides(prev => prev.map((value, lineIndex) => {
             if (lineIndex !== index) return value;
             if (!Number.isFinite(parsedValue) || rawValue.trim() === '') return null;
@@ -744,16 +744,16 @@ export default function InvoiceForm({
     };
 
     return (
-        <div className="w-full bg-slate-900 border border-slate-700 rounded-xl">
-            <div className="flex items-center justify-between p-6 border-b border-slate-700">
-                <h2 className="text-xl font-semibold text-white">
+        <div className="w-full bg-white border border-slate-200/80 rounded-2xl shadow-sm">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+                <h2 className="text-xl font-bold text-slate-800">
                     {invoice ? 'Editar Fatura' : 'Nova Fatura de Fornecedor'}
                 </h2>
                 <button
                     onClick={onCancel}
-                    className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-400 hover:text-slate-600"
                 >
-                    <X className="w-5 h-5 text-slate-400" />
+                    <X className="w-5 h-5" />
                 </button>
             </div>
 
@@ -761,13 +761,13 @@ export default function InvoiceForm({
                 {/* Supplier and Invoice Number */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                             Fornecedor *
                         </label>
                         <select
                             value={formData.supplier_id}
                             onChange={(e) => setFormData(prev => ({ ...prev, supplier_id: e.target.value }))}
-                            className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${aiFilledFields.has('supplier_id') ? 'border-emerald-500/70 bg-emerald-950/20' : 'border-slate-600'}`}
+                            className={`w-full bg-slate-50/50 border rounded-xl px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 outline-none ${aiFilledFields.has('supplier_id') ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200'}`}
                             required
                         >
                             <option value="">Selecionar fornecedor</option>
@@ -779,27 +779,27 @@ export default function InvoiceForm({
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                             Número da Fatura *
                         </label>
                         <input
                             type="text"
                             value={formData.invoice_number}
                             onChange={(e) => setFormData(prev => ({ ...prev, invoice_number: e.target.value }))}
-                            className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${aiFilledFields.has('invoice_number') ? 'border-emerald-500/70 bg-emerald-950/20' : 'border-slate-600'}`}
+                            className={`w-full bg-slate-50/50 border rounded-xl px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 outline-none ${aiFilledFields.has('invoice_number') ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200'}`}
                             required
                         />
                     </div>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                         Requisição Associada (Opcional)
                     </label>
                     <select
                         value={formData.requisition_id}
                         onChange={(e) => setFormData(prev => ({ ...prev, requisition_id: e.target.value }))}
-                        className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 outline-none"
                     >
                         <option value="">Sem associação</option>
                         {requisitionOptions.map(req => (
@@ -813,46 +813,46 @@ export default function InvoiceForm({
                 {/* Dates */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                             Data de Emissão *
                         </label>
                         <input
                             type="date"
                             value={formData.issue_date}
                             onChange={(e) => setFormData(prev => ({ ...prev, issue_date: e.target.value }))}
-                            className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${aiFilledFields.has('issue_date') ? 'border-emerald-500/70 bg-emerald-950/20' : 'border-slate-600'}`}
+                            className={`w-full bg-slate-50/50 border rounded-xl px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 outline-none ${aiFilledFields.has('issue_date') ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200'}`}
                             required
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                             Data de Vencimento *
                         </label>
                         <input
                             type="date"
                             value={formData.due_date}
                             onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
-                            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 outline-none"
                             required
                         />
                     </div>
                 </div>
 
                 {/* 1) Invoice Lines */}
-                <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-5 space-y-4">
+                <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-5 space-y-4">
                     <div className="flex items-center justify-between mb-3">
-                        <label className="block text-sm font-semibold text-slate-200">Linhas da Fatura</label>
+                        <label className="block text-sm font-bold text-slate-700">Linhas da Fatura</label>
                         <button
                             type="button"
                             onClick={addLine}
-                            className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors"
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
                         >
                             + Adicionar Linha
                         </button>
                     </div>
 
                     <div className="space-y-2">
-                        <div className="grid grid-cols-14 gap-2 text-xs text-slate-400 px-1">
+                        <div className="grid grid-cols-14 gap-2 text-xs text-slate-400 font-semibold uppercase tracking-wider px-1">
                             <span className="col-span-4">Descrição (artigo/serviço)</span>
                             <span className="col-span-1">Qtd</span>
                             <span className="col-span-1">Unid.</span>
@@ -871,30 +871,29 @@ export default function InvoiceForm({
                                     value={formData.lines[index]?.description || ''}
                                     onChange={(e) => updateLine(index, 'description', e.target.value)}
                                     placeholder="Ex.: Serviço de manutenção do veículo"
-                                    className={`col-span-4 bg-slate-800 border rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${aiFilledFields.has(`line-${index}`) ? 'border-emerald-500/70 bg-emerald-950/20' : 'border-slate-600'}`}
+                                    className={`col-span-4 bg-white border rounded-lg px-3 py-2 text-slate-800 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none ${aiFilledFields.has(`line-${index}`) ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200'}`}
                                 />
                                 <input
                                     type="number"
                                     step="0.01"
                                     value={formData.lines[index]?.quantity ?? 0}
                                     onChange={(e) => updateLine(index, 'quantity', e.target.value)}
-                                    className="col-span-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="col-span-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 text-sm text-center focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
                                 />
                                 <select
                                     value={formData.lines[index]?.unidade_medida || 'UN'}
                                     onChange={(e) => updateLine(index, 'unidade_medida', e.target.value)}
-                                    className="col-span-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="col-span-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
                                 >
                                     {allowedUnits.map((unit) => (
                                         <option key={unit} value={unit}>{unit}</option>
                                     ))}
                                 </select>
                                 <input
-                                    type="number"
-                                    step="0.01"
+                                    type="text"
                                     value={formData.lines[index]?.unit_price ?? 0}
                                     onChange={(e) => updateLine(index, 'unit_price', e.target.value)}
-                                    className="col-span-2 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="col-span-2 bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 text-sm text-right focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
                                 />
                                 <input
                                     type="number"
@@ -902,12 +901,12 @@ export default function InvoiceForm({
                                     min="0"
                                     value={formData.lines[index]?.discount_percentage ?? 0}
                                     onChange={(e) => updateLine(index, 'discount_percentage', e.target.value)}
-                                    className="col-span-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="col-span-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 text-sm text-center focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
                                 />
                                 <select
                                     value={formData.lines[index]?.iva_rate ?? 23}
                                     onChange={(e) => updateLine(index, 'iva_rate', e.target.value)}
-                                    className="col-span-2 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="col-span-2 bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
                                 >
                                     <option value={23}>23%</option>
                                     <option value={13}>13%</option>
@@ -915,24 +914,22 @@ export default function InvoiceForm({
                                     <option value={0}>0%</option>
                                 </select>
                                 <input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
+                                    type="text"
                                     value={manualIvaOverrides[index] ?? line.iva_value}
                                     onChange={(e) => updateManualIva(index, e.target.value)}
-                                    className="col-span-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="col-span-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 text-sm text-right focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
                                     title="Pode ajustar manualmente o IVA desta linha"
                                 />
                                 <input
-                                    type="number"
+                                    type="text"
                                     value={line.total_value}
                                     readOnly
-                                    className="col-span-1 bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
+                                    className="col-span-1 bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-slate-500 text-sm text-right cursor-not-allowed"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => removeLine(index)}
-                                    className="col-span-1 px-2 py-2 text-red-400 hover:bg-slate-800 rounded-lg transition-colors"
+                                    className="col-span-1 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                     title="Remover linha"
                                 >
                                     <X className="w-4 h-4 mx-auto" />
@@ -942,7 +939,7 @@ export default function InvoiceForm({
                     </div>
                 </div>
 
-                <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-5 mt-8">
+                <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-5 mt-8">
                     <InvoiceFinancialSummary
                         grossBaseTotal={grossBaseTotal}
                         discountTotal={discountTotal}
@@ -952,55 +949,55 @@ export default function InvoiceForm({
                     />
                 </div>
 
-                <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-5">
-                    <h3 className="text-sm font-semibold text-slate-200 mb-3">Financial Impact</h3>
+                <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-5">
+                    <h3 className="text-sm font-bold text-slate-700 mb-3">Impacto Financeiro</h3>
                     {invoice ? (
                         financialImpact.length > 0 ? (
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
                                     <thead>
-                                        <tr className="text-slate-400 border-b border-slate-700">
-                                            <th className="text-left py-2 pr-3">Date</th>
-                                            <th className="text-left py-2 pr-3">Account</th>
-                                            <th className="text-left py-2 pr-3">Description</th>
-                                            <th className="text-right py-2 pr-3">Debit</th>
-                                            <th className="text-right py-2 pr-3">Credit</th>
-                                            <th className="text-right py-2">Net</th>
+                                        <tr className="text-slate-400 border-b border-slate-200/80 font-semibold uppercase tracking-wider text-xs">
+                                            <th className="text-left py-2 pr-3">Data</th>
+                                            <th className="text-left py-2 pr-3">Conta</th>
+                                            <th className="text-left py-2 pr-3">Descrição</th>
+                                            <th className="text-right py-2 pr-3">Débito</th>
+                                            <th className="text-right py-2 pr-3">Crédito</th>
+                                            <th className="text-right py-2">Líquido</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {financialImpact.map((movement, index) => (
-                                            <tr key={`${movement.account_code}-${index}`} className="border-b border-slate-800 last:border-0">
-                                                <td className="py-2 pr-3 text-slate-300">{new Date(movement.date).toLocaleDateString('pt-PT')}</td>
-                                                <td className="py-2 pr-3 text-white">{movement.account_code}</td>
-                                                <td className="py-2 pr-3 text-slate-300">{movement.description}</td>
-                                                <td className="py-2 pr-3 text-right text-red-300">{formatCurrency(Number(movement.debit || 0))}</td>
-                                                <td className="py-2 pr-3 text-right text-emerald-300">{formatCurrency(Number(movement.credit || 0))}</td>
-                                                <td className="py-2 text-right text-slate-200">{formatCurrency(Number(movement.amount || 0))}</td>
+                                            <tr key={`${movement.account_code}-${index}`} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/55 transition-colors">
+                                                <td className="py-2.5 pr-3 text-slate-600">{new Date(movement.date).toLocaleDateString('pt-PT')}</td>
+                                                <td className="py-2.5 pr-3 text-slate-800 font-medium">{movement.account_code}</td>
+                                                <td className="py-2.5 pr-3 text-slate-600">{movement.description}</td>
+                                                <td className="py-2.5 pr-3 text-right text-red-600 font-semibold">{formatCurrency(Number(movement.debit || 0))}</td>
+                                                <td className="py-2.5 pr-3 text-right text-emerald-600 font-semibold">{formatCurrency(Number(movement.credit || 0))}</td>
+                                                <td className="py-2.5 text-right text-slate-800 font-semibold">{formatCurrency(Number(movement.amount || 0))}</td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             </div>
                         ) : (
-                            <p className="text-sm text-slate-400">Nenhum movimento financeiro encontrado para esta fatura.</p>
+                            <p className="text-sm text-slate-500">Nenhum movimento financeiro encontrado para esta fatura.</p>
                         )
                     ) : (
-                        <p className="text-sm text-slate-400">O movimento financeiro será gerado automaticamente ao guardar a fatura.</p>
+                        <p className="text-sm text-slate-500">O movimento financeiro será gerado automaticamente ao guardar a fatura.</p>
                     )}
                 </div>
 
                 {/* 3) Accounting / Payment */}
-                <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-5 space-y-4">
-                    <h3 className="text-sm font-semibold text-slate-200">Contabilístico / Pagamento</h3>
+                <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-5 space-y-4">
+                    <h3 className="text-sm font-bold text-slate-700">Contabilístico / Pagamento</h3>
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                             Centro de Custo
                         </label>
                         <select
                             value={formData.cost_center_id}
                             onChange={(e) => setFormData(prev => ({ ...prev, cost_center_id: e.target.value }))}
-                            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
                         >
                             <option value="">Selecionar centro de custo</option>
                             {costCenters.map(cc => (
@@ -1013,13 +1010,13 @@ export default function InvoiceForm({
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
+                            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                                 Viatura (Opcional)
                             </label>
                             <select
                                 value={formData.vehicle_id}
                                 onChange={(e) => setFormData(prev => ({ ...prev, vehicle_id: e.target.value }))}
-                                className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
                             >
                                 <option value="">Selecionar viatura</option>
                                 {vehicles.map(vehicle => (
@@ -1030,7 +1027,7 @@ export default function InvoiceForm({
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
+                            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                                 Status de Pagamento
                             </label>
                             <div className="flex items-center gap-2">
@@ -1040,7 +1037,7 @@ export default function InvoiceForm({
                                         ...prev,
                                         payment_status: e.target.value as SupplierInvoice['payment_status']
                                     }))}
-                                    className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="flex-1 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
                                 >
                                     <option value="pending">Pendente</option>
                                     <option value="scheduled">Agendado</option>
@@ -1054,13 +1051,13 @@ export default function InvoiceForm({
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
+                            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                                 Método de Pagamento
                             </label>
                             <select
                                 value={formData.payment_method}
                                 onChange={(e) => setFormData(prev => ({ ...prev, payment_method: e.target.value }))}
-                                className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
                             >
                                 <option value="">Selecionar método</option>
                                 <option value="transfer">Transferência</option>
@@ -1071,14 +1068,14 @@ export default function InvoiceForm({
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
+                            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                                 Notas
                             </label>
                             <textarea
                                 value={formData.notes}
                                 onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                                 rows={3}
-                                className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                                className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none resize-none"
                             />
                         </div>
                     </div>
@@ -1086,11 +1083,11 @@ export default function InvoiceForm({
 
                 {/* PDF Upload */}
                 <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                         PDF da Fatura
                     </label>
                     <div className="flex items-center gap-4">
-                        <label className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg cursor-pointer transition-colors">
+                        <label className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors text-slate-700 font-medium text-sm">
                             <Upload className="w-4 h-4" />
                             <span className="text-sm">Upload PDF</span>
                             <input
@@ -1103,23 +1100,23 @@ export default function InvoiceForm({
                                 disabled={uploading}
                             />
                         </label>
-                        {uploading && <span className="text-slate-400">A fazer upload...</span>}
+                        {uploading && <span className="text-slate-500 text-sm">A fazer upload...</span>}
                         {!uploading && hasUserRequestedOcr && importStatusMessage && (
-                            <span className="text-slate-400 text-sm">{importStatusMessage}</span>
+                            <span className="text-slate-500 text-sm">{importStatusMessage}</span>
                         )}
                         {formData.pdf_url && (
                             <a
                                 href={formData.pdf_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-2 text-blue-400 hover:text-blue-300"
+                                className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold"
                             >
                                 <FileText className="w-4 h-4" />
                                 <span className="text-sm">Ver PDF</span>
                             </a>
                         )}
                         {activeImport?.status && (
-                            <span className="text-xs text-slate-300 px-2 py-1 bg-slate-800 border border-slate-700 rounded-md">
+                            <span className="text-xs text-slate-600 px-2.5 py-1 bg-slate-100 border border-slate-200 rounded-md font-medium">
                                 Importação: {activeImport.status}
                             </span>
                         )}
@@ -1128,7 +1125,7 @@ export default function InvoiceForm({
                                 type="button"
                                 onClick={handleReparse}
                                 disabled={uploading}
-                                className="flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-slate-200 rounded-lg transition-colors text-sm"
+                                className="flex items-center gap-2 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 rounded-xl transition-colors text-sm font-medium"
                             >
                                 <RefreshCw className="w-4 h-4" />
                                 Re-parse
@@ -1138,17 +1135,17 @@ export default function InvoiceForm({
                 </div>
 
                 {/* Actions */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">
+                <div className="flex justify-end gap-3 pt-6 border-t border-slate-100">
                     <button
                         type="button"
                         onClick={onCancel}
-                        className="px-4 py-2 text-slate-300 hover:bg-slate-800 rounded-lg transition-colors"
+                        className="px-5 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl transition-colors font-semibold text-sm"
                     >
                         Cancelar
                     </button>
                     <button
                         type="submit"
-                        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                        className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition-colors font-semibold text-sm"
                     >
                         {invoice ? 'Atualizar' : 'Criar'} Fatura
                     </button>
