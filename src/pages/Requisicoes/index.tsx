@@ -2299,15 +2299,34 @@ export default function Requisicoes() {
                                                                         <th className="text-left py-2.5 px-3 font-semibold">Data</th>
                                                                         <th className="text-right py-2.5 px-3 font-semibold">Total</th>
                                                                         <th className="text-left py-2.5 px-3 font-semibold">Estado</th>
+                                                                        <th className="text-right py-2.5 px-3 font-semibold">Ações</th>
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
                                                                     {associatedInvoices.map(invoice => (
                                                                         <tr key={invoice.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                                                                            <td className="py-2.5 px-3 text-slate-800 font-medium">{invoice.invoice_number}</td>
+                                                                            <td className="py-2.5 px-3 text-slate-800 font-medium">
+                                                                                <button
+                                                                                    onClick={() => navigate(`/finance/faturas/${invoice.id}/editar`)}
+                                                                                    className="text-blue-600 hover:text-blue-800 hover:underline font-semibold text-left outline-none"
+                                                                                    title="Editar esta fatura/associação"
+                                                                                >
+                                                                                    {invoice.invoice_number}
+                                                                                </button>
+                                                                            </td>
                                                                             <td className="py-2.5 px-3 text-slate-600">{formatSmallDate(invoice.issue_date)}</td>
                                                                             <td className="py-2.5 px-3 text-right text-slate-800">{formatCurrency(Number(invoice.total_final ?? invoice.total ?? invoice.total_value ?? 0))}</td>
                                                                             <td className="py-2.5 px-3 text-slate-600">{getPaymentStatusLabel(invoice.payment_status)}</td>
+                                                                            <td className="py-2.5 px-3 text-right">
+                                                                                <button
+                                                                                    onClick={() => navigate(`/finance/faturas/${invoice.id}/editar`)}
+                                                                                    className="inline-flex items-center gap-1 px-2 py-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                                                                                    title="Editar fatura"
+                                                                                >
+                                                                                    <Pencil className="w-3.5 h-3.5" />
+                                                                                    <span>Editar</span>
+                                                                                </button>
+                                                                            </td>
                                                                         </tr>
                                                                     ))}
                                                                 </tbody>

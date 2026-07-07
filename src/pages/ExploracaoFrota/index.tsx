@@ -448,8 +448,11 @@ export default function ExploracaoFrota() {
     if (!formDescription) { alert('Insira uma descrição.'); return; }
     if (!formAmount) { alert('Insira um valor.'); return; }
 
-    const cleanAmount = Number(formAmount.toString().replace(',', '.'));
-    const cleanKm = formKm ? Number(formKm.toString().replace(',', '.')) : null;
+    const amountStr = (formAmount || '').toString().replace(',', '.').trim();
+    const kmStr = formKm ? (formKm || '').toString().replace(',', '.').trim() : '';
+
+    const cleanAmount = Number(amountStr);
+    const cleanKm = kmStr ? Number(kmStr) : null;
 
     if (isNaN(cleanAmount) || cleanAmount <= 0) {
       alert('Por favor, introduza um valor de custo válido e superior a 0 €.');
@@ -488,6 +491,7 @@ export default function ExploracaoFrota() {
           .insert(payload);
         if (error) throw error;
       }
+      alert('✅ Registo de custo manual guardado com sucesso!');
       setModalOpen(false);
       await loadAllData();
       resetForm();
@@ -545,6 +549,13 @@ export default function ExploracaoFrota() {
     setFormNotes('');
     setFormClient('');
     setFormDocumentUrl('');
+  };
+
+  const openModalWithPrefill = (vehicleId: string, categoryId: string) => {
+    resetForm();
+    setFormVehicle(vehicleId);
+    setFormCategory(categoryId);
+    setModalOpen(true);
   };
 
   // Search filter matching
@@ -1090,7 +1101,12 @@ export default function ExploracaoFrota() {
 
               {/* Table list per vehicle */}
               <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-                <div className="p-4 border-b border-slate-100"><h4 className="font-extrabold text-sm text-slate-700 uppercase tracking-wider">Matriz de Custos por Viatura</h4></div>
+                 <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h4 className="font-extrabold text-sm text-slate-700 uppercase tracking-wider">Matriz de Custos por Viatura</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">💡 Clique em qualquer célula (valor ou vazio) para registar rapidamente uma nova despesa manual para essa viatura e categoria.</p>
+                  </div>
+                </div>
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-slate-100 text-left">
                     <thead className="bg-slate-50">
@@ -1100,7 +1116,9 @@ export default function ExploracaoFrota() {
                         <th className="px-6 py-3 text-xs font-black text-slate-500 uppercase">Manutenção/Reparação</th>
                         <th className="px-6 py-3 text-xs font-black text-slate-500 uppercase">Seguros</th>
                         <th className="px-6 py-3 text-xs font-black text-slate-500 uppercase">IUC/IPO</th>
+                        <th className="px-6 py-3 text-xs font-black text-slate-500 uppercase">Leasings</th>
                         <th className="px-6 py-3 text-xs font-black text-slate-500 uppercase">Portagens</th>
+                        <th className="px-6 py-3 text-xs font-black text-slate-500 uppercase">Outros</th>
                         <th className="px-6 py-3 text-xs font-black text-slate-500 uppercase text-right">Total Acumulado</th>
                       </tr>
                     </thead>
@@ -1111,19 +1129,101 @@ export default function ExploracaoFrota() {
                         const mSum = vCosts.filter(c => c.category === 'manutencao' || c.category === 'reparacao').reduce((acc, c) => acc + c.amount, 0);
                         const sSum = vCosts.filter(c => c.category === 'seguro').reduce((acc, c) => acc + c.amount, 0);
                         const iSum = vCosts.filter(c => c.category === 'iuc' || c.category === 'ipo').reduce((acc, c) => acc + c.amount, 0);
-                        const tSum = vCosts.filter(c => c.category === 'portagens').reduce((acc, c) => acc + c.amount, 0);
-                        const total = fSum + mSum + sSum + iSum + tSum;
+                        const leaseSum = vCosts.filter(c => c.category === 'leasing').reduce((acc, c) => acc + c.amount, 0);
+                        const tSum = vCosts.filter(c => c.category === 'portagens' || c.category === 'via_verde').reduce((acc, c) => acc + c.amount, 0);
+                        const oSum = vCosts.filter(c => !['combustivel', 'manutencao', 'reparacao', 'seguro', 'iuc', 'ipo', 'leasing', 'portagens', 'via_verde'].includes(c.category)).reduce((acc, c) => acc + c.amount, 0);
+                        const total = fSum + mSum + sSum + iSum + leaseSum + tSum + oSum;
 
                         if (total === 0) return null;
 
                         return (
                           <tr key={v.id} className="hover:bg-slate-50/50">
                             <td className="px-6 py-3 font-bold text-[#0B2239]">{v.matricula}</td>
-                            <td className="px-6 py-3">{fSum.toFixed(2)} €</td>
-                            <td className="px-6 py-3">{mSum.toFixed(2)} €</td>
-                            <td className="px-6 py-3">{sSum.toFixed(2)} €</td>
-                            <td className="px-6 py-3">{(iSum).toFixed(2)} €</td>
-                            <td className="px-6 py-3">{tSum.toFixed(2)} €</td>
+                            
+                            {/* Combustível */}
+                            <td 
+                              onClick={() => openModalWithPrefill(v.id, 'combustivel')}
+                              className="px-6 py-3 cursor-pointer hover:bg-amber-50/60 group transition-all text-slate-700"
+                              title={`Adicionar Combustível para ${v.matricula}`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span>{fSum > 0 ? `${fSum.toFixed(2)} €` : '—'}</span>
+                                <span className="opacity-0 group-hover:opacity-100 text-[#d59d31] font-bold text-xs ml-2">+ Novo</span>
+                              </div>
+                            </td>
+
+                            {/* Manutenção / Reparação */}
+                            <td 
+                              onClick={() => openModalWithPrefill(v.id, 'manutencao')}
+                              className="px-6 py-3 cursor-pointer hover:bg-amber-50/60 group transition-all text-slate-700"
+                              title={`Adicionar Manutenção/Reparação para ${v.matricula}`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span>{mSum > 0 ? `${mSum.toFixed(2)} €` : '—'}</span>
+                                <span className="opacity-0 group-hover:opacity-100 text-[#d59d31] font-bold text-xs ml-2">+ Novo</span>
+                              </div>
+                            </td>
+
+                            {/* Seguros */}
+                            <td 
+                              onClick={() => openModalWithPrefill(v.id, 'seguro')}
+                              className="px-6 py-3 cursor-pointer hover:bg-amber-50/60 group transition-all text-slate-700"
+                              title={`Adicionar Seguro para ${v.matricula}`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span>{sSum > 0 ? `${sSum.toFixed(2)} €` : '—'}</span>
+                                <span className="opacity-0 group-hover:opacity-100 text-[#d59d31] font-bold text-xs ml-2">+ Novo</span>
+                              </div>
+                            </td>
+
+                            {/* IUC/IPO */}
+                            <td 
+                              onClick={() => openModalWithPrefill(v.id, 'iuc')}
+                              className="px-6 py-3 cursor-pointer hover:bg-amber-50/60 group transition-all text-slate-700"
+                              title={`Adicionar IUC/IPO para ${v.matricula}`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span>{iSum > 0 ? `${iSum.toFixed(2)} €` : '—'}</span>
+                                <span className="opacity-0 group-hover:opacity-100 text-[#d59d31] font-bold text-xs ml-2">+ Novo</span>
+                              </div>
+                            </td>
+
+                            {/* Leasings */}
+                            <td 
+                              onClick={() => openModalWithPrefill(v.id, 'leasing')}
+                              className="px-6 py-3 cursor-pointer hover:bg-amber-50/60 group transition-all text-slate-700"
+                              title={`Adicionar Leasing para ${v.matricula}`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span>{leaseSum > 0 ? `${leaseSum.toFixed(2)} €` : '—'}</span>
+                                <span className="opacity-0 group-hover:opacity-100 text-[#d59d31] font-bold text-xs ml-2">+ Novo</span>
+                              </div>
+                            </td>
+
+                            {/* Portagens */}
+                            <td 
+                              onClick={() => openModalWithPrefill(v.id, 'portagens')}
+                              className="px-6 py-3 cursor-pointer hover:bg-amber-50/60 group transition-all text-slate-700"
+                              title={`Adicionar Portagem para ${v.matricula}`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span>{tSum > 0 ? `${tSum.toFixed(2)} €` : '—'}</span>
+                                <span className="opacity-0 group-hover:opacity-100 text-[#d59d31] font-bold text-xs ml-2">+ Novo</span>
+                              </div>
+                            </td>
+
+                            {/* Outros */}
+                            <td 
+                              onClick={() => openModalWithPrefill(v.id, 'outros')}
+                              className="px-6 py-3 cursor-pointer hover:bg-amber-50/60 group transition-all text-slate-700"
+                              title={`Adicionar Outro Gasto para ${v.matricula}`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span>{oSum > 0 ? `${oSum.toFixed(2)} €` : '—'}</span>
+                                <span className="opacity-0 group-hover:opacity-100 text-[#d59d31] font-bold text-xs ml-2">+ Novo</span>
+                              </div>
+                            </td>
+
                             <td className="px-6 py-3 font-black text-slate-900 text-right">{total.toFixed(2)} €</td>
                           </tr>
                         );
@@ -1144,7 +1244,7 @@ export default function ExploracaoFrota() {
                     <FileSpreadsheet className="w-5 h-5 text-[#d59d31]" />
                     Matriz de Custos de Exploração
                   </h4>
-                  <p className="text-xs text-slate-500 mt-1">Consolidação de todos os gastos da frota distribuídos por viatura e categoria no período selecionado.</p>
+                  <p className="text-xs text-slate-500 mt-1">💡 Clique em qualquer célula de viatura (valor ou vazio) para registar uma nova despesa manual nessa categoria.</p>
                 </div>
                 <button
                   onClick={handleExportMatrixExcel}
@@ -1186,9 +1286,25 @@ export default function ExploracaoFrota() {
                           {CATEGORIES.map(cat => {
                             const val = vCosts.filter(c => c.category === cat.id).reduce((sum, c) => sum + c.amount, 0);
                             rowTotal += val;
+                            const isEva = cat.id === 'eva';
+                            
                             return (
-                              <td key={cat.id} className="px-4 py-3 text-right border-r border-slate-200">
-                                {val > 0 ? `${val.toFixed(2)} €` : '—'}
+                              <td 
+                                key={cat.id} 
+                                onClick={() => !isEva && openModalWithPrefill(v.id, cat.id)}
+                                className={`px-4 py-3 text-right border-r border-slate-200 group relative transition-all ${isEva ? 'bg-slate-50/30' : 'cursor-pointer hover:bg-amber-50/60'}`}
+                                title={isEva ? 'Transportes EVA são geridos no separador próprio' : `Clique para gerir/adicionar despesa de ${cat.label} para ${v.matricula}`}
+                              >
+                                {val > 0 ? (
+                                  <span className={isEva ? '' : 'group-hover:text-[#d59d31] font-bold transition-colors'}>{val.toFixed(2)} €</span>
+                                ) : (
+                                  <span className="text-slate-300 font-normal group-hover:hidden transition-all">—</span>
+                                )}
+                                {!isEva && (
+                                  <span className="hidden group-hover:inline text-[#d59d31] font-bold text-[10px] transition-all">
+                                    {val > 0 ? ' + Novo' : '+ Novo'}
+                                  </span>
+                                )}
                               </td>
                             );
                           })}

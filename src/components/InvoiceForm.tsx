@@ -326,11 +326,12 @@ export default function InvoiceForm({
 
     useEffect(() => {
         if (invoice) {
-            const sourceLines = invoice.lines && invoice.lines.length > 0
-                ? invoice.lines
+            const linesArray = (invoice.lines || []).filter(line => !!line);
+            const sourceLines = linesArray.length > 0
+                ? linesArray
                 : [{
                     description: invoice.expense_type || 'Linha principal',
-                    unidade_medida: 'UN',
+                    unidade_medida: 'UN' as const,
                     quantity: 1,
                     unit_price: invoice.total_liquido || invoice.net_value || invoice.base_amount || 0,
                     discount_percentage: 0,
@@ -352,8 +353,8 @@ export default function InvoiceForm({
                 supplier_id: invoice.supplier_id || '',
                 requisition_id: invoice.requisition_id || '',
                 invoice_number: invoice.invoice_number,
-                issue_date: invoice.issue_date,
-                due_date: invoice.due_date,
+                issue_date: (invoice.issue_date || '').split('T')[0],
+                due_date: (invoice.due_date || '').split('T')[0],
                 lines: mappedLines,
                 cost_center_id: invoice.cost_center_id || '',
                 vehicle_id: invoice.vehicle_id || '',
@@ -385,13 +386,43 @@ export default function InvoiceForm({
     useEffect(() => {
         if (invoice || !initialRequisition) return;
 
+        const items = Array.isArray(initialRequisition.itens) ? initialRequisition.itens.filter(item => !!item) : [];
+        const mappedLines = items.length > 0 ? items.map(item => {
+            const qty = Number(item.quantidade || 0);
+            const price = Number(item.valor_unitario || 0);
+            const net = Number(item.valor_total || (qty * price) || 0);
+            const iva = round2(net * 0.23); // Default 23% IVA
+            const total = round2(net + iva);
+            
+            return {
+                description: item.descricao || '',
+                unidade_medida: 'UN' as const,
+                quantity: qty,
+                unit_price: price,
+                discount_percentage: 0,
+                net_value: net,
+                iva_rate: 23 as const,
+                iva_value: iva,
+                total_value: total
+            };
+        }) : [emptyLine()];
+
         setFormData(prev => ({
             ...prev,
             supplier_id: prev.supplier_id || initialRequisition.fornecedorId || '',
             vehicle_id: prev.vehicle_id || initialRequisition.viaturaId || '',
             cost_center_id: prev.cost_center_id || initialRequisition.centroCustoId || '',
-            requisition_id: prev.requisition_id || initialRequisition.id
+            requisition_id: prev.requisition_id || initialRequisition.id,
+            lines: prev.lines.length === 1 && prev.lines[0].description === '' && prev.lines[0].net_value === 0
+                ? mappedLines
+                : prev.lines
         }));
+        
+        if (items.length > 0) {
+            setManualIvaOverrides(prev => prev.length === 1 && prev[0] === null
+                ? Array(items.length).fill(null)
+                : prev);
+        }
     }, [invoice, initialRequisition]);
 
     useEffect(() => {
@@ -426,23 +457,37 @@ export default function InvoiceForm({
     }, []);
 
     const requisitionOptions = useMemo(() => {
-        const byDateDesc = [...requisitions].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+        const safeReqs = (requisitions || []).filter((req): req is Requisicao => !!req && typeof req === 'object');
+        
+        const byDateDesc = [...safeReqs].sort((a, b) => {
+            const dateA = a.data ? new Date(a.data).getTime() : 0;
+            const dateB = b.data ? new Date(b.data).getTime() : 0;
+            return dateB - dateA;
+        });
+
+        const activeSupplierId = formData.supplier_id || '';
+        const activeReqId = formData.requisition_id || '';
 
         return byDateDesc
-            .filter(req => req.id === formData.requisition_id || !formData.supplier_id || req.fornecedorId === formData.supplier_id)
+            .filter(req => {
+                if (!req.id) return false;
+                return req.id === activeReqId || !activeSupplierId || req.fornecedorId === activeSupplierId;
+            })
             .map(req => {
-                const supplier = suppliers.find(item => item.id === req.fornecedorId);
-                const vehicle = vehicles.find(item => item.id === req.viaturaId);
-                const numberToken = String(req.numero || '').includes('/')
-                    ? String(req.numero).split('/')[1]
-                    : String(req.numero || '');
+                const supplier = (suppliers || []).find(item => item && item.id === req.fornecedorId);
+                const vehicle = (vehicles || []).find(item => item && item.id === req.viaturaId);
+                
+                const rawNum = req.numero || '';
+                const numberToken = String(rawNum).includes('/')
+                    ? String(rawNum).split('/')[1]
+                    : String(rawNum);
 
                 return {
                     id: req.id,
-                    label: `R:${numberToken || req.numero} — ${supplier?.nome || 'Fornecedor N/D'} — ${vehicle ? `${vehicle.marca} ${vehicle.modelo}` : 'Sem viatura'} — ${getRequisitionStatusLabel(req.status)}`
+                    label: `R:${numberToken || rawNum} — ${supplier?.nome || 'Fornecedor N/D'} — ${vehicle ? `${vehicle.marca} ${vehicle.modelo}` : 'Sem viatura'} — ${getRequisitionStatusLabel(req.status)}`
                 };
             });
-    }, [requisitions, formData.supplier_id, suppliers, vehicles, getRequisitionStatusLabel]);
+    }, [requisitions, formData.supplier_id, formData.requisition_id, suppliers, vehicles, getRequisitionStatusLabel]);
 
     const lineBreakdowns = formData.lines.map((line, index) => {
         const calculated = calculateLine(line);
