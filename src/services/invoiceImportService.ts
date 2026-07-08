@@ -650,6 +650,7 @@ const createSignedUrlFromAvailableBucket = async (storagePath: string) => {
 const insertImportRowWithFallback = async (storagePath: string) => {
     const payload: Record<string, unknown> = {
         file_path: storagePath,
+        storage_path: storagePath,
         status: 'processing',
     };
 
