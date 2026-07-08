@@ -1098,13 +1098,7 @@ export default function InvoiceForm({
                                     </div>
                                     <Camera className="h-8 w-8" />
                                 </button>
-                                <button type="button" onClick={handleScanQrCode} className="flex w-full items-center justify-between rounded-[28px] bg-blue-600 px-6 py-6 text-left text-white shadow-[0_20px_60px_-30px_rgba(37,99,235,0.8)] transition-colors hover:bg-blue-500">
-                                    <div>
-                                        <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-100">Rápido</p>
-                                        <p className="mt-2 text-xl font-bold">Ler QR Code</p>
-                                    </div>
-                                    <ScanSearch className="h-8 w-8" />
-                                </button>
+
                                 <button type="button" onClick={handleChooseFromGallery} className="flex w-full items-center justify-between rounded-[28px] border border-slate-700 bg-slate-900 px-6 py-6 text-left text-white transition-colors hover:bg-slate-800">
                                     <div>
                                         <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Biblioteca</p>
