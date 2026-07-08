@@ -82,69 +82,32 @@ export default function ImageCropper({ imageSrc, onCancel, onCropComplete }: Ima
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // Output size
-        const size = 400;
-        canvas.width = size;
-        canvas.height = size;
+        // Output size matches 280x360 aspect ratio
+        const outWidth = 700;
+        const outHeight = 900;
+        canvas.width = outWidth;
+        canvas.height = outHeight;
 
-        // Calculate crop
-        // The container is fixed size (e.g. 280px). 
-        // Logic: 
-        // 1. We have an image magnified by 'zoom'
-        // 2. We have a translation 'pan.x, pan.y' from center
-        // 3. We want to draw what's in the circle to the canvas
-
-        // Clear background
         ctx.fillStyle = '#1e293b';
-        ctx.fillRect(0, 0, size, size);
+        ctx.fillRect(0, 0, outWidth, outHeight);
 
         // Center point of the canvas
-        const center = size / 2;
+        const centerX = outWidth / 2;
+        const centerY = outHeight / 2;
 
-        // Scale ratio between displayed crop area (280px) and output canvas (400px)
-        // If we see 280px on screen, that maps to 400px on canvas.
-        const outputScale = size / 280;
+        // Scale ratio between displayed crop area (280px wide) and output canvas (700px wide)
+        const outputScale = outWidth / 280;
 
-        // We need to apply the same transformations to the canvas context
-        ctx.translate(center, center);
-        // Combine zoom (user input) with baseScale (fit to container) and outputScale (container to canvas)
         const totalScale = zoom * baseScale * outputScale;
-        ctx.scale(totalScale, totalScale);
 
-        // Pan is in screen pixels (relative to 280px container)
-        // We need to move the canvas context opposite to pan. 
-        // But since we scaled the context, the translation must be adjusted.
-        // Actually, easiest way: 
-        // 1. Move context origin to center (done)
-        // 2. Move context by PAN amount (scaled to output)
-        //    Pan x=10 means we shifted image RIGHT by 10px on screen.
-        //    So we should shift drawing LEFT by 10px on screen? No, the pan transforms the IMAGE.
-        //    Image is at `translate(pan.x, pan.y)`.
-
-        // Correct transform order for canvas to match CSS:
-        // CSS: translate(pan) scale(zoom)
-        // Canvas equivalent: translate(pan * outputScale) scale(zoom)? 
-
-        // Simpler mental model:
-        // We want to draw the image at the correct offset and scale relative to center.
-        // pan.x is in pixels relative to the 280px container.
-        // corresponding pixels in 400px canvas = pan.x * outputScale.
-
-        ctx.translate((pan.x * outputScale) / totalScale * totalScale, (pan.y * outputScale) / totalScale * totalScale);
-        // Simplified: ctx.translate(pan.x * outputScale, pan.y * outputScale);
-        // WAIT. If we scale first, we translate in scaled units.
-
-        // Let's reset and do standard order:
-        // 1. Translate to center (200, 200)
+        // 1. Translate to center
         // 2. Translate by Pan (converted to output pixels)
         // 3. Scale
-
-        // Reset Xform just to be safe (though local context)
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.fillStyle = '#1e293b';
-        ctx.fillRect(0, 0, size, size);
+        ctx.fillRect(0, 0, outWidth, outHeight);
 
-        ctx.translate(center + pan.x * outputScale, center + pan.y * outputScale);
+        ctx.translate(centerX + pan.x * outputScale, centerY + pan.y * outputScale);
         ctx.rotate((rotation * Math.PI) / 180);
         ctx.scale(totalScale, totalScale);
 
@@ -174,7 +137,7 @@ export default function ImageCropper({ imageSrc, onCancel, onCropComplete }: Ima
                     </p>
 
                     {/* Crop Area Container */}
-                    <div className={`relative w-[280px] h-[280px] bg-slate-950 rounded-full overflow-hidden border-4 border-blue-500/30 shadow-[0_0_40px_rgba(59,130,246,0.2)] touch-none select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                    <div className={`relative w-[280px] h-[360px] bg-slate-950 rounded-lg overflow-hidden border-2 border-blue-500/30 shadow-[0_0_40px_rgba(59,130,246,0.2)] touch-none select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
                         onMouseDown={handleMouseDown}
                         onTouchStart={handleMouseDown}
                     >
@@ -203,7 +166,7 @@ export default function ImageCropper({ imageSrc, onCancel, onCropComplete }: Ima
                         </div>
 
                         {/* Guide Overlay */}
-                        <div className="absolute inset-0 rounded-full border border-white/20 pointer-events-none"></div>
+                        <div className="absolute inset-0 border border-white/20 pointer-events-none rounded-lg"></div>
                     </div>
 
                     {/* Controls */}

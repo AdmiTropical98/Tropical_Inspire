@@ -183,7 +183,7 @@ const readJsonFromResponse = async (response: Response) => {
     }
 };
 
-const callAiOcrService = async (fileBase64: string, language: string) => {
+const callAiOcrService = async (fileBase64: string, language: string, mimeType: string) => {
     const endpoint = Deno.env.get('AI_OCR_ENDPOINT');
     const apiKey = Deno.env.get('AI_OCR_API_KEY');
 
@@ -201,7 +201,7 @@ const callAiOcrService = async (fileBase64: string, language: string) => {
         },
         body: JSON.stringify({
             file_base64: fileBase64,
-            mime_type: 'application/pdf',
+            mime_type: mimeType,
             language,
             prompt,
         }),
@@ -263,7 +263,13 @@ serve(async (req) => {
         for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
         const fileBase64 = btoa(binary);
 
-        const rawExtraction = await callAiOcrService(fileBase64, importRow.language || 'pt-PT');
+        const ext = storagePath.split('.').pop()?.toLowerCase();
+        let mimeType = 'application/pdf';
+        if (ext === 'jpg' || ext === 'jpeg') mimeType = 'image/jpeg';
+        else if (ext === 'png') mimeType = 'image/png';
+        else if (ext === 'webp') mimeType = 'image/webp';
+
+        const rawExtraction = await callAiOcrService(fileBase64, importRow.language || 'pt-PT', mimeType);
         const parsed = normalizeParsedInvoice(rawExtraction);
 
         const { error: updateError } = await supabaseAdmin

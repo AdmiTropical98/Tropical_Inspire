@@ -897,7 +897,7 @@ export default function InvoiceForm({
                 }
             } catch (localError) {
                 console.error('Local PDF parse also failed:', localError);
-                const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+                const errorMessage = error?.message || error?.error_description || (typeof error === 'string' ? error : 'Erro desconhecido');
                 setImportStatusMessage(`Falha no processamento inteligente da fatura: ${errorMessage}`);
                 alert(`Erro ao processar documento da fatura: ${errorMessage}`);
                 if (options?.mobileFlow) setCaptureStep('preview');
