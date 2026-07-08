@@ -186,8 +186,8 @@ export default function InvoiceForm({
     const [hasUserRequestedOcr, setHasUserRequestedOcr] = useState(false);
     const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set());
     const [isMobileLayout, setIsMobileLayout] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
-    const [pendingImageSrc, setPendingImageSrc] = useState<string | null>(null);
-    const [pendingImageName, setPendingImageName] = useState('fatura.jpg');
+    const [pendingImages, setPendingImages] = useState<{src: string, name: string}[]>([]);
+    const [croppingIndex, setCroppingIndex] = useState<number | null>(null);
     const [captureStep, setCaptureStep] = useState<'chooser' | 'preview' | 'uploading' | 'form'>(() => (
         !invoice ? 'chooser' : 'form'
     ));
@@ -220,7 +220,7 @@ export default function InvoiceForm({
             return;
         }
 
-        if (pendingImageSrc) {
+        if (pendingImages.length > 0) {
             setCaptureStep('preview');
             return;
         }
@@ -228,7 +228,7 @@ export default function InvoiceForm({
         if (!uploading) {
             setCaptureStep((prev) => (prev === 'uploading' ? 'chooser' : prev === 'form' ? 'form' : 'chooser'));
         }
-    }, [formData.pdf_url, isNewInvoice, pendingImageSrc, uploading]);
+    }, [formData.pdf_url, isNewInvoice, pendingImages, uploading]);
 
     const readFileAsDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -249,8 +249,7 @@ export default function InvoiceForm({
     };
 
     const stagePreviewImage = (dataUrl: string, fileName: string) => {
-        setPendingImageName(fileName || `fatura-${Date.now()}.jpg`);
-        setPendingImageSrc(dataUrl);
+        setPendingImages(prev => [...prev, { src: dataUrl, name: fileName || `fatura-${Date.now()}.jpg` }]);
         setUploadSuccessMessage('');
         setCaptureStep('preview');
     };
@@ -305,12 +304,11 @@ export default function InvoiceForm({
     };
 
     const handleRetakePhoto = async () => {
-        setPendingImageSrc(null);
         await handleTakePhoto();
     };
 
-    const handleRotatePreview = () => {
-        if (!pendingImageSrc) return;
+    const handleRotatePreview = (index: number) => {
+        setCroppingIndex(index);
         setShowImageCropper(true);
     };
 
@@ -792,7 +790,14 @@ export default function InvoiceForm({
     };
 
     const submitPreparedImage = async (croppedBase64: string) => {
-        setPendingImageSrc(croppedBase64);
+        setPendingImages(prev => {
+            const newArray = [...prev];
+            if (croppingIndex !== null && newArray[croppingIndex]) {
+                newArray[croppingIndex] = { ...newArray[croppingIndex], src: croppedBase64 };
+            }
+            return newArray;
+        });
+        setCroppingIndex(null);
         setShowImageCropper(false);
         setCaptureStep('preview');
     };
@@ -877,7 +882,7 @@ export default function InvoiceForm({
             }
 
             if (options?.mobileFlow) {
-                setPendingImageSrc(null);
+                setPendingImages([]);
                 setCaptureStep('form');
             }
         } catch (error) {
@@ -892,7 +897,7 @@ export default function InvoiceForm({
                     `OCR indisponível no servidor. Extração local aplicada (data: ${localExtract.date || 'n/a'}, linhas: ${localExtract.lines?.length || 0}). Revise os dados antes de guardar.`
                 );
                 if (options?.mobileFlow) {
-                    setPendingImageSrc(null);
+                    setPendingImages([]);
                     setCaptureStep('form');
                 }
             } catch (localError) {
@@ -908,14 +913,56 @@ export default function InvoiceForm({
     };
 
     const confirmPendingMobileImage = async () => {
-        if (!pendingImageSrc) return;
+        if (pendingImages.length === 0) return;
 
         try {
-            const preparedFile = await dataUrlToFile(pendingImageSrc, pendingImageName || 'fatura.jpg');
+            setCaptureStep('uploading');
+            setUploadPhaseLabel('A processar imagens...');
+            
+            let preparedFile: File;
+            if (pendingImages.length === 1) {
+                preparedFile = await dataUrlToFile(pendingImages[0].src, pendingImages[0].name);
+            } else {
+                const { jsPDF } = await import('jspdf');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+
+                for (let i = 0; i < pendingImages.length; i++) {
+                    if (i > 0) pdf.addPage();
+                    const imgUrl = pendingImages[i].src;
+                    
+                    const img = new Image();
+                    img.src = imgUrl;
+                    await new Promise(resolve => img.onload = resolve);
+                    
+                    const imgRatio = img.width / img.height;
+                    const pdfRatio = pdfWidth / pdfHeight;
+                    
+                    let finalWidth = pdfWidth;
+                    let finalHeight = pdfHeight;
+                    let x = 0;
+                    let y = 0;
+
+                    if (imgRatio > pdfRatio) {
+                        finalHeight = pdfWidth / imgRatio;
+                        y = (pdfHeight - finalHeight) / 2;
+                    } else {
+                        finalWidth = pdfHeight * imgRatio;
+                        x = (pdfWidth - finalWidth) / 2;
+                    }
+
+                    pdf.addImage(imgUrl, 'JPEG', x, y, finalWidth, finalHeight);
+                }
+                
+                const blob = pdf.output('blob');
+                preparedFile = new File([blob], `fatura-multipagina-${Date.now()}.pdf`, { type: 'application/pdf' });
+            }
+
             await onFileUpload(preparedFile, { mobileFlow: true });
         } catch (error) {
             console.error('Error confirming mobile invoice image:', error);
-            alert('Não foi possível preparar a fotografia para upload.');
+            alert('Não foi possível preparar as fotografias para upload.');
             setCaptureStep('preview');
         }
     };
@@ -1068,34 +1115,38 @@ export default function InvoiceForm({
                 </div>
             )}
 
-            {captureStep === 'preview' && pendingImageSrc && (
+            {captureStep === 'preview' && pendingImages.length > 0 && (
                 <div className={isMobileLayout ? "flex min-h-[500px] flex-col" : "flex flex-col p-8 min-h-[500px]"}>
                     <div className={`flex items-center justify-between border-b ${isMobileLayout ? 'border-slate-800 px-5 py-4' : 'border-slate-100 pb-4 mb-4'}`}>
                         <div>
-                            <p className={`text-xs font-bold uppercase tracking-[0.24em] ${isMobileLayout ? 'text-blue-400' : 'text-blue-600'}`}>Pré-visualização</p>
-                            <p className={`mt-1 text-lg font-semibold ${isMobileLayout ? 'text-white' : 'text-slate-800'}`}>Confirme a fotografia antes do upload</p>
+                            <p className={`text-xs font-bold uppercase tracking-[0.24em] ${isMobileLayout ? 'text-blue-400' : 'text-blue-600'}`}>Pré-visualização ({pendingImages.length} {pendingImages.length === 1 ? 'Página' : 'Páginas'})</p>
+                            <p className={`mt-1 text-lg font-semibold ${isMobileLayout ? 'text-white' : 'text-slate-800'}`}>Confirme as fotografias antes do upload</p>
                         </div>
                     </div>
-                    <div className="flex-1 overflow-auto p-5 flex items-center justify-center">
-                        <div className={`flex min-h-full items-center justify-center rounded-[28px] p-4 w-full ${isMobileLayout ? 'bg-slate-900 border border-slate-800' : 'bg-slate-50 border border-slate-200 shadow-inner'}`}>
-                            <img src={pendingImageSrc} alt="Pré-visualização da fatura" className="max-h-[50vh] md:max-h-[60vh] w-full rounded-[22px] object-contain" />
-                        </div>
+                    <div className="flex-1 overflow-x-auto p-5 flex items-center gap-4 snap-x">
+                        {pendingImages.map((img, index) => (
+                            <div key={index} className={`relative flex-none w-full md:w-auto h-full min-h-[40vh] max-h-[60vh] flex flex-col items-center justify-center rounded-[28px] p-4 snap-center ${isMobileLayout ? 'bg-slate-900 border border-slate-800' : 'bg-slate-50 border border-slate-200 shadow-inner'}`}>
+                                <div className="absolute top-6 right-6 flex gap-2">
+                                    <button onClick={() => setPendingImages(prev => prev.filter((_, i) => i !== index))} className="p-3 bg-red-500/90 text-white rounded-full hover:bg-red-600 backdrop-blur-md shadow-lg">
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+                                <img src={img.src} alt={`Página ${index + 1}`} className="h-full w-full object-contain rounded-[22px]" />
+                                <div className="absolute bottom-6 flex gap-2">
+                                    <button onClick={() => handleRotatePreview(index)} className="p-4 bg-blue-600/90 text-white rounded-full hover:bg-blue-500 backdrop-blur-md shadow-lg">
+                                        <Crop className="w-6 h-6" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                     <div className={`space-y-3 px-5 py-5 border-t ${isMobileLayout ? 'border-slate-800' : 'border-slate-100'}`}>
-                        <div className="grid grid-cols-2 gap-3 max-w-md mx-auto w-full mb-4">
-                            <button type="button" onClick={handleRotatePreview} className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-4 font-semibold ${isMobileLayout ? 'border border-slate-700 bg-slate-900 text-white hover:bg-slate-800' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}>
-                                <RotateCcw className="h-4 w-4" /> Rodar
-                            </button>
-                            <button type="button" onClick={() => setShowImageCropper(true)} className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-4 font-semibold ${isMobileLayout ? 'border border-slate-700 bg-slate-900 text-white hover:bg-slate-800' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}>
-                                <Crop className="h-4 w-4" /> Cortar
-                            </button>
-                        </div>
                         <div className="grid grid-cols-2 gap-3 max-w-md mx-auto w-full">
-                            <button type="button" onClick={handleRetakePhoto} className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-4 font-semibold ${isMobileLayout ? 'border border-amber-500/40 bg-amber-500/10 text-amber-200' : 'border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'}`}>
-                                <Camera className="h-4 w-4" /> Capturar de novo
+                            <button type="button" onClick={handleTakePhoto} className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-4 font-semibold ${isMobileLayout ? 'border border-blue-500/40 bg-blue-500/10 text-blue-300' : 'border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100'}`}>
+                                <Plus className="h-5 w-5" /> Adicionar
                             </button>
                             <button type="button" onClick={confirmPendingMobileImage} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-4 font-semibold text-white hover:bg-emerald-500 shadow-md">
-                                <CheckCircle2 className="h-4 w-4" /> Confirmar
+                                <CheckCircle2 className="h-5 w-5" /> Processar {pendingImages.length}
                             </button>
                         </div>
                     </div>
@@ -1544,9 +1595,9 @@ export default function InvoiceForm({
             </form>
             )}
 
-            {showImageCropper && pendingImageSrc && (
+            {showImageCropper && croppingIndex !== null && pendingImages[croppingIndex] && (
                 <ImageCropper
-                    imageSrc={pendingImageSrc}
+                    imageSrc={pendingImages[croppingIndex].src}
                     onCancel={() => setShowImageCropper(false)}
                     onCropComplete={submitPreparedImage}
                 />
