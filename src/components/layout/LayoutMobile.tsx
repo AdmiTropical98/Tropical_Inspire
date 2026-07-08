@@ -5,6 +5,7 @@ interface BottomNavItem {
   label: string;
   icon: React.ElementType;
   active: boolean;
+  primary?: boolean;
   onClick: () => void;
 }
 
@@ -60,11 +61,31 @@ export default function LayoutMobile({
         {bottomNavItems.map((item) => {
           const Icon = item.icon;
           const isMoreTab = item.key === 'bottom-mais';
+          const isPrimary = item.primary;
+
+          if (isPrimary) {
+            return (
+              <div key={item.key} className="relative -top-5 flex flex-col items-center flex-1 z-10 px-1 shrink-0">
+                <button
+                  type="button"
+                  className="w-14 h-14 rounded-full bg-blue-600 text-white shadow-lg shadow-blue-500/30 flex items-center justify-center transform transition-transform active:scale-95"
+                  onClick={() => {
+                    setShowMoreMenu(false);
+                    item.onClick();
+                  }}
+                >
+                  <Icon className="h-6 w-6" />
+                </button>
+                <span className="text-[10px] font-bold text-slate-700 mt-1 whitespace-nowrap">{item.label}</span>
+              </div>
+            );
+          }
+
           return (
             <button
               key={item.key}
               type="button"
-              className={`mobile-bottom-nav-item ${item.active ? 'active' : ''}`}
+              className={`mobile-bottom-nav-item flex-1 min-w-0 ${item.active ? 'active' : ''}`}
               onClick={() => {
                 if (isMoreTab) {
                   setShowMoreMenu((prev) => !prev);
@@ -74,8 +95,8 @@ export default function LayoutMobile({
                 item.onClick();
               }}
             >
-              <Icon className="h-5 w-5" />
-              <span>{item.label}</span>
+              <Icon className="h-5 w-5 mb-1" />
+              <span className="truncate w-full px-1">{item.label}</span>
             </button>
           );
         })}

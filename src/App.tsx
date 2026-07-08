@@ -7,7 +7,7 @@ import {
   BarChart3, Award,
   UserCheck, Activity,
   Settings2, UserCog as UserCogIcon, LogOut,
-  AlertTriangle, ClipboardCheck, Wallet
+  AlertTriangle, ClipboardCheck, Wallet, Camera
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -750,23 +750,38 @@ function App() {
       onClick: () => handleNavigate('/dashboard'),
     },
     {
-      key: 'bottom-frota',
-      label: 'Frota',
-      icon: Car,
-      active: ['viaturas', 'vehicles', 'motoristas', 'avaliacao-drivers', 'frota-exploracao', 'transportes-eva'].includes(activeTab),
-      onClick: () => handleNavigate('/viaturas'),
+      key: 'bottom-nova-fatura',
+      label: 'Capturar',
+      icon: Camera,
+      primary: true,
+      active: activeTab === 'nova-fatura' || activeTab === 'finance/faturas/nova',
+      onClick: () => handleNavigate('/finance/faturas/nova'),
     },
+    ...(hasAccess(userRole, 'requisicoes') ? [{
+      key: 'bottom-requisicoes',
+      label: 'Requisições',
+      icon: ClipboardCheck,
+      active: activeTab === 'requisicoes',
+      onClick: () => handleNavigate('/requisicoes'),
+    }] : []),
     {
       key: 'bottom-mais',
       label: 'Mais',
       icon: Settings2,
-      active: [...operationsGroup.items, ...clientesFornecedoresGroup.items, ...moreGroup.items].some(item => item.active),
+      active: [...operationsGroup.items.filter(item => item.key !== 'requisicoes'), ...fleetGroup.items, ...clientesFornecedoresGroup.items, ...moreGroup.items].some(item => item.active),
       onClick: () => undefined,
     },
   ];
 
+  // Remove requisicoes from operations group on mobile so it doesn't appear twice
+  const mobileOperationsGroup = {
+    ...operationsGroup,
+    items: operationsGroup.items.filter(item => item.key !== 'requisicoes')
+  };
+
   const moreMenuItems = [
-    ...operationsGroup.items,
+    ...mobileOperationsGroup.items,
+    ...fleetGroup.items,
     ...clientesFornecedoresGroup.items,
     ...moreGroup.items
   ].map(item => ({
@@ -1014,7 +1029,7 @@ function App() {
         userMenu={<UserProfileMenu onNavigate={handleNavigate} compact />}
         isMapPage={isMapPage}
         bottomNavItems={bottomNavItems}
-        moreMenuGroups={[operationsGroup, clientesFornecedoresGroup, moreGroup]}
+        moreMenuGroups={[mobileOperationsGroup, fleetGroup, clientesFornecedoresGroup, moreGroup]}
       >
         {appRoutes}
       </LayoutMobile>
