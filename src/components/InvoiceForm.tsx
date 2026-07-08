@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { X, Upload, FileText, RefreshCw, Camera, Image as ImageIcon, ScanSearch, Crop, CheckCircle2, RotateCcw } from 'lucide-react';
+import { X, Upload, FileText, RefreshCw, Camera, Image as ImageIcon, ScanSearch, Crop, CheckCircle2, RotateCcw, Plus } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Camera as CapacitorCamera, CameraDirection, CameraResultType, CameraSource } from '@capacitor/camera';
 import { ALLOWED_INVOICE_UNITS } from '../types';
