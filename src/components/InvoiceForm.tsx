@@ -18,6 +18,8 @@ import { supabase } from '../lib/supabase';
 import StatusBadge from './common/StatusBadge';
 import InvoiceFinancialSummary from './InvoiceFinancialSummary';
 import ImageCropper from './common/ImageCropper';
+import QRCodeScanner from './common/QRCodeScanner';
+import { parseAtcudQrCode } from '../utils/qrCodeParser';
 import { formatCurrency } from '../utils/format';
 import {
     createInvoiceImportFromPdf,
