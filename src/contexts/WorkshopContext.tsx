@@ -3549,7 +3549,15 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             supplier_rejected: r.supplier_rejected ?? r.supplier_refused ?? false,
             supplier_comment: r.supplier_comment ?? null,
             supplier_response_date: r.supplier_response_date ?? null,
-            itens: r.itens
+            itens: r.itens,
+            financial_status: r.financial_status ?? null,
+            total_invoiced_amount: r.total_invoiced_amount ?? null,
+            fatura: r.fatura ?? '',
+            custo: r.custo ?? null,
+            faturas_dados: r.faturas_dados ?? null,
+            invoice_status: r.invoice_status ?? null,
+            invoice_document_url: r.invoice_document_url ?? null,
+            invoice_history: r.invoice_history ?? []
         }).eq('id', r.id);
         if (error) {
             console.error('Error updating requisition:', error);
@@ -3576,6 +3584,27 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         if (!r) return;
 
         const newStatus = r.status === 'concluida' ? 'pendente' : 'concluida';
+
+        if (newStatus === 'concluida' && (!faturas || !Array.isArray(faturas) || faturas.length === 0)) {
+            alert('Associe primeiro uma fatura à requisição para a poder concluir.');
+            return;
+        }
+
+        if (newStatus === 'pendente') {
+            const { count, error: linkedInvoicesError } = await supabase
+                .from('supplier_invoices')
+                .select('id', { count: 'exact', head: true })
+                .eq('requisition_id', id);
+
+            if (linkedInvoicesError) {
+                console.warn('Unable to verify linked invoices before reopening requisition:', linkedInvoicesError.message);
+            }
+
+            if ((count || 0) > 0) {
+                alert('Remova ou desassocie as faturas da requisição antes de a reabrir.');
+                return;
+            }
+        }
 
         const updates: any = { status: newStatus };
 

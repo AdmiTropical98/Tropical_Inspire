@@ -165,7 +165,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
             const { data: linkedInvoices, error: linkedInvoicesError } = await supabase
                 .from('supplier_invoices')
-                .select('total_final,total,total_value')
+                .select('id,invoice_number,issue_date,total_final,total,total_value,net_value,total_liquido,vat_value,total_iva,pdf_url,created_at,updated_at')
                 .eq('requisition_id', requisitionId);
 
             if (linkedInvoicesError) {
@@ -177,17 +177,39 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 const total = Number(invoice?.total_final ?? invoice?.total ?? invoice?.total_value ?? 0);
                 return sum + (Number.isFinite(total) ? total : 0);
             }, 0));
+            const normalizedInvoiceRows = (linkedInvoices || []).map((invoice: any) => ({
+                numero: String(invoice?.invoice_number || '').trim(),
+                valor_liquido: round2(Number(invoice?.net_value ?? invoice?.total_liquido ?? 0) || 0),
+                iva_taxa: 0,
+                iva_valor: round2(Number(invoice?.vat_value ?? invoice?.total_iva ?? 0) || 0),
+                valor_total: round2(Number(invoice?.total_final ?? invoice?.total ?? invoice?.total_value ?? 0) || 0),
+            })).filter((invoice) => invoice.numero || invoice.valor_total > 0);
+            const latestInvoice = [...(linkedInvoices || [])]
+                .sort((left: any, right: any) => {
+                    const leftStamp = new Date(left?.updated_at || left?.created_at || left?.issue_date || 0).getTime();
+                    const rightStamp = new Date(right?.updated_at || right?.created_at || right?.issue_date || 0).getTime();
+                    return rightStamp - leftStamp;
+                })[0];
 
             const estimatedValue = round2(Number((requisitionData as any).approved_value ?? 0) || getEstimatedRequisitionValue(requisitionData));
             const financialStatus = getRequisitionFinancialStatus(totalInvoiced, estimatedValue);
             const erpStatus = getRequisitionErpStatus(totalInvoiced, estimatedValue);
+            const requisitionStatus = normalizedInvoiceRows.length > 0 ? 'concluida' : 'pendente';
 
             const { error: updateError } = await supabase
                 .from('requisicoes')
                 .update({
+                    status: requisitionStatus,
                     erp_status: erpStatus,
                     financial_status: financialStatus,
-                    total_invoiced_amount: totalInvoiced
+                    total_invoiced_amount: totalInvoiced,
+                    fatura: normalizedInvoiceRows.length > 0
+                        ? normalizedInvoiceRows.map((invoice) => invoice.numero).filter(Boolean).join(', ')
+                        : '',
+                    custo: normalizedInvoiceRows.length > 0 ? totalInvoiced : null,
+                    faturas_dados: normalizedInvoiceRows.length > 0 ? normalizedInvoiceRows : null,
+                    invoice_status: normalizedInvoiceRows.length > 0 ? 'FATURADA' : 'SEM_FATURA',
+                    invoice_document_url: latestInvoice?.pdf_url || null,
                 })
                 .eq('id', requisitionId);
 
@@ -246,6 +268,31 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const totalFinal = round2(totalLiquido + totalIva);
 
         return { normalizedLines, grossBaseTotal, discountTotal, totalLiquido, totalIva, totalFinal };
+    };
+
+    const validateRequisitionInvoicePayload = (invoice: {
+        requisition_id?: string | null;
+        supplier_id?: string | null;
+        invoice_number?: string | null;
+        pdf_url?: string | null;
+        total?: number | null;
+        total_final?: number | null;
+        total_value?: number | null;
+        net_value?: number | null;
+    }) => {
+        if (!invoice.requisition_id) return;
+
+        const missingFields: string[] = [];
+        if (!invoice.pdf_url) missingFields.push('documento PDF/imagem');
+        if (!String(invoice.invoice_number || '').trim()) missingFields.push('número da fatura');
+        if (!invoice.supplier_id) missingFields.push('fornecedor');
+
+        const resolvedValue = Number(invoice.total_final ?? invoice.total ?? invoice.total_value ?? invoice.net_value ?? 0);
+        if (!Number.isFinite(resolvedValue) || resolvedValue <= 0) missingFields.push('valor');
+
+        if (missingFields.length > 0) {
+            throw new Error(`A requisição só pode ser faturada quando a fatura tiver: ${missingFields.join(', ')}.`);
+        }
     };
 
     const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -568,6 +615,17 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const validatedLines = normalizeAndValidateInvoiceLinesUnits(lines);
         const { normalizedLines, grossBaseTotal, discountTotal, totalLiquido, totalIva, totalFinal } = computeInvoiceFromLines(validatedLines);
 
+        validateRequisitionInvoicePayload({
+            requisition_id: invoiceData.requisition_id,
+            supplier_id: invoiceData.supplier_id,
+            invoice_number: invoiceData.invoice_number,
+            pdf_url: invoiceData.pdf_url,
+            total_final: totalFinal,
+            total: totalFinal,
+            total_value: totalFinal,
+            net_value: totalLiquido,
+        });
+
         if (!normalizedLines.length) {
             throw new Error('A fatura deve incluir pelo menos uma linha válida.');
         }
@@ -692,6 +750,17 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             const computed = computeInvoiceFromLines(validatedLines);
             normalizedLines = computed.normalizedLines;
 
+            validateRequisitionInvoicePayload({
+                requisition_id: invoiceData.requisition_id ?? existingInvoice?.requisition_id,
+                supplier_id: invoiceData.supplier_id ?? existingInvoice?.supplier_id,
+                invoice_number: invoiceData.invoice_number ?? existingInvoice?.invoice_number,
+                pdf_url: invoiceData.pdf_url ?? existingInvoice?.pdf_url,
+                total_final: computed.totalFinal,
+                total: computed.totalFinal,
+                total_value: computed.totalFinal,
+                net_value: computed.totalLiquido,
+            });
+
             if (!normalizedLines || !normalizedLines.length) {
                 throw new Error('A fatura deve incluir pelo menos uma linha válida.');
             }
@@ -714,6 +783,17 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 discount: { type: 'amount', value: computed.discountTotal, applied_value: computed.discountTotal },
                 extra_expenses: []
             };
+        } else {
+            validateRequisitionInvoicePayload({
+                requisition_id: invoiceData.requisition_id ?? existingInvoice?.requisition_id,
+                supplier_id: invoiceData.supplier_id ?? existingInvoice?.supplier_id,
+                invoice_number: invoiceData.invoice_number ?? existingInvoice?.invoice_number,
+                pdf_url: invoiceData.pdf_url ?? existingInvoice?.pdf_url,
+                total_final: invoiceData.total_final ?? existingInvoice?.total_final,
+                total: invoiceData.total ?? existingInvoice?.total,
+                total_value: invoiceData.total_value ?? existingInvoice?.total_value,
+                net_value: invoiceData.net_value ?? existingInvoice?.net_value,
+            });
         }
 
         await sanitizePayloadBySchema(

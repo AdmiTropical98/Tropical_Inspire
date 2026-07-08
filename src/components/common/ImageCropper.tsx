@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Check, ZoomIn, ZoomOut, Move } from 'lucide-react';
+import { X, Check, ZoomIn, ZoomOut, Move, RotateCcw, RotateCw } from 'lucide-react';
 
 interface ImageCropperProps {
     imageSrc: string;
@@ -13,6 +13,7 @@ export default function ImageCropper({ imageSrc, onCancel, onCropComplete }: Ima
     const [pan, setPan] = useState({ x: 0, y: 0 });
     const [baseScale, setBaseScale] = useState(1);
     const [isDragging, setIsDragging] = useState(false);
+    const [rotation, setRotation] = useState(0);
     const imageRef = useRef<HTMLImageElement>(null);
 
     // Reset pan when zoom changes to keep image somewhat centered if desired, 
@@ -144,6 +145,7 @@ export default function ImageCropper({ imageSrc, onCancel, onCropComplete }: Ima
         ctx.fillRect(0, 0, size, size);
 
         ctx.translate(center + pan.x * outputScale, center + pan.y * outputScale);
+        ctx.rotate((rotation * Math.PI) / 180);
         ctx.scale(totalScale, totalScale);
 
         // Draw image centered
@@ -180,7 +182,7 @@ export default function ImageCropper({ imageSrc, onCancel, onCropComplete }: Ima
                         <div
                             className="absolute inset-0 flex items-center justify-center pointer-events-none"
                             style={{
-                                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom * baseScale})`,
+                                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom * baseScale}) rotate(${rotation}deg)`,
                                 transformOrigin: 'center',
                                 transition: isDragging ? 'none' : 'transform 0.1s ease-out'
                             }}
@@ -206,6 +208,25 @@ export default function ImageCropper({ imageSrc, onCancel, onCropComplete }: Ima
 
                     {/* Controls */}
                     <div className="w-full max-w-[280px] space-y-4">
+                        <div className="flex items-center justify-center gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setRotation((prev) => prev - 90)}
+                                className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 transition-colors hover:bg-slate-700"
+                            >
+                                <RotateCcw className="w-4 h-4" />
+                                Rodar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setRotation((prev) => prev + 90)}
+                                className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 transition-colors hover:bg-slate-700"
+                            >
+                                <RotateCw className="w-4 h-4" />
+                                Rodar
+                            </button>
+                        </div>
+
                         <div className="flex items-center gap-4">
                             <ZoomOut className="w-5 h-5 text-slate-500" />
                             <input

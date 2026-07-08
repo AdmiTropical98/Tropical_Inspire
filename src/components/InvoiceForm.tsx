@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { X, Upload, FileText, RefreshCw } from 'lucide-react';
+import { X, Upload, FileText, RefreshCw, Camera, Image as ImageIcon, ScanSearch, Crop, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { Camera as CapacitorCamera, CameraDirection, CameraResultType, CameraSource } from '@capacitor/camera';
 import { ALLOWED_INVOICE_UNITS } from '../types';
 import type {
     SupplierInvoice,
@@ -15,6 +17,7 @@ import type {
 import { supabase } from '../lib/supabase';
 import StatusBadge from './common/StatusBadge';
 import InvoiceFinancialSummary from './InvoiceFinancialSummary';
+import ImageCropper from './common/ImageCropper';
 import { formatCurrency } from '../utils/format';
 import {
     createInvoiceImportFromPdf,
@@ -33,6 +36,16 @@ interface InvoiceFormProps {
     requisitions: Requisicao[];
     initialRequisition?: Requisicao | null;
     onSave: (invoice: Omit<SupplierInvoice, 'id' | 'created_at' | 'updated_at'>) => Promise<string>;
+    onPersisted?: (payload: {
+        savedInvoiceId: string;
+        mode: 'create' | 'update';
+        hadImport: boolean;
+        hadDocument: boolean;
+        documentReplaced: boolean;
+        invoiceNumber: string;
+        issueDate: string;
+        totalValue: number;
+    }) => Promise<void> | void;
     onCancel: () => void;
 }
 
@@ -44,6 +57,7 @@ export default function InvoiceForm({
     requisitions,
     initialRequisition,
     onSave,
+    onPersisted,
     onCancel
 }: InvoiceFormProps) {
     const allowedUnits = ALLOWED_INVOICE_UNITS;
@@ -171,6 +185,134 @@ export default function InvoiceForm({
     const [importStatusMessage, setImportStatusMessage] = useState('');
     const [hasUserRequestedOcr, setHasUserRequestedOcr] = useState(false);
     const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set());
+    const [isMobileLayout, setIsMobileLayout] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
+    const [pendingImageSrc, setPendingImageSrc] = useState<string | null>(null);
+    const [pendingImageName, setPendingImageName] = useState('fatura.jpg');
+    const [mobileCaptureStep, setMobileCaptureStep] = useState<'chooser' | 'preview' | 'uploading' | 'form'>(() => (
+        typeof window !== 'undefined' && window.innerWidth < 768 && !invoice ? 'chooser' : 'form'
+    ));
+    const [showImageCropper, setShowImageCropper] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [uploadPhaseLabel, setUploadPhaseLabel] = useState('');
+    const [uploadSuccessMessage, setUploadSuccessMessage] = useState('');
+    const pdfInputRef = useRef<HTMLInputElement | null>(null);
+    const imageInputRef = useRef<HTMLInputElement | null>(null);
+    const cameraInputRef = useRef<HTMLInputElement | null>(null);
+    const isCapacitorNative = Capacitor.isNativePlatform();
+    const isDedicatedMobileCapture = isMobileLayout && !invoice;
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const handleResize = () => setIsMobileLayout(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    useEffect(() => {
+        if (!isDedicatedMobileCapture) {
+            setMobileCaptureStep('form');
+            return;
+        }
+
+        if (formData.pdf_url) {
+            setMobileCaptureStep('form');
+            return;
+        }
+
+        if (pendingImageSrc) {
+            setMobileCaptureStep('preview');
+            return;
+        }
+
+        if (!uploading) {
+            setMobileCaptureStep((prev) => (prev === 'uploading' ? 'chooser' : prev === 'form' ? 'form' : 'chooser'));
+        }
+    }, [formData.pdf_url, isDedicatedMobileCapture, pendingImageSrc, uploading]);
+
+    const readFileAsDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(reader.error || new Error('Não foi possível ler a imagem selecionada.'));
+        reader.readAsDataURL(file);
+    });
+
+    const dataUrlToFile = async (dataUrl: string, fileName: string) => {
+        const response = await fetch(dataUrl);
+        const blob = await response.blob();
+        return new File([blob], fileName, { type: blob.type || 'image/jpeg' });
+    };
+
+    const canReplaceExistingDocument = () => {
+        if (!formData.pdf_url) return true;
+        return confirm('Já existe um documento associado a esta fatura. Pretende substituí-lo?');
+    };
+
+    const stagePreviewImage = (dataUrl: string, fileName: string) => {
+        setPendingImageName(fileName || `fatura-${Date.now()}.jpg`);
+        setPendingImageSrc(dataUrl);
+        setUploadSuccessMessage('');
+        setMobileCaptureStep('preview');
+    };
+
+    const loadNativePhoto = async (source: CameraSource) => {
+        if (!canReplaceExistingDocument()) return;
+
+        const photo = await CapacitorCamera.getPhoto({
+            quality: 92,
+            resultType: CameraResultType.DataUrl,
+            source,
+            direction: source === CameraSource.Camera ? CameraDirection.Rear : undefined,
+            correctOrientation: true,
+            presentationStyle: 'fullscreen',
+        });
+
+        const dataUrl = photo.dataUrl;
+        if (!dataUrl) throw new Error('Não foi possível obter a imagem da câmara.');
+
+        const extension = photo.format || 'jpeg';
+        stagePreviewImage(dataUrl, `fatura-${Date.now()}.${extension}`);
+    };
+
+    const handleTakePhoto = async () => {
+        try {
+            if (isCapacitorNative) {
+                await loadNativePhoto(CameraSource.Camera);
+                return;
+            }
+
+            if (!canReplaceExistingDocument()) return;
+            cameraInputRef.current?.click();
+        } catch (error) {
+            console.error('Error opening native camera:', error);
+            alert('Não foi possível abrir a câmara do dispositivo.');
+        }
+    };
+
+    const handleChooseFromGallery = async () => {
+        try {
+            if (isCapacitorNative) {
+                await loadNativePhoto(CameraSource.Photos);
+                return;
+            }
+
+            if (!canReplaceExistingDocument()) return;
+            imageInputRef.current?.click();
+        } catch (error) {
+            console.error('Error opening mobile gallery:', error);
+            alert('Não foi possível abrir a galeria do dispositivo.');
+        }
+    };
+
+    const handleRetakePhoto = async () => {
+        setPendingImageSrc(null);
+        await handleTakePhoto();
+    };
+
+    const handleRotatePreview = () => {
+        if (!pendingImageSrc) return;
+        setShowImageCropper(true);
+    };
 
     const pollImportUntilDone = async (importId: string) => {
         for (let attempt = 0; attempt < 60; attempt += 1) {
@@ -576,6 +718,17 @@ export default function InvoiceForm({
                 setActiveImport((prev) => prev ? { ...prev, status: 'confirmed' } : prev);
             }
 
+            await onPersisted?.({
+                savedInvoiceId,
+                mode: invoice ? 'update' : 'create',
+                hadImport: Boolean(activeImport),
+                hadDocument: Boolean(formData.pdf_url),
+                documentReplaced: Boolean(invoice?.pdf_url && formData.pdf_url && invoice.pdf_url !== formData.pdf_url),
+                invoiceNumber: formData.invoice_number,
+                issueDate: formData.issue_date,
+                totalValue: totalFinal,
+            });
+
             onCancel();
         } catch (error: any) {
             console.error('Error saving invoice form:', error);
@@ -638,27 +791,65 @@ export default function InvoiceForm({
             : [null]);
     };
 
-    const onFileUpload = async (file?: File | null) => {
+    const submitPreparedImage = async (croppedBase64: string) => {
+        setPendingImageSrc(croppedBase64);
+        setShowImageCropper(false);
+        setMobileCaptureStep('preview');
+    };
+
+    const processSelectedDocument = async (file?: File | null) => {
+        if (!file) return;
+
+        if (!canReplaceExistingDocument()) return;
+
+        if (file.type.startsWith('image/')) {
+            try {
+                const previewSource = await readFileAsDataUrl(file);
+                stagePreviewImage(previewSource, file.name || 'fatura.jpg');
+            } catch (error) {
+                console.error('Error preparing image preview:', error);
+                alert('Não foi possível abrir a pré-visualização da imagem.');
+            }
+            return;
+        }
+
+        await onFileUpload(file);
+    };
+
+    const onFileUpload = async (file?: File | null, options?: { mobileFlow?: boolean }) => {
         if (!file) return;
 
         setHasUserRequestedOcr(true);
         setUploading(true);
+        setUploadSuccessMessage('');
+        setUploadProgress(12);
+        setUploadPhaseLabel('A preparar documento...');
+        if (options?.mobileFlow) setMobileCaptureStep('uploading');
         try {
-            setImportStatusMessage('Reading invoice...');
+            setImportStatusMessage('A ler documento e extrair QR/OCR...');
+            setUploadProgress(28);
+            setUploadPhaseLabel('A enviar documento...');
             const createdImport = await createInvoiceImportFromPdf(file);
             setActiveImport(createdImport);
+            setUploadProgress(48);
+            setUploadPhaseLabel('Documento associado à requisição.');
             const previewUrl = await getInvoiceImportPreviewUrl(createdImport.file_path);
 
             setFormData(prev => ({ ...prev, pdf_url: previewUrl || prev.pdf_url }));
 
+            setUploadProgress(65);
+            setUploadPhaseLabel('A executar leitura do QR Code...');
             const completedImport = await pollImportUntilDone(createdImport.id);
 
             if (completedImport.status === 'failed') {
-                setImportStatusMessage(`PDF carregado, mas a extração automática falhou${completedImport.error ? `: ${completedImport.error}` : '.'}`);
+                setImportStatusMessage(`Documento carregado, mas a extração automática falhou${completedImport.error ? `: ${completedImport.error}` : '.'}`);
+                if (options?.mobileFlow) setMobileCaptureStep('preview');
                 return;
             }
 
             if (completedImport.status === 'ready' && completedImport.extracted_json) {
+                setUploadProgress(82);
+                setUploadPhaseLabel('A executar OCR automático...');
                 let bestExtract = completedImport.extracted_json;
                 let usedLocalEnhancement = false;
 
@@ -675,28 +866,57 @@ export default function InvoiceForm({
                 }
 
                 applyImportedData(bestExtract);
+                setUploadProgress(100);
+                setUploadPhaseLabel('Fatura associada com sucesso.');
+                setUploadSuccessMessage('Fotografia carregada e associada à requisição com sucesso.');
                 setImportStatusMessage(
                     usedLocalEnhancement
                         ? 'Dados extraídos e melhorados localmente. Revise e confirme antes de guardar.'
                         : 'Dados extraídos. Revise e confirme antes de guardar.'
                 );
             }
+
+            if (options?.mobileFlow) {
+                setPendingImageSrc(null);
+                setMobileCaptureStep('form');
+            }
         } catch (error) {
             console.error('Error uploading file:', error);
             try {
                 const localExtract = await parseInvoicePdfLocally(file);
                 applyImportedData(localExtract);
+                setUploadProgress(100);
+                setUploadPhaseLabel('Leitura local concluída.');
+                setUploadSuccessMessage('Fotografia carregada e extraída localmente com sucesso.');
                 setImportStatusMessage(
                     `OCR indisponível no servidor. Extração local aplicada (data: ${localExtract.date || 'n/a'}, linhas: ${localExtract.lines?.length || 0}). Revise os dados antes de guardar.`
                 );
+                if (options?.mobileFlow) {
+                    setPendingImageSrc(null);
+                    setMobileCaptureStep('form');
+                }
             } catch (localError) {
                 console.error('Local PDF parse also failed:', localError);
                 const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
                 setImportStatusMessage(`Falha no processamento inteligente da fatura: ${errorMessage}`);
-                alert(`Erro ao processar PDF da fatura: ${errorMessage}`);
+                alert(`Erro ao processar documento da fatura: ${errorMessage}`);
+                if (options?.mobileFlow) setMobileCaptureStep('preview');
             }
         } finally {
             setUploading(false);
+        }
+    };
+
+    const confirmPendingMobileImage = async () => {
+        if (!pendingImageSrc) return;
+
+        try {
+            const preparedFile = await dataUrlToFile(pendingImageSrc, pendingImageName || 'fatura.jpg');
+            await onFileUpload(preparedFile, { mobileFlow: true });
+        } catch (error) {
+            console.error('Error confirming mobile invoice image:', error);
+            alert('Não foi possível preparar a fotografia para upload.');
+            setMobileCaptureStep('preview');
         }
     };
 
@@ -756,14 +976,14 @@ export default function InvoiceForm({
     };
 
     return (
-        <div className="w-full bg-white border border-slate-200/80 rounded-2xl shadow-sm">
-            <div className="flex items-center justify-between p-6 border-b border-slate-100">
-                <h2 className="text-xl font-bold text-slate-800">
+        <div className={isMobileLayout ? 'relative w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-900' : 'w-full rounded-2xl border border-slate-200/80 bg-white shadow-sm'}>
+            <div className={isMobileLayout ? 'flex items-center justify-between border-b border-slate-700 p-6' : 'flex items-center justify-between border-b border-slate-100 p-6'}>
+                <h2 className={isMobileLayout ? 'text-xl font-semibold text-white' : 'text-xl font-bold text-slate-800'}>
                     {invoice ? 'Editar Fatura' : 'Nova Fatura de Fornecedor'}
                 </h2>
                 <button
                     onClick={onCancel}
-                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-400 hover:text-slate-600"
+                    className={isMobileLayout ? 'rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white' : 'rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600'}
                 >
                     <X className="w-5 h-5" />
                 </button>
@@ -1093,28 +1313,122 @@ export default function InvoiceForm({
                     </div>
                 </div>
 
-                {/* PDF Upload */}
-                <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                        PDF da Fatura
-                    </label>
-                    <div className="flex items-center gap-4">
-                        <label className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors text-slate-700 font-medium text-sm">
-                            <Upload className="w-4 h-4" />
-                            <span className="text-sm">Upload PDF</span>
-                            <input
-                                type="file"
-                                accept=".pdf,image/*"
-                                onChange={(e) => {
-                                    onFileUpload(e.target.files?.[0] ?? null);
-                                }}
-                                className="hidden"
-                                disabled={uploading}
-                            />
+                {/* Invoice Document Upload */}
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                            Documento da Fatura
                         </label>
-                        {uploading && <span className="text-slate-500 text-sm">A fazer upload...</span>}
+                        <p className="text-sm text-slate-400">
+                            O sistema tenta ler automaticamente QR Code AT e OCR depois do upload. Os campos mantêm-se editáveis para correções manuais.
+                        </p>
+                    </div>
+
+                    {isMobileLayout ? (
+                        <div className="rounded-2xl border border-slate-700 bg-slate-800/70 p-4 space-y-4">
+                            <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+                                <Camera className="mt-0.5 h-5 w-5 text-emerald-300" />
+                                <div>
+                                    <p className="text-sm font-semibold text-white">Interface móvel</p>
+                                    <p className="mt-1 text-sm text-slate-300">
+                                        Use a câmara do dispositivo para fotografar a fatura diretamente. Depois pode pré-visualizar, cortar e rodar antes do upload automático.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <button
+                                    type="button"
+                                    onClick={handleTakePhoto}
+                                    disabled={uploading}
+                                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+                                >
+                                    <Camera className="h-4 w-4" />
+                                    Tirar Fotografia
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleChooseFromGallery}
+                                    disabled={uploading}
+                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-600 bg-slate-900/60 px-4 py-3 font-semibold text-slate-200 transition-colors hover:bg-slate-800 disabled:opacity-50"
+                                >
+                                    <ImageIcon className="h-4 w-4" />
+                                    Escolher da galeria
+                                </button>
+                            </div>
+
+                        </div>
+                    ) : (
+                        <div className="flex flex-wrap items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={() => pdfInputRef.current?.click()}
+                                disabled={uploading}
+                                className="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm text-white transition-colors hover:bg-slate-700 disabled:opacity-50"
+                            >
+                                <Upload className="h-4 w-4" />
+                                Carregar PDF
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => imageInputRef.current?.click()}
+                                disabled={uploading}
+                                className="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm text-white transition-colors hover:bg-slate-700 disabled:opacity-50"
+                            >
+                                <ImageIcon className="h-4 w-4" />
+                                Carregar Imagem
+                            </button>
+                        </div>
+                    )}
+
+                    <input
+                        ref={pdfInputRef}
+                        type="file"
+                        accept=".pdf,application/pdf"
+                        onChange={(e) => {
+                            processSelectedDocument(e.target.files?.[0] ?? null);
+                            e.target.value = '';
+                        }}
+                        className="hidden"
+                        disabled={uploading}
+                    />
+                    <input
+                        ref={imageInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                            processSelectedDocument(e.target.files?.[0] ?? null);
+                            e.target.value = '';
+                        }}
+                        className="hidden"
+                        disabled={uploading}
+                    />
+                    <input
+                        ref={cameraInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={(e) => {
+                            processSelectedDocument(e.target.files?.[0] ?? null);
+                            e.target.value = '';
+                        }}
+                        className="hidden"
+                        disabled={uploading}
+                    />
+
+                    <div className="flex flex-wrap items-center gap-3 text-sm">
+                        {uploading && <span className="text-slate-400">A fazer upload e leitura automática...</span>}
+                        {!uploading && uploadSuccessMessage && (
+                            <span className="inline-flex items-center gap-2 text-emerald-300">
+                                <CheckCircle2 className="h-4 w-4" />
+                                {uploadSuccessMessage}
+                            </span>
+                        )}
                         {!uploading && hasUserRequestedOcr && importStatusMessage && (
-                            <span className="text-slate-500 text-sm">{importStatusMessage}</span>
+                            <span className="inline-flex items-center gap-2 text-slate-300">
+                                <ScanSearch className="h-4 w-4 text-blue-300" />
+                                {importStatusMessage}
+                            </span>
                         )}
                         {formData.pdf_url && (
                             <a
@@ -1124,7 +1438,7 @@ export default function InvoiceForm({
                                 className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold"
                             >
                                 <FileText className="w-4 h-4" />
-                                <span className="text-sm">Ver PDF</span>
+                                <span className="text-sm">Ver documento</span>
                             </a>
                         )}
                         {activeImport?.status && (
@@ -1140,7 +1454,7 @@ export default function InvoiceForm({
                                 className="flex items-center gap-2 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 rounded-xl transition-colors text-sm font-medium"
                             >
                                 <RefreshCw className="w-4 h-4" />
-                                Re-parse
+                                Reprocessar
                             </button>
                         )}
                     </div>
@@ -1163,6 +1477,143 @@ export default function InvoiceForm({
                     </button>
                 </div>
             </form>
+
+            {isDedicatedMobileCapture && mobileCaptureStep !== 'form' && (
+                <div className="absolute inset-0 z-30 bg-slate-950 md:hidden">
+                    {mobileCaptureStep === 'chooser' && (
+                        <div className="flex min-h-full flex-col justify-between px-5 pb-8 pt-10">
+                            <div>
+                                <p className="text-xs font-bold uppercase tracking-[0.28em] text-blue-300">Adicionar Fatura</p>
+                                <h3 className="mt-3 text-3xl font-black tracking-tight text-white">Captura rápida no telemóvel</h3>
+                                <p className="mt-4 text-base leading-7 text-slate-300">
+                                    Tire a fotografia da fatura, confirme e deixe o sistema preencher QR Code e OCR automaticamente.
+                                </p>
+                            </div>
+
+                            <div className="space-y-4">
+                                <button
+                                    type="button"
+                                    onClick={handleTakePhoto}
+                                    className="flex w-full items-center justify-between rounded-[28px] bg-emerald-600 px-6 py-6 text-left text-white shadow-[0_20px_60px_-30px_rgba(16,185,129,0.8)] transition-colors hover:bg-emerald-500"
+                                >
+                                    <div>
+                                        <p className="text-xs font-bold uppercase tracking-[0.24em] text-emerald-100">Captura direta</p>
+                                        <p className="mt-2 text-2xl font-bold">Tirar Fotografia</p>
+                                    </div>
+                                    <Camera className="h-8 w-8" />
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={handleChooseFromGallery}
+                                    className="flex w-full items-center justify-between rounded-[28px] border border-slate-700 bg-slate-900 px-6 py-6 text-left text-white transition-colors hover:bg-slate-800"
+                                >
+                                    <div>
+                                        <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Biblioteca</p>
+                                        <p className="mt-2 text-2xl font-bold">Escolher da Galeria</p>
+                                    </div>
+                                    <ImageIcon className="h-8 w-8 text-blue-300" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {mobileCaptureStep === 'preview' && pendingImageSrc && (
+                        <div className="flex min-h-full flex-col bg-slate-950">
+                            <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+                                <div>
+                                    <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-300">Pré-visualização</p>
+                                    <p className="mt-1 text-lg font-semibold text-white">Confirme a fotografia antes do upload</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={onCancel}
+                                    className="rounded-2xl border border-slate-700 p-3 text-slate-300"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+
+                            <div className="flex-1 overflow-auto p-5">
+                                <div className="flex min-h-full items-center justify-center rounded-[28px] border border-slate-800 bg-slate-900 p-4">
+                                    <img
+                                        src={pendingImageSrc}
+                                        alt="Pré-visualização da fatura"
+                                        className="max-h-[62vh] w-full rounded-[22px] object-contain"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-3 border-t border-slate-800 px-5 py-5">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={handleRotatePreview}
+                                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-4 font-semibold text-white"
+                                    >
+                                        <RotateCcw className="h-4 w-4" />
+                                        Rodar
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowImageCropper(true)}
+                                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-4 font-semibold text-white"
+                                    >
+                                        <Crop className="h-4 w-4" />
+                                        Cortar
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={handleRetakePhoto}
+                                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-4 font-semibold text-amber-200"
+                                    >
+                                        <Camera className="h-4 w-4" />
+                                        Tirar novamente
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={confirmPendingMobileImage}
+                                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-4 font-semibold text-white"
+                                    >
+                                        <CheckCircle2 className="h-4 w-4" />
+                                        Confirmar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {mobileCaptureStep === 'uploading' && (
+                        <div className="flex min-h-full flex-col items-center justify-center px-6 text-center">
+                            <div className="w-full max-w-sm rounded-[30px] border border-slate-800 bg-slate-900 px-6 py-8 shadow-2xl">
+                                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-blue-500/10 text-blue-300">
+                                    <ScanSearch className="h-8 w-8" />
+                                </div>
+                                <h3 className="mt-5 text-2xl font-bold text-white">A processar fatura</h3>
+                                <p className="mt-3 text-sm leading-6 text-slate-300">{uploadPhaseLabel || 'A enviar fotografia e a executar leitura automática.'}</p>
+                                <div className="mt-6 h-3 overflow-hidden rounded-full bg-slate-800">
+                                    <div
+                                        className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-blue-500 transition-all duration-300"
+                                        style={{ width: `${Math.max(8, uploadProgress)}%` }}
+                                    />
+                                </div>
+                                <p className="mt-3 text-sm font-semibold text-white">{uploadProgress}%</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {showImageCropper && pendingImageSrc && (
+                <ImageCropper
+                    imageSrc={pendingImageSrc}
+                    onCancel={() => setShowImageCropper(false)}
+                    onCropComplete={submitPreparedImage}
+                />
+            )}
         </div>
     );
 }

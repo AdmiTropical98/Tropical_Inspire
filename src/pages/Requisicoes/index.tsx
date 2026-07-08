@@ -18,8 +18,11 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { Requisicao, ItemRequisicao } from '../../types';
 import RequisicaoForm from './RequisicaoForm';
+import RequisitionInvoiceModal from './RequisitionInvoiceModal';
+import RequisitionInvoiceSection from './RequisitionInvoiceSection';
 import { emailService } from '../../services/emailService';
 import { useFinancial } from '../../contexts/FinancialContext';
+import { supabase } from '../../lib/supabase';
 
 type BulkPreviewRow = {
     lineNumber: number;
@@ -57,7 +60,7 @@ export default function Requisicoes() {
         toggleRequisicaoStatus, clientes, fornecedores, viaturas, 
         centrosCustos, isRefreshing, refreshData 
     } = useWorkshop();
-    const { supplierInvoices } = useFinancial();
+    const { supplierInvoices, deleteSupplierInvoice } = useFinancial();
     const [editingId, setEditingId] = useState<string | null>(null);
     const [itemEmEdicao, setItemEmEdicao] = useState<ItemRequisicao | null>(null);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -965,6 +968,75 @@ export default function Requisicoes() {
         if (status === 'overdue') return 'Vencido';
         return 'Pendente';
     };
+    const getInvoiceWorkflowBadge = (req: Requisicao, linkedInvoicesCount: number) => {
+        if (linkedInvoicesCount > 0 || req.invoice_status === 'FATURADA') {
+            return { label: 'Faturada', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+        }
+
+        if (req.supplier_confirmed || req.erp_status === 'awaiting_invoice') {
+            return { label: 'Pendente', className: 'bg-amber-50 text-amber-700 border-amber-200' };
+        }
+
+        return { label: 'Sem Fatura', className: 'bg-slate-100 text-slate-600 border-slate-200' };
+    };
+    const formatDateTime = (value?: string) => {
+        if (!value) return 'Sem registo';
+        try {
+            return new Date(value).toLocaleString('pt-PT', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch {
+            return value;
+        }
+    };
+    const getInvoiceHistoryEntries = (req: Requisicao, linkedInvoices: typeof supplierInvoices) => {
+        const linkedHistory = linkedInvoices.flatMap((invoice) => {
+            const entries = [
+                {
+                    id: `${invoice.id}-created`,
+                    at: invoice.created_at || invoice.issue_date,
+                    label: 'Fatura criada',
+                    detail: invoice.invoice_number || 'Sem número'
+                }
+            ];
+
+            if (invoice.updated_at && invoice.updated_at !== invoice.created_at) {
+                entries.push({
+                    id: `${invoice.id}-updated`,
+                    at: invoice.updated_at,
+                    label: 'Fatura atualizada',
+                    detail: invoice.invoice_number || 'Sem número'
+                });
+            }
+
+            if (invoice.pdf_url) {
+                entries.push({
+                    id: `${invoice.id}-document`,
+                    at: invoice.updated_at || invoice.created_at || invoice.issue_date,
+                    label: 'Documento associado',
+                    detail: invoice.invoice_number || 'Documento da fatura'
+                });
+            }
+
+            return entries;
+        });
+
+        const customHistory = (req.invoice_history || []).map((entry) => ({
+            id: entry.id,
+            at: entry.at,
+            label: entry.description,
+            detail: entry.action
+        }));
+
+        return [...linkedHistory, ...customHistory]
+            .filter((entry) => entry.at)
+            .sort((left, right) => new Date(right.at).getTime() - new Date(left.at).getTime())
+            .slice(0, 6);
+    };
     const [tipo, setTipo] = useState<Requisicao['tipo']>('Oficina');
     const [clienteId, setClienteId] = useState('');
     const [fornecedorId, setFornecedorId] = useState('');
@@ -986,21 +1058,9 @@ export default function Requisicoes() {
     const [searchStatus, setSearchStatus] = useState<'all' | 'pendente' | 'concluida'>('all');
 
 
-    // Confirmation Modal State
-    const [showConfirmModal, setShowConfirmModal] = useState(false);
-    const [confirmingId, setConfirmingId] = useState<string | null>(null);
-    const [invoiceNumber, setInvoiceNumber] = useState('');
-    const [invoiceNetAmount, setInvoiceNetAmount] = useState('');
-    const [invoiceVatRate, setInvoiceVatRate] = useState<number>(0.23); // Default 23%
-
-    // NEW: Multiple Invoices State
-    const [invoicesList, setInvoicesList] = useState<{
-        numero: string;
-        valor_liquido: number;
-        iva_taxa: number;
-        iva_valor: number;
-        valor_total: number;
-    }[]>([]);
+    const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+    const [invoiceModalReqId, setInvoiceModalReqId] = useState<string | null>(null);
+    const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
 
     // Statistics for Overview
     const stats = {
@@ -1011,76 +1071,49 @@ export default function Requisicoes() {
     };
 
     const handleOpenConfirm = (id: string) => {
-        setConfirmingId(id);
-        setInvoiceNumber('');
-        setInvoiceNetAmount('');
-        setInvoiceVatRate(0.23);
-        setInvoicesList([]); // Reset list
-        setShowConfirmModal(true);
+        setInvoiceModalReqId(id);
+        setEditingInvoiceId(null);
+        setShowInvoiceModal(true);
     };
 
-    const addInvoiceToList = () => {
-        if (!invoiceNumber.trim() || !invoiceNetAmount.trim()) return;
-        const net = parseFloat(invoiceNetAmount.replace(',', '.'));
-        if (isNaN(net)) return alert('Valor inválido');
-
-        const vatAmount = net * invoiceVatRate;
-        const total = net + vatAmount;
-
-        setInvoicesList([...invoicesList, {
-            numero: invoiceNumber,
-            valor_liquido: net,
-            iva_taxa: invoiceVatRate,
-            iva_valor: vatAmount,
-            valor_total: total
-        }]);
-
-        setInvoiceNumber('');
-        setInvoiceNetAmount('');
-        setInvoiceVatRate(0.23); // Reset to default
+    const handleEditInvoice = (reqId: string, invoiceId: string) => {
+        setInvoiceModalReqId(reqId);
+        setEditingInvoiceId(invoiceId);
+        setShowInvoiceModal(true);
     };
 
-    const removeInvoiceFromList = (idx: number) => {
-        setInvoicesList(invoicesList.filter((_, i) => i !== idx));
+    const handleCloseInvoiceModal = () => {
+        setShowInvoiceModal(false);
+        setInvoiceModalReqId(null);
+        setEditingInvoiceId(null);
     };
 
-    const handleConfirmRequisition = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!confirmingId) return;
+    const handleInvoiceSaved = () => {
+        handleCloseInvoiceModal();
+    };
 
-        // If user filled input but didn't click "Add", try to add it seamlessly if list is empty
-        // Or if list is not empty but input has data, maybe warn? 
-        // Let's assume: if list is empty, use current input. If list has items, use list.
+    const handleDeleteInvoice = async (req: Requisicao, invoice: typeof supplierInvoices[number]) => {
+        const confirmed = confirm(`Apagar a fatura ${invoice.invoice_number || ''}? Esta ação será registada no histórico.`);
+        if (!confirmed) return;
 
-        let finalInvoices = [...invoicesList];
+        await deleteSupplierInvoice(invoice.id);
 
-        if (invoiceNumber.trim() && invoiceNetAmount.trim()) {
-            const net = parseFloat(invoiceNetAmount.replace(',', '.'));
-            if (!isNaN(net)) {
-                const vat = net * invoiceVatRate;
-                const total = net + vat;
-                finalInvoices.push({
-                    numero: invoiceNumber,
-                    valor_liquido: net,
-                    iva_taxa: invoiceVatRate,
-                    iva_valor: vat,
-                    valor_total: total
-                });
-            }
-        }
+        const invoiceHistory = [
+            {
+                id: `${invoice.id}-deleted-${Date.now()}`,
+                action: 'deleted' as const,
+                at: new Date().toISOString(),
+                description: `Fatura apagada${invoice.invoice_number ? `: ${invoice.invoice_number}` : ''}`,
+            },
+            ...(req.invoice_history || []),
+        ].slice(0, 60);
 
-        if (finalInvoices.length === 0) {
-            alert(t('req.valid.invoice_required'));
-            return;
-        }
+        await supabase
+            .from('requisicoes')
+            .update({ invoice_history: invoiceHistory })
+            .eq('id', req.id);
 
-        toggleRequisicaoStatus(confirmingId, finalInvoices);
-        setShowConfirmModal(false);
-        setConfirmingId(null);
-        setInvoiceNumber('');
-        setInvoiceNetAmount('');
-        setInvoiceVatRate(0.23);
-        setInvoicesList([]);
+        await refreshData();
     };
 
     const handleEdit = (req: Requisicao) => {
@@ -2185,12 +2218,15 @@ export default function Requisicoes() {
                                 const associatedInvoices = supplierInvoices
                                     .filter(invoice => invoice.requisition_id === req.id)
                                     .sort((a, b) => new Date(b.issue_date).getTime() - new Date(a.issue_date).getTime());
+                                const latestInvoice = associatedInvoices[0];
                                 const totalInvoicedAmount = associatedInvoices.reduce((sum, invoice) => {
                                     return sum + Number(invoice.total_final ?? invoice.total ?? invoice.total_value ?? 0);
                                 }, 0);
                                 const erpStatus = req.erp_status || getErpStatus(req, totalInvoicedAmount);
                                 const erpBadge = getErpBadge(erpStatus);
                                 const supplierBadge = getSupplierResponseBadge(req);
+                                const invoiceBadge = getInvoiceWorkflowBadge(req, associatedInvoices.length);
+                                const invoiceHistory = getInvoiceHistoryEntries(req, associatedInvoices);
 
                                 return (
                                     <div key={req.id} className="bg-white/90 backdrop-blur-md border border-slate-200/70 rounded-3xl p-5 md:p-6 hover:border-blue-400/40 transition-all hover:shadow-md group relative overflow-visible">
@@ -2277,63 +2313,21 @@ export default function Requisicoes() {
                                                     </p>
                                                 )}
 
-                                                <div className="mt-2 bg-white/90 border border-slate-200/70 rounded-2xl p-4">
-                                                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                                                        <h4 className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                                                            <FileText className="w-4 h-4 text-slate-400" />
-                                                            Faturas associadas
-                                                        </h4>
-                                                        <span className="text-xs text-slate-400">
-                                                            Total faturado: <span className="text-slate-900 font-semibold">{formatCurrency(totalInvoicedAmount)}</span>
-                                                        </span>
-                                                    </div>
-
-                                                    {associatedInvoices.length === 0 ? (
-                                                        <p className="text-xs text-slate-500">Sem faturas associadas.</p>
-                                                    ) : (
-                                                        <div className="overflow-x-auto rounded-xl border border-slate-200/80">
-                                                            <table className="w-full text-xs">
-                                                                <thead className="bg-white/90">
-                                                                    <tr className="text-slate-400 border-b border-slate-100">
-                                                                        <th className="text-left py-2.5 px-3 font-semibold">Nº Fatura</th>
-                                                                        <th className="text-left py-2.5 px-3 font-semibold">Data</th>
-                                                                        <th className="text-right py-2.5 px-3 font-semibold">Total</th>
-                                                                        <th className="text-left py-2.5 px-3 font-semibold">Estado</th>
-                                                                        <th className="text-right py-2.5 px-3 font-semibold">Ações</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    {associatedInvoices.map(invoice => (
-                                                                        <tr key={invoice.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                                                                            <td className="py-2.5 px-3 text-slate-800 font-medium">
-                                                                                <button
-                                                                                    onClick={() => navigate(`/finance/faturas/${invoice.id}/editar`)}
-                                                                                    className="text-blue-600 hover:text-blue-800 hover:underline font-semibold text-left outline-none"
-                                                                                    title="Editar esta fatura/associação"
-                                                                                >
-                                                                                    {invoice.invoice_number}
-                                                                                </button>
-                                                                            </td>
-                                                                            <td className="py-2.5 px-3 text-slate-600">{formatSmallDate(invoice.issue_date)}</td>
-                                                                            <td className="py-2.5 px-3 text-right text-slate-800">{formatCurrency(Number(invoice.total_final ?? invoice.total ?? invoice.total_value ?? 0))}</td>
-                                                                            <td className="py-2.5 px-3 text-slate-600">{getPaymentStatusLabel(invoice.payment_status)}</td>
-                                                                            <td className="py-2.5 px-3 text-right">
-                                                                                <button
-                                                                                    onClick={() => navigate(`/finance/faturas/${invoice.id}/editar`)}
-                                                                                    className="inline-flex items-center gap-1 px-2 py-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                                                                                    title="Editar fatura"
-                                                                                >
-                                                                                    <Pencil className="w-3.5 h-3.5" />
-                                                                                    <span>Editar</span>
-                                                                                </button>
-                                                                            </td>
-                                                                        </tr>
-                                                                    ))}
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                <RequisitionInvoiceSection
+                                                    requisition={req}
+                                                    supplier={fornecedor}
+                                                    invoices={associatedInvoices}
+                                                    totalInvoicedAmount={totalInvoicedAmount}
+                                                    badge={invoiceBadge}
+                                                    timeline={invoiceHistory}
+                                                    formatCurrency={formatCurrency}
+                                                    formatSmallDate={formatSmallDate}
+                                                    formatDateTime={formatDateTime}
+                                                    getPaymentStatusLabel={getPaymentStatusLabel}
+                                                    onAddInvoice={() => handleOpenConfirm(req.id)}
+                                                    onEditInvoice={(invoiceId) => handleEditInvoice(req.id, invoiceId)}
+                                                    onDeleteInvoice={(invoice) => handleDeleteInvoice(req, invoice)}
+                                                />
                                             </div>
 
                                             {/* Right Actions */}
@@ -2347,13 +2341,24 @@ export default function Requisicoes() {
 
                                                 <div className="flex items-center gap-2 mt-auto">
                                                     <button
-                                                        onClick={() => navigate(`/finance/faturas/nova?requisitionId=${req.id}`)}
+                                                        onClick={() => handleOpenConfirm(req.id)}
                                                         className="flex items-center gap-2 px-3 py-3 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl transition-colors"
-                                                        title="Criar fatura a partir desta requisição"
+                                                        title="Abrir módulo de faturação da requisição"
                                                     >
                                                         <PlusCircle className="w-4 h-4" />
-                                                        <span className="text-sm font-medium">Criar fatura</span>
+                                                        <span className="text-sm font-medium">Adicionar Fatura</span>
                                                     </button>
+
+                                                    {latestInvoice && (
+                                                        <button
+                                                            onClick={() => handleEditInvoice(req.id, latestInvoice.id)}
+                                                            className="flex items-center gap-2 px-3 py-3 text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition-colors"
+                                                            title="Editar última fatura associada"
+                                                        >
+                                                            <Pencil className="w-4 h-4" />
+                                                            <span className="text-sm font-medium">Editar Fatura</span>
+                                                        </button>
+                                                    )}
 
                                                     <button
                                                         onClick={() => generatePDF(req)}
@@ -2375,15 +2380,7 @@ export default function Requisicoes() {
 
                                                     {hasAccess(userRole, 'requisicoes_edit') && (
                                                         <div className="flex items-center gap-2">
-                                                            {req.status !== 'concluida' ? (
-                                                                <button
-                                                                    onClick={() => handleOpenConfirm(req.id)}
-                                                                    className="flex items-center justify-center px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all border border-emerald-500/20 shadow-lg shadow-emerald-900/20 hover:scale-105 active:scale-95 gap-2"
-                                                                >
-                                                                    <CheckCircle className="w-5 h-5" />
-                                                                    Concluir
-                                                                </button>
-                                                            ) : (
+                                                            {req.status === 'concluida' ? (
                                                                 <div className="relative overflow-visible">
                                                                     <button
                                                                         type="button"
@@ -2393,35 +2390,40 @@ export default function Requisicoes() {
                                                                         <Clock className="w-5 h-5" />
                                                                     </button>
                                                                     {openMenuId === req.id && (
-                                                                    <div className="absolute bottom-full mb-2 right-0 z-[9999] w-44 bg-white backdrop-blur-md border border-slate-200 shadow-lg rounded-xl shadow-lg p-2">
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => handleReopen(req.id)}
-                                                                            className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-amber-500 hover:bg-slate-50 rounded-md transition-colors"
-                                                                        >
-                                                                            <RotateCcw className="w-4 h-4" />
-                                                                            Reabrir
-                                                                        </button>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => handleEditById(req.id)}
-                                                                            className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-blue-400 hover:bg-slate-50 rounded-md transition-colors"
-                                                                        >
-                                                                            <Pencil className="w-4 h-4" />
-                                                                            Editar
-                                                                        </button>
-                                                                        {hasAccess(userRole, 'requisicoes_delete') && (
+                                                                        <div className="absolute bottom-full mb-2 right-0 z-[9999] w-44 bg-white backdrop-blur-md border border-slate-200 shadow-lg rounded-xl shadow-lg p-2">
                                                                             <button
                                                                                 type="button"
-                                                                                onClick={() => handleDelete(req.id)}
-                                                                                className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:bg-slate-50 rounded-md transition-colors"
+                                                                                onClick={() => handleReopen(req.id)}
+                                                                                className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-amber-500 hover:bg-slate-50 rounded-md transition-colors"
                                                                             >
-                                                                                <Trash2 className="w-4 h-4" />
-                                                                                Apagar
+                                                                                <RotateCcw className="w-4 h-4" />
+                                                                                Reabrir
                                                                             </button>
-                                                                        )}
-                                                                    </div>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleEditById(req.id)}
+                                                                                className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-blue-400 hover:bg-slate-50 rounded-md transition-colors"
+                                                                            >
+                                                                                <Pencil className="w-4 h-4" />
+                                                                                Editar
+                                                                            </button>
+                                                                            {hasAccess(userRole, 'requisicoes_delete') && (
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => handleDelete(req.id)}
+                                                                                    className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:bg-slate-50 rounded-md transition-colors"
+                                                                                >
+                                                                                    <Trash2 className="w-4 h-4" />
+                                                                                    Apagar
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
                                                                     )}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center justify-center px-4 py-3 rounded-xl bg-amber-50 text-amber-700 font-bold border border-amber-200 gap-2">
+                                                                    <AlertCircle className="w-5 h-5" />
+                                                                    Aguardar fatura
                                                                 </div>
                                                             )}
 
@@ -3404,136 +3406,14 @@ export default function Requisicoes() {
                     )
                 }
 
-                {/* Confirmation Modal */}
-                {
-                    showConfirmModal && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
-                            <div className="bg-white/90 border border-slate-200 rounded-3xl p-8 max-w-lg w-full shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
-                                <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
-                                    <FileText className="w-32 h-32 text-emerald-500" />
-                                </div>
-
-                                <div className="relative z-10 shrink-0">
-                                    <h3 className="text-2xl font-bold text-slate-900 mb-2">Confirmar Requisição</h3>
-                                    <p className="text-slate-400 mb-6">Adicione uma ou mais faturas para concluir.</p>
-                                </div>
-
-                                <div className="flex-1 overflow-y-auto custom-scrollbar mb-6 relative z-10 min-h-0 space-y-4">
-                                    {/* LIST OF ADDED INVOICES */}
-                                    {invoicesList.length > 0 && (
-                                        <div className="space-y-2 mb-4">
-                                            <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase mb-2">
-                                                <span>Faturas Adicionadas</span>
-                                                <span className="text-emerald-500">Total: {(invoicesList.reduce((acc, curr) => acc + curr.valor_total, 0)).toFixed(2)} €</span>
-                                            </div>
-                                            {invoicesList.map((inv, idx) => (
-                                                <div key={idx} className="flex items-center justify-between p-3 bg-slate-100 rounded-xl border border-slate-200">
-                                                    <div>
-                                                        <div className="text-sm font-bold text-slate-900">{inv.numero}</div>
-                                                        <div className="text-xs text-slate-400 font-mono">
-                                                            {inv.valor_liquido.toFixed(2)} € + {(inv.iva_taxa * 100).toFixed(0)}% IVA
-                                                        </div>
-                                                        <div className="text-sm text-emerald-700 font-mono font-bold">
-                                                            = {inv.valor_total.toFixed(2)} €
-                                                        </div>
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeInvoiceFromList(idx)}
-                                                        className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                                                    >
-                                                        <X className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {/* INPUT FORM FOR NEW INVOICE */}
-                                    <div className="p-4 bg-white/90 rounded-2xl border border-slate-200 space-y-4">
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500 uppercase">Número da Fatura</label>
-                                            <input
-                                                type="text"
-                                                className="w-full px-4 py-3 bg-white/90 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 transition-all shadow-inner"
-                                                value={invoiceNumber}
-                                                onChange={e => setInvoiceNumber(e.target.value)}
-                                                placeholder="Ex: FT 2024/123"
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') {
-                                                        e.preventDefault();
-                                                        // Focus next field or add
-                                                    }
-                                                }}
-                                            />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-slate-500 uppercase">Valor Líquido (€)</label>
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    className="w-full px-4 py-3 bg-white/90 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 transition-all shadow-inner font-mono"
-                                                    value={invoiceNetAmount}
-                                                    onChange={e => setInvoiceNetAmount(e.target.value)}
-                                                    placeholder="0.00"
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-slate-500 uppercase">Taxa IVA</label>
-                                                <select
-                                                    className="w-full px-4 py-3 bg-white/90 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 transition-all shadow-inner"
-                                                    value={invoiceVatRate}
-                                                    onChange={e => setInvoiceVatRate(parseFloat(e.target.value))}
-                                                >
-                                                    <option value={0.23}>23%</option>
-                                                    <option value={0.13}>13%</option>
-                                                    <option value={0.06}>6%</option>
-                                                    <option value={0}>Isento</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        {/* Auto-calculated Total Preview */}
-                                        {invoiceNetAmount && (
-                                            <div className="flex justify-between items-center p-3 bg-white/90 rounded-xl border border-slate-200">
-                                                <span className="text-xs text-slate-500 font-bold uppercase">Total com IVA</span>
-                                                <span className="text-emerald-400 font-mono font-bold">
-                                                    {(parseFloat(invoiceNetAmount.replace(',', '.')) * (1 + invoiceVatRate)).toFixed(2)} €
-                                                </span>
-                                            </div>
-                                        )}
-
-                                        <button
-                                            type="button"
-                                            onClick={addInvoiceToList}
-                                            className="w-full py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 rounded-xl border border-slate-200 transition-all font-bold flex items-center justify-center gap-2"
-                                        >
-                                            <Plus className="w-5 h-5" /> Adicionar Fatura
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-3 pt-2 shrink-0 relative z-10">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowConfirmModal(false)}
-                                        className="flex-1 py-3 px-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 rounded-xl font-bold transition-all"
-                                    >
-                                        Cancelar
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleConfirmRequisition}
-                                        className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-900/20"
-                                    >
-                                        Confirmar Conclusão
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )
-                }
+                {showInvoiceModal && invoiceModalReqId && (
+                    <RequisitionInvoiceModal
+                        requisitionId={invoiceModalReqId}
+                        invoiceId={editingInvoiceId}
+                        onClose={handleCloseInvoiceModal}
+                        onSaved={handleInvoiceSaved}
+                    />
+                )}
                 <div className="pb-12"></div>
             </div>
         </div>

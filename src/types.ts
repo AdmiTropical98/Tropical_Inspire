@@ -101,6 +101,14 @@ export interface Requisicao {
     supplier_rejected?: boolean;
     supplier_comment?: string;
     supplier_response_date?: string;
+    invoice_status?: 'SEM_FATURA' | 'FATURA_PENDENTE' | 'FATURADA';
+    invoice_document_url?: string;
+    invoice_history?: Array<{
+        id: string;
+        action: 'created' | 'updated' | 'deleted' | 'status_changed' | 'document_uploaded' | 'document_replaced' | 'qr_read' | 'ocr_processed' | 'validated';
+        at: string;
+        description: string;
+    }>;
 }
 
 export interface Acidente {
