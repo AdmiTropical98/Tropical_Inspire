@@ -23,6 +23,8 @@ export default function ImageCropper({ imageSrc, onCancel, onCropComplete }: Ima
     const isDraggingRef = useRef(false);
     const dragStartRef = useRef({ x: 0, y: 0 });
 
+    const containerRef = useRef<HTMLDivElement>(null);
+
     const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
         if ('button' in e && e.button !== 0) return;
         e.preventDefault(); // Stop native drag/selection
@@ -76,13 +78,14 @@ export default function ImageCropper({ imageSrc, onCancel, onCropComplete }: Ima
 
     const handleSave = () => {
         const image = imageRef.current;
-        if (!image) return;
+        const container = containerRef.current;
+        if (!image || !container) return;
 
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // Output size matches 280x360 aspect ratio
+        // Output size matches 7:9 aspect ratio
         const outWidth = 700;
         const outHeight = 900;
         canvas.width = outWidth;
@@ -95,49 +98,47 @@ export default function ImageCropper({ imageSrc, onCancel, onCropComplete }: Ima
         const centerX = outWidth / 2;
         const centerY = outHeight / 2;
 
-        // Scale ratio between displayed crop area (280px wide) and output canvas (700px wide)
-        const outputScale = outWidth / 280;
+        // Scale ratio between displayed crop area and output canvas
+        const outputScale = outWidth / container.clientWidth;
 
-        const totalScale = zoom * baseScale * outputScale;
-
-        // 1. Translate to center
-        // 2. Translate by Pan (converted to output pixels)
-        // 3. Scale
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(0, 0, outWidth, outHeight);
-
-        ctx.translate(centerX + pan.x * outputScale, centerY + pan.y * outputScale);
+        ctx.save();
+        ctx.translate(centerX, centerY);
         ctx.rotate((rotation * Math.PI) / 180);
-        ctx.scale(totalScale, totalScale);
+        ctx.scale(zoom * baseScale * outputScale, zoom * baseScale * outputScale);
 
-        // Draw image centered
-        // We draw the image such that its center is at (0,0) of the context
-        ctx.drawImage(image, -image.naturalWidth / 2, -image.naturalHeight / 2);
+        const imgCenterX = image.naturalWidth / 2;
+        const imgCenterY = image.naturalHeight / 2;
 
+        ctx.drawImage(
+            image,
+            -imgCenterX + (pan.x / (zoom * baseScale)),
+            -imgCenterY + (pan.y / (zoom * baseScale))
+        );
+
+        ctx.restore();
         onCropComplete(canvas.toDataURL('image/jpeg', 0.9));
     };
 
     return createPortal(
-        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-[#1e293b] w-full max-w-md rounded-2xl border border-slate-700 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                <div className="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
-                    <h3 className="text-white font-bold flex items-center gap-2">
-                        <Move className="w-5 h-5 text-blue-400" />
-                        Ajustar Foto
-                    </h3>
-                    <button onClick={onCancel} className="text-slate-400 hover:text-white transition-colors">
-                        <X className="w-6 h-6" />
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-md pb-safe">
+            <div className="w-full max-w-md mx-auto h-full flex flex-col pt-safe">
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 mb-4">
+                    <h3 className="text-white font-semibold text-lg">Ajustar Fatura</h3>
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        className="p-2 text-slate-400 hover:text-white bg-slate-800 rounded-full transition-colors"
+                    >
+                        <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                <div className="p-6 flex-1 overflow-y-auto flex flex-col items-center gap-6">
-                    <p className="text-sm text-slate-400 text-center">
-                        Arraste para posicionar e use a barra para fazer zoom.
-                    </p>
-
-                    {/* Crop Area Container */}
-                    <div className={`relative w-[280px] h-[360px] bg-slate-950 rounded-lg overflow-hidden border-2 border-blue-500/30 shadow-[0_0_40px_rgba(59,130,246,0.2)] touch-none select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                {/* Cropper Area */}
+                <div className="flex-1 flex flex-col items-center justify-center px-4 overflow-hidden gap-6 pb-6">
+                    <div 
+                        ref={containerRef}
+                        className={`relative w-full max-w-[340px] aspect-[7/9] bg-slate-950 rounded-lg overflow-hidden border-2 border-blue-500/30 shadow-[0_0_40px_rgba(59,130,246,0.2)] touch-none select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
                         onMouseDown={handleMouseDown}
                         onTouchStart={handleMouseDown}
                     >
@@ -158,7 +159,7 @@ export default function ImageCropper({ imageSrc, onCancel, onCropComplete }: Ima
                                 draggable={false} // Native drag off
                                 onLoad={(e) => {
                                     const img = e.currentTarget;
-                                    const containerSize = 280;
+                                    const containerSize = containerRef.current?.clientWidth || 280;
                                     const scale = containerSize / Math.min(img.naturalWidth, img.naturalHeight);
                                     setBaseScale(scale);
                                 }}
