@@ -191,6 +191,7 @@ export default function InvoiceForm({
     const [captureStep, setCaptureStep] = useState<'chooser' | 'preview' | 'uploading' | 'form'>(() => (
         !invoice ? 'chooser' : 'form'
     ));
+    const [showQrScanner, setShowQrScanner] = useState(false);
     const [showImageCropper, setShowImageCropper] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [uploadPhaseLabel, setUploadPhaseLabel] = useState('');
@@ -271,6 +272,46 @@ export default function InvoiceForm({
 
         const extension = photo.format || 'jpeg';
         stagePreviewImage(dataUrl, `fatura-${Date.now()}.${extension}`);
+    };
+
+    const handleScanQrCode = () => {
+        setShowQrScanner(true);
+    };
+
+    const handleQrScanComplete = (decodedText: string) => {
+        const atcudData = parseAtcudQrCode(decodedText);
+        
+        if (atcudData) {
+            setFormData(prev => ({
+                ...prev,
+                number: atcudData.numero_fatura || prev.number,
+                date: atcudData.data_fatura || prev.date,
+                total_w_tax: atcudData.total_com_impostos !== undefined ? atcudData.total_com_impostos : prev.total_w_tax,
+                tax_amount: atcudData.total_impostos !== undefined ? atcudData.total_impostos : prev.tax_amount,
+            }));
+            
+            const newFilledFields = new Set<string>();
+            if (atcudData.numero_fatura) newFilledFields.add('number');
+            if (atcudData.data_fatura) newFilledFields.add('date');
+            if (atcudData.total_com_impostos !== undefined) newFilledFields.add('total_w_tax');
+            if (atcudData.total_impostos !== undefined) newFilledFields.add('tax_amount');
+
+            if (atcudData.nif_emissor) {
+                const supplier = suppliers.find(s => String(s.nif) === atcudData.nif_emissor);
+                if (supplier) {
+                    setFormData(prev => ({ ...prev, supplier_id: supplier.id }));
+                    newFilledFields.add('supplier_id');
+                }
+            }
+            
+            setAiFilledFields(prev => new Set([...prev, ...newFilledFields]));
+            setCaptureStep('form');
+            setTimeout(() => alert('QR Code lido com sucesso! Totais e cabeçalho preenchidos.'), 300);
+        } else {
+            alert('QR Code lido, mas não parece ser um formato ATCUD válido de fatura portuguesa.');
+        }
+        
+        setShowQrScanner(false);
     };
 
     const handleTakePhoto = async () => {
@@ -1055,9 +1096,9 @@ export default function InvoiceForm({
                                     </div>
                                     <Camera className="h-8 w-8" />
                                 </button>
-                                <button type="button" onClick={handleTakePhoto} className="flex w-full items-center justify-between rounded-[28px] bg-blue-600 px-6 py-6 text-left text-white shadow-[0_20px_60px_-30px_rgba(37,99,235,0.8)] transition-colors hover:bg-blue-500">
+                                <button type="button" onClick={handleScanQrCode} className="flex w-full items-center justify-between rounded-[28px] bg-blue-600 px-6 py-6 text-left text-white shadow-[0_20px_60px_-30px_rgba(37,99,235,0.8)] transition-colors hover:bg-blue-500">
                                     <div>
-                                        <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-100">Automático</p>
+                                        <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-100">Rápido</p>
                                         <p className="mt-2 text-xl font-bold">Ler QR Code</p>
                                     </div>
                                     <ScanSearch className="h-8 w-8" />
@@ -1083,7 +1124,7 @@ export default function InvoiceForm({
                                 </p>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl mx-auto">
-                                <button type="button" onClick={() => cameraInputRef.current?.click()} className="group flex flex-col items-center justify-center p-8 rounded-[28px] border-2 border-dashed border-blue-200 bg-blue-50/50 hover:bg-blue-50 hover:border-blue-400 transition-all">
+                                <button type="button" onClick={handleScanQrCode} className="group flex flex-col items-center justify-center p-8 rounded-[28px] border-2 border-dashed border-blue-200 bg-blue-50/50 hover:bg-blue-50 hover:border-blue-400 transition-all">
                                     <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                                         <ScanSearch className="h-8 w-8 text-blue-600" />
                                     </div>
@@ -1600,6 +1641,13 @@ export default function InvoiceForm({
                     imageSrc={pendingImages[croppingIndex].src}
                     onCancel={() => setShowImageCropper(false)}
                     onCropComplete={submitPreparedImage}
+                />
+            )}
+
+            {showQrScanner && (
+                <QRCodeScanner
+                    onScan={handleQrScanComplete}
+                    onCancel={() => setShowQrScanner(false)}
                 />
             )}
         </div>
