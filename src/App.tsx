@@ -760,12 +760,16 @@ function App() {
       key: 'bottom-mais',
       label: 'Mais',
       icon: Settings2,
-      active: moreGroup.items.some(item => item.active),
+      active: [...operationsGroup.items, ...clientesFornecedoresGroup.items, ...moreGroup.items].some(item => item.active),
       onClick: () => undefined,
     },
   ];
 
-  const moreMenuItems = moreGroup.items.map(item => ({
+  const moreMenuItems = [
+    ...operationsGroup.items,
+    ...clientesFornecedoresGroup.items,
+    ...moreGroup.items
+  ].map(item => ({
     key: `more-${item.key}`,
     label: item.label,
     icon: item.icon,
@@ -1010,7 +1014,7 @@ function App() {
         userMenu={<UserProfileMenu onNavigate={handleNavigate} compact />}
         isMapPage={isMapPage}
         bottomNavItems={bottomNavItems}
-        moreMenuItems={moreMenuItems}
+        moreMenuGroups={[operationsGroup, clientesFornecedoresGroup, moreGroup]}
       >
         {appRoutes}
       </LayoutMobile>

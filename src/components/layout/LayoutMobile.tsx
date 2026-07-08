@@ -8,19 +8,25 @@ interface BottomNavItem {
   onClick: () => void;
 }
 
-interface LayoutMobileProps {
-  logoSrc: string;
-  onLogoClick: () => void;
-  userMenu: React.ReactNode;
-  isMapPage: boolean;
-  bottomNavItems: BottomNavItem[];
-  moreMenuItems?: Array<{
+interface MoreMenuGroup {
+  key: string;
+  label: string;
+  items: Array<{
     key: string;
     label: string;
     icon: React.ElementType;
     active: boolean;
     onClick: () => void;
   }>;
+}
+
+interface LayoutMobileProps {
+  logoSrc: string;
+  onLogoClick: () => void;
+  userMenu: React.ReactNode;
+  isMapPage: boolean;
+  bottomNavItems: BottomNavItem[];
+  moreMenuGroups?: MoreMenuGroup[];
   children: React.ReactNode;
 }
 
@@ -30,7 +36,7 @@ export default function LayoutMobile({
   userMenu,
   isMapPage,
   bottomNavItems,
-  moreMenuItems = [],
+  moreMenuGroups = [],
   children,
 }: LayoutMobileProps) {
   const [showMoreMenu, setShowMoreMenu] = React.useState(false);
@@ -84,23 +90,39 @@ export default function LayoutMobile({
             onClick={() => setShowMoreMenu(false)}
           />
           <section className="mobile-more-sheet" aria-label="Menu Mais">
-            <h3 className="mobile-more-title">Mais</h3>
-            <div className="mobile-more-list">
-              {moreMenuItems.map((item) => {
-                const Icon = item.icon;
+            <div className="mobile-more-header sticky top-0 bg-white/95 backdrop-blur-sm z-10 pb-2 mb-2 border-b border-slate-100">
+              <h3 className="mobile-more-title m-0 pt-2 pb-1 text-[13px] font-black uppercase tracking-wider text-slate-800">Mais Opções</h3>
+            </div>
+            
+            <div className="mobile-more-content flex flex-col gap-6 pb-6">
+              {moreMenuGroups.map((group) => {
+                if (group.items.length === 0) return null;
+                
                 return (
-                  <button
-                    key={item.key}
-                    type="button"
-                    className={`mobile-more-item ${item.active ? 'active' : ''}`}
-                    onClick={() => {
-                      setShowMoreMenu(false);
-                      item.onClick();
-                    }}
-                  >
-                    <Icon className="h-5 w-5" />
-                    <span>{item.label}</span>
-                  </button>
+                  <div key={group.key} className="mobile-more-group">
+                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 pl-2">
+                      {group.label}
+                    </h4>
+                    <div className="mobile-more-list flex flex-col gap-1.5">
+                      {group.items.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <button
+                            key={item.key}
+                            type="button"
+                            className={`mobile-more-item flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all font-semibold text-sm ${item.active ? 'bg-blue-50 text-blue-700' : 'bg-transparent text-slate-600 hover:bg-slate-50'}`}
+                            onClick={() => {
+                              setShowMoreMenu(false);
+                              item.onClick();
+                            }}
+                          >
+                            <Icon className={`h-5 w-5 ${item.active ? 'text-blue-600' : 'text-slate-400'}`} />
+                            <span>{item.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 );
               })}
             </div>
