@@ -188,8 +188,8 @@ export default function InvoiceForm({
     const [isMobileLayout, setIsMobileLayout] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
     const [pendingImageSrc, setPendingImageSrc] = useState<string | null>(null);
     const [pendingImageName, setPendingImageName] = useState('fatura.jpg');
-    const [mobileCaptureStep, setMobileCaptureStep] = useState<'chooser' | 'preview' | 'uploading' | 'form'>(() => (
-        typeof window !== 'undefined' && window.innerWidth < 768 && !invoice ? 'chooser' : 'form'
+    const [captureStep, setCaptureStep] = useState<'chooser' | 'preview' | 'uploading' | 'form'>(() => (
+        !invoice ? 'chooser' : 'form'
     ));
     const [showImageCropper, setShowImageCropper] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
@@ -199,7 +199,7 @@ export default function InvoiceForm({
     const imageInputRef = useRef<HTMLInputElement | null>(null);
     const cameraInputRef = useRef<HTMLInputElement | null>(null);
     const isCapacitorNative = Capacitor.isNativePlatform();
-    const isDedicatedMobileCapture = isMobileLayout && !invoice;
+    const isNewInvoice = !invoice;
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -210,25 +210,25 @@ export default function InvoiceForm({
     }, []);
 
     useEffect(() => {
-        if (!isDedicatedMobileCapture) {
-            setMobileCaptureStep('form');
+        if (!isNewInvoice) {
+            setCaptureStep('form');
             return;
         }
 
         if (formData.pdf_url) {
-            setMobileCaptureStep('form');
+            setCaptureStep('form');
             return;
         }
 
         if (pendingImageSrc) {
-            setMobileCaptureStep('preview');
+            setCaptureStep('preview');
             return;
         }
 
         if (!uploading) {
-            setMobileCaptureStep((prev) => (prev === 'uploading' ? 'chooser' : prev === 'form' ? 'form' : 'chooser'));
+            setCaptureStep((prev) => (prev === 'uploading' ? 'chooser' : prev === 'form' ? 'form' : 'chooser'));
         }
-    }, [formData.pdf_url, isDedicatedMobileCapture, pendingImageSrc, uploading]);
+    }, [formData.pdf_url, isNewInvoice, pendingImageSrc, uploading]);
 
     const readFileAsDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -252,7 +252,7 @@ export default function InvoiceForm({
         setPendingImageName(fileName || `fatura-${Date.now()}.jpg`);
         setPendingImageSrc(dataUrl);
         setUploadSuccessMessage('');
-        setMobileCaptureStep('preview');
+        setCaptureStep('preview');
     };
 
     const loadNativePhoto = async (source: CameraSource) => {
@@ -794,7 +794,7 @@ export default function InvoiceForm({
     const submitPreparedImage = async (croppedBase64: string) => {
         setPendingImageSrc(croppedBase64);
         setShowImageCropper(false);
-        setMobileCaptureStep('preview');
+        setCaptureStep('preview');
     };
 
     const processSelectedDocument = async (file?: File | null) => {
@@ -824,7 +824,7 @@ export default function InvoiceForm({
         setUploadSuccessMessage('');
         setUploadProgress(12);
         setUploadPhaseLabel('A preparar documento...');
-        if (options?.mobileFlow) setMobileCaptureStep('uploading');
+        if (options?.mobileFlow) setCaptureStep('uploading');
         try {
             setImportStatusMessage('A ler documento e extrair QR/OCR...');
             setUploadProgress(28);
@@ -843,7 +843,7 @@ export default function InvoiceForm({
 
             if (completedImport.status === 'failed') {
                 setImportStatusMessage(`Documento carregado, mas a extração automática falhou${completedImport.error ? `: ${completedImport.error}` : '.'}`);
-                if (options?.mobileFlow) setMobileCaptureStep('preview');
+                if (options?.mobileFlow) setCaptureStep('preview');
                 return;
             }
 
@@ -878,7 +878,7 @@ export default function InvoiceForm({
 
             if (options?.mobileFlow) {
                 setPendingImageSrc(null);
-                setMobileCaptureStep('form');
+                setCaptureStep('form');
             }
         } catch (error) {
             console.error('Error uploading file:', error);
@@ -893,14 +893,14 @@ export default function InvoiceForm({
                 );
                 if (options?.mobileFlow) {
                     setPendingImageSrc(null);
-                    setMobileCaptureStep('form');
+                    setCaptureStep('form');
                 }
             } catch (localError) {
                 console.error('Local PDF parse also failed:', localError);
                 const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
                 setImportStatusMessage(`Falha no processamento inteligente da fatura: ${errorMessage}`);
                 alert(`Erro ao processar documento da fatura: ${errorMessage}`);
-                if (options?.mobileFlow) setMobileCaptureStep('preview');
+                if (options?.mobileFlow) setCaptureStep('preview');
             }
         } finally {
             setUploading(false);
@@ -916,7 +916,7 @@ export default function InvoiceForm({
         } catch (error) {
             console.error('Error confirming mobile invoice image:', error);
             alert('Não foi possível preparar a fotografia para upload.');
-            setMobileCaptureStep('preview');
+            setCaptureStep('preview');
         }
     };
 
@@ -989,6 +989,171 @@ export default function InvoiceForm({
                 </button>
             </div>
 
+            {captureStep === 'chooser' && (
+                <div className={isMobileLayout ? "flex flex-col justify-between px-5 pb-8 pt-10 min-h-[400px]" : "flex flex-col items-center justify-center p-12 text-center min-h-[500px]"}>
+                    {isMobileLayout ? (
+                        <>
+                            <div>
+                                <p className="text-xs font-bold uppercase tracking-[0.28em] text-blue-400">Adicionar Fatura</p>
+                                <h3 className="mt-3 text-3xl font-black tracking-tight text-white">Captura rápida</h3>
+                                <p className="mt-4 text-base leading-7 text-slate-300">
+                                    Capture a fatura para extração automática via QR Code e OCR.
+                                </p>
+                            </div>
+                            <div className="space-y-4 mt-8 w-full">
+                                <button type="button" onClick={handleTakePhoto} className="flex w-full items-center justify-between rounded-[28px] bg-emerald-600 px-6 py-6 text-left text-white shadow-[0_20px_60px_-30px_rgba(16,185,129,0.8)] transition-colors hover:bg-emerald-500">
+                                    <div>
+                                        <p className="text-xs font-bold uppercase tracking-[0.24em] text-emerald-100">Câmara</p>
+                                        <p className="mt-2 text-xl font-bold">Tirar Fotografia</p>
+                                    </div>
+                                    <Camera className="h-8 w-8" />
+                                </button>
+                                <button type="button" onClick={handleTakePhoto} className="flex w-full items-center justify-between rounded-[28px] bg-blue-600 px-6 py-6 text-left text-white shadow-[0_20px_60px_-30px_rgba(37,99,235,0.8)] transition-colors hover:bg-blue-500">
+                                    <div>
+                                        <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-100">Automático</p>
+                                        <p className="mt-2 text-xl font-bold">Ler QR Code</p>
+                                    </div>
+                                    <ScanSearch className="h-8 w-8" />
+                                </button>
+                                <button type="button" onClick={handleChooseFromGallery} className="flex w-full items-center justify-between rounded-[28px] border border-slate-700 bg-slate-900 px-6 py-6 text-left text-white transition-colors hover:bg-slate-800">
+                                    <div>
+                                        <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Biblioteca</p>
+                                        <p className="mt-2 text-xl font-bold">Escolher da Galeria</p>
+                                    </div>
+                                    <ImageIcon className="h-8 w-8 text-blue-300" />
+                                </button>
+                            </div>
+                            <button type="button" onClick={() => setCaptureStep('form')} className="mt-8 text-sm font-semibold text-slate-400 hover:text-white transition-colors">
+                                Preencher manualmente sem documento
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <div className="mb-10">
+                                <h3 className="text-3xl font-black text-slate-800 tracking-tight">Adicionar Documento</h3>
+                                <p className="mt-3 text-lg text-slate-500 max-w-lg mx-auto">
+                                    Anexe o documento da fatura para preenchimento automático inteligente via QR Code e OCR.
+                                </p>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl mx-auto">
+                                <button type="button" onClick={() => cameraInputRef.current?.click()} className="group flex flex-col items-center justify-center p-8 rounded-[28px] border-2 border-dashed border-blue-200 bg-blue-50/50 hover:bg-blue-50 hover:border-blue-400 transition-all">
+                                    <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                        <ScanSearch className="h-8 w-8 text-blue-600" />
+                                    </div>
+                                    <h4 className="text-lg font-bold text-slate-800">Ler QR Code</h4>
+                                    <p className="text-sm text-slate-500 mt-2 text-center">Abrir interface para leitura rápida</p>
+                                </button>
+
+                                <button type="button" onClick={() => pdfInputRef.current?.click()} className="group flex flex-col items-center justify-center p-8 rounded-[28px] border-2 border-dashed border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 hover:border-emerald-400 transition-all">
+                                    <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                        <FileText className="h-8 w-8 text-emerald-600" />
+                                    </div>
+                                    <h4 className="text-lg font-bold text-slate-800">Carregar PDF</h4>
+                                    <p className="text-sm text-slate-500 mt-2 text-center">Ficheiro PDF da fatura</p>
+                                </button>
+
+                                <button type="button" onClick={() => imageInputRef.current?.click()} className="group flex flex-col items-center justify-center p-8 rounded-[28px] border-2 border-dashed border-purple-200 bg-purple-50/50 hover:bg-purple-50 hover:border-purple-400 transition-all">
+                                    <div className="h-16 w-16 rounded-full bg-purple-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                        <ImageIcon className="h-8 w-8 text-purple-600" />
+                                    </div>
+                                    <h4 className="text-lg font-bold text-slate-800">Carregar Imagem</h4>
+                                    <p className="text-sm text-slate-500 mt-2 text-center">PNG, JPG, etc.</p>
+                                </button>
+                            </div>
+                            <button type="button" onClick={() => setCaptureStep('form')} className="mt-10 px-6 py-3 rounded-xl font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+                                Preencher manualmente sem anexar
+                            </button>
+                        </>
+                    )}
+                </div>
+            )}
+
+            {captureStep === 'preview' && pendingImageSrc && (
+                <div className={isMobileLayout ? "flex min-h-[500px] flex-col" : "flex flex-col p-8 min-h-[500px]"}>
+                    <div className={`flex items-center justify-between border-b ${isMobileLayout ? 'border-slate-800 px-5 py-4' : 'border-slate-100 pb-4 mb-4'}`}>
+                        <div>
+                            <p className={`text-xs font-bold uppercase tracking-[0.24em] ${isMobileLayout ? 'text-blue-400' : 'text-blue-600'}`}>Pré-visualização</p>
+                            <p className={`mt-1 text-lg font-semibold ${isMobileLayout ? 'text-white' : 'text-slate-800'}`}>Confirme a fotografia antes do upload</p>
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-auto p-5 flex items-center justify-center">
+                        <div className={`flex min-h-full items-center justify-center rounded-[28px] p-4 w-full ${isMobileLayout ? 'bg-slate-900 border border-slate-800' : 'bg-slate-50 border border-slate-200 shadow-inner'}`}>
+                            <img src={pendingImageSrc} alt="Pré-visualização da fatura" className="max-h-[50vh] md:max-h-[60vh] w-full rounded-[22px] object-contain" />
+                        </div>
+                    </div>
+                    <div className={`space-y-3 px-5 py-5 border-t ${isMobileLayout ? 'border-slate-800' : 'border-slate-100'}`}>
+                        <div className="grid grid-cols-2 gap-3 max-w-md mx-auto w-full mb-4">
+                            <button type="button" onClick={handleRotatePreview} className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-4 font-semibold ${isMobileLayout ? 'border border-slate-700 bg-slate-900 text-white hover:bg-slate-800' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}>
+                                <RotateCcw className="h-4 w-4" /> Rodar
+                            </button>
+                            <button type="button" onClick={() => setShowImageCropper(true)} className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-4 font-semibold ${isMobileLayout ? 'border border-slate-700 bg-slate-900 text-white hover:bg-slate-800' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}>
+                                <Crop className="h-4 w-4" /> Cortar
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 max-w-md mx-auto w-full">
+                            <button type="button" onClick={handleRetakePhoto} className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-4 font-semibold ${isMobileLayout ? 'border border-amber-500/40 bg-amber-500/10 text-amber-200' : 'border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'}`}>
+                                <Camera className="h-4 w-4" /> Capturar de novo
+                            </button>
+                            <button type="button" onClick={confirmPendingMobileImage} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-4 font-semibold text-white hover:bg-emerald-500 shadow-md">
+                                <CheckCircle2 className="h-4 w-4" /> Confirmar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {captureStep === 'uploading' && (
+                <div className="flex min-h-[400px] flex-col items-center justify-center px-6 text-center py-12">
+                    <div className={`w-full max-w-sm rounded-[30px] border px-6 py-8 shadow-2xl ${isMobileLayout ? 'border-slate-800 bg-slate-900' : 'border-slate-100 bg-white'}`}>
+                        <div className={`mx-auto flex h-20 w-20 items-center justify-center rounded-3xl ${isMobileLayout ? 'bg-blue-500/10 text-blue-300' : 'bg-blue-50 text-blue-600'}`}>
+                            <ScanSearch className="h-10 w-10 animate-pulse" />
+                        </div>
+                        <h3 className={`mt-6 text-2xl font-bold ${isMobileLayout ? 'text-white' : 'text-slate-800'}`}>A processar fatura</h3>
+                        <p className={`mt-3 text-sm leading-6 ${isMobileLayout ? 'text-slate-300' : 'text-slate-500'}`}>{uploadPhaseLabel || 'A extrair dados com Inteligência Artificial...'}</p>
+                        <div className={`mt-8 h-3 overflow-hidden rounded-full ${isMobileLayout ? 'bg-slate-800' : 'bg-slate-100'}`}>
+                            <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-blue-500 transition-all duration-300" style={{ width: `${Math.max(5, uploadProgress)}%` }} />
+                        </div>
+                        <p className={`mt-3 text-sm font-semibold ${isMobileLayout ? 'text-white' : 'text-slate-700'}`}>{uploadProgress}%</p>
+                    </div>
+                </div>
+            )}
+
+            <input
+                ref={pdfInputRef}
+                type="file"
+                accept=".pdf,application/pdf"
+                onChange={(e) => {
+                    processSelectedDocument(e.target.files?.[0] ?? null);
+                    e.target.value = '';
+                }}
+                className="hidden"
+                disabled={uploading}
+            />
+            <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                    processSelectedDocument(e.target.files?.[0] ?? null);
+                    e.target.value = '';
+                }}
+                className="hidden"
+                disabled={uploading}
+            />
+            <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={(e) => {
+                    processSelectedDocument(e.target.files?.[0] ?? null);
+                    e.target.value = '';
+                }}
+                className="hidden"
+                disabled={uploading}
+            />
+
+            {captureStep === 'form' && (
             <form onSubmit={handleSubmit} className="p-6 space-y-8">
                 {/* Supplier and Invoice Number */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1313,136 +1478,36 @@ export default function InvoiceForm({
                     </div>
                 </div>
 
-                {/* Invoice Document Upload */}
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
-                            Documento da Fatura
-                        </label>
-                        <p className="text-sm text-slate-400">
-                            O sistema tenta ler automaticamente QR Code AT e OCR depois do upload. Os campos mantêm-se editáveis para correções manuais.
-                        </p>
+                {/* Simplified Document Overview for Form step */}
+                <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-5 space-y-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-bold text-slate-700">Documento da Fatura</label>
+                        <button
+                            type="button"
+                            onClick={() => setCaptureStep('chooser')}
+                            className="text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                            Substituir Documento
+                        </button>
                     </div>
-
-                    {isMobileLayout ? (
-                        <div className="rounded-2xl border border-slate-700 bg-slate-800/70 p-4 space-y-4">
-                            <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-                                <Camera className="mt-0.5 h-5 w-5 text-emerald-300" />
-                                <div>
-                                    <p className="text-sm font-semibold text-white">Interface móvel</p>
-                                    <p className="mt-1 text-sm text-slate-300">
-                                        Use a câmara do dispositivo para fotografar a fatura diretamente. Depois pode pré-visualizar, cortar e rodar antes do upload automático.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                <button
-                                    type="button"
-                                    onClick={handleTakePhoto}
-                                    disabled={uploading}
-                                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
-                                >
-                                    <Camera className="h-4 w-4" />
-                                    Tirar Fotografia
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleChooseFromGallery}
-                                    disabled={uploading}
-                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-600 bg-slate-900/60 px-4 py-3 font-semibold text-slate-200 transition-colors hover:bg-slate-800 disabled:opacity-50"
-                                >
-                                    <ImageIcon className="h-4 w-4" />
-                                    Escolher da galeria
-                                </button>
-                            </div>
-
-                        </div>
-                    ) : (
-                        <div className="flex flex-wrap items-center gap-3">
-                            <button
-                                type="button"
-                                onClick={() => pdfInputRef.current?.click()}
-                                disabled={uploading}
-                                className="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm text-white transition-colors hover:bg-slate-700 disabled:opacity-50"
-                            >
-                                <Upload className="h-4 w-4" />
-                                Carregar PDF
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => imageInputRef.current?.click()}
-                                disabled={uploading}
-                                className="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm text-white transition-colors hover:bg-slate-700 disabled:opacity-50"
-                            >
-                                <ImageIcon className="h-4 w-4" />
-                                Carregar Imagem
-                            </button>
-                        </div>
-                    )}
-
-                    <input
-                        ref={pdfInputRef}
-                        type="file"
-                        accept=".pdf,application/pdf"
-                        onChange={(e) => {
-                            processSelectedDocument(e.target.files?.[0] ?? null);
-                            e.target.value = '';
-                        }}
-                        className="hidden"
-                        disabled={uploading}
-                    />
-                    <input
-                        ref={imageInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                            processSelectedDocument(e.target.files?.[0] ?? null);
-                            e.target.value = '';
-                        }}
-                        className="hidden"
-                        disabled={uploading}
-                    />
-                    <input
-                        ref={cameraInputRef}
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={(e) => {
-                            processSelectedDocument(e.target.files?.[0] ?? null);
-                            e.target.value = '';
-                        }}
-                        className="hidden"
-                        disabled={uploading}
-                    />
-
+                    
                     <div className="flex flex-wrap items-center gap-3 text-sm">
-                        {uploading && <span className="text-slate-400">A fazer upload e leitura automática...</span>}
-                        {!uploading && uploadSuccessMessage && (
-                            <span className="inline-flex items-center gap-2 text-emerald-300">
-                                <CheckCircle2 className="h-4 w-4" />
-                                {uploadSuccessMessage}
-                            </span>
-                        )}
-                        {!uploading && hasUserRequestedOcr && importStatusMessage && (
-                            <span className="inline-flex items-center gap-2 text-slate-300">
-                                <ScanSearch className="h-4 w-4 text-blue-300" />
-                                {importStatusMessage}
-                            </span>
-                        )}
-                        {formData.pdf_url && (
+                        {formData.pdf_url ? (
                             <a
                                 href={formData.pdf_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold"
+                                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-blue-600 hover:text-blue-700 font-semibold shadow-sm"
                             >
                                 <FileText className="w-4 h-4" />
-                                <span className="text-sm">Ver documento</span>
+                                <span className="text-sm">Ver documento guardado</span>
                             </a>
+                        ) : (
+                            <p className="text-slate-400 text-sm">Nenhum documento anexado.</p>
                         )}
+                        
                         {activeImport?.status && (
-                            <span className="text-xs text-slate-600 px-2.5 py-1 bg-slate-100 border border-slate-200 rounded-md font-medium">
+                            <span className="text-xs text-slate-600 px-3 py-1.5 bg-white border border-slate-200 rounded-xl font-medium shadow-sm">
                                 Importação: {activeImport.status}
                             </span>
                         )}
@@ -1451,7 +1516,7 @@ export default function InvoiceForm({
                                 type="button"
                                 onClick={handleReparse}
                                 disabled={uploading}
-                                className="flex items-center gap-2 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 rounded-xl transition-colors text-sm font-medium"
+                                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 text-slate-700 rounded-xl shadow-sm transition-colors text-sm font-semibold"
                             >
                                 <RefreshCw className="w-4 h-4" />
                                 Reprocessar
@@ -1477,134 +1542,6 @@ export default function InvoiceForm({
                     </button>
                 </div>
             </form>
-
-            {isDedicatedMobileCapture && mobileCaptureStep !== 'form' && (
-                <div className="absolute inset-0 z-30 bg-slate-950 md:hidden">
-                    {mobileCaptureStep === 'chooser' && (
-                        <div className="flex min-h-full flex-col justify-between px-5 pb-8 pt-10">
-                            <div>
-                                <p className="text-xs font-bold uppercase tracking-[0.28em] text-blue-300">Adicionar Fatura</p>
-                                <h3 className="mt-3 text-3xl font-black tracking-tight text-white">Captura rápida no telemóvel</h3>
-                                <p className="mt-4 text-base leading-7 text-slate-300">
-                                    Tire a fotografia da fatura, confirme e deixe o sistema preencher QR Code e OCR automaticamente.
-                                </p>
-                            </div>
-
-                            <div className="space-y-4">
-                                <button
-                                    type="button"
-                                    onClick={handleTakePhoto}
-                                    className="flex w-full items-center justify-between rounded-[28px] bg-emerald-600 px-6 py-6 text-left text-white shadow-[0_20px_60px_-30px_rgba(16,185,129,0.8)] transition-colors hover:bg-emerald-500"
-                                >
-                                    <div>
-                                        <p className="text-xs font-bold uppercase tracking-[0.24em] text-emerald-100">Captura direta</p>
-                                        <p className="mt-2 text-2xl font-bold">Tirar Fotografia</p>
-                                    </div>
-                                    <Camera className="h-8 w-8" />
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={handleChooseFromGallery}
-                                    className="flex w-full items-center justify-between rounded-[28px] border border-slate-700 bg-slate-900 px-6 py-6 text-left text-white transition-colors hover:bg-slate-800"
-                                >
-                                    <div>
-                                        <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Biblioteca</p>
-                                        <p className="mt-2 text-2xl font-bold">Escolher da Galeria</p>
-                                    </div>
-                                    <ImageIcon className="h-8 w-8 text-blue-300" />
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {mobileCaptureStep === 'preview' && pendingImageSrc && (
-                        <div className="flex min-h-full flex-col bg-slate-950">
-                            <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
-                                <div>
-                                    <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-300">Pré-visualização</p>
-                                    <p className="mt-1 text-lg font-semibold text-white">Confirme a fotografia antes do upload</p>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={onCancel}
-                                    className="rounded-2xl border border-slate-700 p-3 text-slate-300"
-                                >
-                                    <X className="h-5 w-5" />
-                                </button>
-                            </div>
-
-                            <div className="flex-1 overflow-auto p-5">
-                                <div className="flex min-h-full items-center justify-center rounded-[28px] border border-slate-800 bg-slate-900 p-4">
-                                    <img
-                                        src={pendingImageSrc}
-                                        alt="Pré-visualização da fatura"
-                                        className="max-h-[62vh] w-full rounded-[22px] object-contain"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-3 border-t border-slate-800 px-5 py-5">
-                                <div className="grid grid-cols-2 gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={handleRotatePreview}
-                                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-4 font-semibold text-white"
-                                    >
-                                        <RotateCcw className="h-4 w-4" />
-                                        Rodar
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowImageCropper(true)}
-                                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-4 font-semibold text-white"
-                                    >
-                                        <Crop className="h-4 w-4" />
-                                        Cortar
-                                    </button>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={handleRetakePhoto}
-                                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-4 font-semibold text-amber-200"
-                                    >
-                                        <Camera className="h-4 w-4" />
-                                        Tirar novamente
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={confirmPendingMobileImage}
-                                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-4 font-semibold text-white"
-                                    >
-                                        <CheckCircle2 className="h-4 w-4" />
-                                        Confirmar
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {mobileCaptureStep === 'uploading' && (
-                        <div className="flex min-h-full flex-col items-center justify-center px-6 text-center">
-                            <div className="w-full max-w-sm rounded-[30px] border border-slate-800 bg-slate-900 px-6 py-8 shadow-2xl">
-                                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-blue-500/10 text-blue-300">
-                                    <ScanSearch className="h-8 w-8" />
-                                </div>
-                                <h3 className="mt-5 text-2xl font-bold text-white">A processar fatura</h3>
-                                <p className="mt-3 text-sm leading-6 text-slate-300">{uploadPhaseLabel || 'A enviar fotografia e a executar leitura automática.'}</p>
-                                <div className="mt-6 h-3 overflow-hidden rounded-full bg-slate-800">
-                                    <div
-                                        className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-blue-500 transition-all duration-300"
-                                        style={{ width: `${Math.max(8, uploadProgress)}%` }}
-                                    />
-                                </div>
-                                <p className="mt-3 text-sm font-semibold text-white">{uploadProgress}%</p>
-                            </div>
-                        </div>
-                    )}
-                </div>
             )}
 
             {showImageCropper && pendingImageSrc && (
