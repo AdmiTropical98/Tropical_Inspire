@@ -248,6 +248,37 @@ export default function InvoiceForm({
         return new File([blob], fileName, { type: blob.type || 'image/jpeg' });
     };
 
+    const compressImage = (dataUrl: string, maxWidth = 1600, quality = 0.85): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxWidth || height > maxWidth) {
+                    if (width > height) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    } else {
+                        width = Math.round((width * maxWidth) / height);
+                        height = maxWidth;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return resolve(dataUrl);
+                
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = () => reject(new Error('Falha ao processar a imagem.'));
+            img.src = dataUrl;
+        });
+    };
+
     const canReplaceExistingDocument = () => {
         if (!formData.pdf_url) return true;
         return confirm('Já existe um documento associado a esta fatura. Pretende substituí-lo?');
@@ -1010,40 +1041,47 @@ export default function InvoiceForm({
             setCaptureStep('uploading');
             setUploadPhaseLabel('A processar imagens...');
             
-            const { jsPDF } = await import('jspdf');
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
+            let preparedFile: File;
+            if (pendingImages.length === 1) {
+                const compressedDataUrl = await compressImage(pendingImages[0].src, 1600, 0.85);
+                const baseName = pendingImages[0].name.replace(/\.[^/.]+$/, "");
+                preparedFile = await dataUrlToFile(compressedDataUrl, `${baseName}.jpeg`);
+            } else {
+                const { jsPDF } = await import('jspdf');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
 
-            for (let i = 0; i < pendingImages.length; i++) {
-                if (i > 0) pdf.addPage();
-                const imgUrl = pendingImages[i].src;
-                
-                const img = new Image();
-                img.src = imgUrl;
-                await new Promise(resolve => img.onload = resolve);
-                
-                const imgRatio = img.width / img.height;
-                const pdfRatio = pdfWidth / pdfHeight;
-                
-                let finalWidth = pdfWidth;
-                let finalHeight = pdfHeight;
-                let x = 0;
-                let y = 0;
+                for (let i = 0; i < pendingImages.length; i++) {
+                    if (i > 0) pdf.addPage();
+                    const compressedDataUrl = await compressImage(pendingImages[i].src, 1600, 0.85);
+                    
+                    const img = new Image();
+                    img.src = compressedDataUrl;
+                    await new Promise(resolve => img.onload = resolve);
+                    
+                    const imgRatio = img.width / img.height;
+                    const pdfRatio = pdfWidth / pdfHeight;
+                    
+                    let finalWidth = pdfWidth;
+                    let finalHeight = pdfHeight;
+                    let x = 0;
+                    let y = 0;
 
-                if (imgRatio > pdfRatio) {
-                    finalHeight = pdfWidth / imgRatio;
-                    y = (pdfHeight - finalHeight) / 2;
-                } else {
-                    finalWidth = pdfHeight * imgRatio;
-                    x = (pdfWidth - finalWidth) / 2;
+                    if (imgRatio > pdfRatio) {
+                        finalHeight = pdfWidth / imgRatio;
+                        y = (pdfHeight - finalHeight) / 2;
+                    } else {
+                        finalWidth = pdfHeight * imgRatio;
+                        x = (pdfWidth - finalWidth) / 2;
+                    }
+
+                    pdf.addImage(compressedDataUrl, 'JPEG', x, y, finalWidth, finalHeight);
                 }
-
-                pdf.addImage(imgUrl, 'JPEG', x, y, finalWidth, finalHeight);
+                
+                const blob = pdf.output('blob');
+                preparedFile = new File([blob], `fatura-mobile-${Date.now()}.pdf`, { type: 'application/pdf' });
             }
-            
-            const blob = pdf.output('blob');
-            let preparedFile = new File([blob], `fatura-mobile-${Date.now()}.pdf`, { type: 'application/pdf' });
 
             await onFileUpload(preparedFile, { mobileFlow: true });
         } catch (error) {
