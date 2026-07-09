@@ -954,7 +954,8 @@ export default function InvoiceForm({
             if (options?.mobileFlow) {
                 setUploadProgress(100);
                 setUploadPhaseLabel('Enviado com sucesso.');
-                setUploadSuccessMessage('Fatura enviada para a Caixa de Entrada do PC.');
+                const qrStatus = options?.jsonForDb?.invoice_number ? '(Dados extraídos do QR Code!)' : '(QR Code não detetado na imagem)';
+                setUploadSuccessMessage(`Fatura enviada para a Caixa de Entrada do PC. ${qrStatus}`);
                 setPendingImages([]);
                 
                 setTimeout(() => {
@@ -1046,9 +1047,33 @@ export default function InvoiceForm({
             let extractedQrData: AtcudData | null = null;
             if (pendingImages.length === 1) {
                 try {
-                    const html5QrCode = new Html5Qrcode("qr-reader-hidden");
-                    const scanResult = await html5QrCode.scanFile(pendingImages[0].file, true);
-                    extractedQrData = parseAtcudQrCode(scanResult);
+                    if ('BarcodeDetector' in window) {
+                        try {
+                            const imgElement = document.createElement('img');
+                            imgElement.src = pendingImages[0].src;
+                            await new Promise(r => { imgElement.onload = r; imgElement.onerror = r; });
+                            // @ts-ignore
+                            const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+                            const barcodes = await detector.detect(imgElement);
+                            if (barcodes.length > 0) {
+                                for (const barcode of barcodes) {
+                                    const parsed = parseAtcudQrCode(barcode.rawValue);
+                                    if (parsed) {
+                                        extractedQrData = parsed;
+                                        break;
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('BarcodeDetector failed', e);
+                        }
+                    }
+
+                    if (!extractedQrData) {
+                        const html5QrCode = new Html5Qrcode("qr-reader-hidden");
+                        const scanResult = await html5QrCode.scanFile(pendingImages[0].file, true);
+                        extractedQrData = parseAtcudQrCode(scanResult);
+                    }
                 } catch (e) {
                     console.warn("QR code local scan failed", e);
                 }

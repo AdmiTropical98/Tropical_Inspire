@@ -647,11 +647,12 @@ const createSignedUrlFromAvailableBucket = async (storagePath: string) => {
     throw lastError || new Error('Unable to generate signed URL for parsing');
 };
 
-const insertImportRowWithFallback = async (storagePath: string) => {
+const insertImportRowWithFallback = async (storagePath: string, extractedData?: any) => {
     const payload: Record<string, unknown> = {
         file_path: storagePath,
         storage_path: storagePath,
-        status: 'processing',
+        status: extractedData ? 'ready' : 'processing',
+        extracted_json: extractedData || null,
     };
 
     for (let attempt = 0; attempt < 6; attempt += 1) {
@@ -722,14 +723,14 @@ const invokeInvoiceParser = async (importId: string, signedUrl: string): Promise
     return `OCR unavailable: ${parseErrorMessage} | fallback: ${fallbackErrorMessage}`;
 };
 
-export async function createInvoiceImportFromPdf(file: File): Promise<InvoiceImport> {
+export async function createInvoiceImportFromPdf(file: File, extractedData?: any): Promise<InvoiceImport> {
     const fileExt = file.name.split('.').pop() || 'pdf';
     const fileName = `${Date.now()}-${randomToken()}.${fileExt}`;
     const storagePath = `raw/${fileName}`;
 
     await uploadToAvailableBucket(storagePath, file);
 
-    const importRow = await insertImportRowWithFallback(storagePath);
+    const importRow = await insertImportRowWithFallback(storagePath, extractedData);
 
     const { signedUrl } = await createSignedUrlFromAvailableBucket(resolveImportStoragePath(importRow));
 
@@ -738,7 +739,7 @@ export async function createInvoiceImportFromPdf(file: File): Promise<InvoiceImp
     if (parserError) {
         try {
             await updateImportRowWithFallback(importRow.id, {
-                status: 'failed' as InvoiceImportStatus,
+                status: extractedData ? ('ready' as InvoiceImportStatus) : ('failed' as InvoiceImportStatus),
                 error: parserError,
                 error_message: parserError,
                 processed_at: new Date().toISOString(),
@@ -749,7 +750,7 @@ export async function createInvoiceImportFromPdf(file: File): Promise<InvoiceImp
 
         return normalizeImportRow({
             ...importRow,
-            status: 'failed',
+            status: extractedData ? 'ready' : 'failed',
             error: parserError,
             error_message: parserError,
         });
