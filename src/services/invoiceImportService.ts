@@ -828,3 +828,14 @@ export async function getPendingInvoiceImports(): Promise<InvoiceImport[]> {
     
     return (data || []).map(normalizeImportRow);
 }
+
+export async function deleteInvoiceImport(importId: string): Promise<void> {
+    const { error } = await supabase
+        .from('invoice_imports')
+        .delete()
+        .eq('id', importId);
+
+    if (error) {
+        throw error;
+    }
+}

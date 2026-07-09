@@ -5,7 +5,7 @@ import {
     CheckCircle, Filter, RefreshCw
 } from 'lucide-react';
 import type { SupplierInvoice, InvoiceImport } from '../../types';
-import { getPendingInvoiceImports } from '../../services/invoiceImportService';
+import { getPendingInvoiceImports, deleteInvoiceImport } from '../../services/invoiceImportService';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useFinancial } from '../../contexts/FinancialContext';
 import StatusBadge from '../../components/common/StatusBadge';
@@ -44,6 +44,17 @@ export default function SupplierInvoices() {
             setPendingImports(imports);
         } catch (error) {
             console.error('Failed to load pending imports', error);
+        }
+    };
+
+    const handleDeleteImport = async (id: string) => {
+        if (!confirm('Tem a certeza que deseja eliminar esta fatura pendente?')) return;
+        try {
+            await deleteInvoiceImport(id);
+            setPendingImports(prev => prev.filter(imp => imp.id !== id));
+        } catch (error) {
+            console.error('Failed to delete import', error);
+            alert('Erro ao eliminar fatura pendente.');
         }
     };
 
@@ -214,12 +225,21 @@ export default function SupplierInvoices() {
                                         Estado: {imp.status === 'processing' ? 'A Processar...' : imp.status === 'ready' ? 'Pronta a completar' : 'Falha na leitura (Verificar)'}
                                     </p>
                                 </div>
-                                <button
-                                    onClick={() => navigate(`/finance/faturas/nova?importId=${imp.id}`)}
-                                    className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition-colors"
-                                >
-                                    Completar
-                                </button>
+                                <div className="flex gap-2 mt-3 md:mt-0">
+                                    <button
+                                        onClick={() => handleDeleteImport(imp.id)}
+                                        className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
+                                        title="Eliminar Fatura Pendente"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => navigate(`/finance/faturas/nova?importId=${imp.id}`)}
+                                        className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition-colors"
+                                    >
+                                        Completar
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>
