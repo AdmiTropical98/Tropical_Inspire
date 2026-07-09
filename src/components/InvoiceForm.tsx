@@ -59,6 +59,7 @@ export default function InvoiceForm({
     vehicles,
     requisitions,
     initialRequisition,
+    initialImportId,
     onSave,
     onPersisted,
     onCancel
