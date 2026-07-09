@@ -37,6 +37,7 @@ interface InvoiceFormProps {
     vehicles: Viatura[];
     requisitions: Requisicao[];
     initialRequisition?: Requisicao | null;
+    initialImportId?: string;
     onSave: (invoice: Omit<SupplierInvoice, 'id' | 'created_at' | 'updated_at'>) => Promise<string>;
     onPersisted?: (payload: {
         savedInvoiceId: string;
@@ -512,6 +513,43 @@ export default function InvoiceForm({
     };
 
     useEffect(() => {
+        if (!initialImportId || !isNewInvoice) return;
+
+        const loadInitialImport = async () => {
+            setUploading(true);
+            setUploadPhaseLabel('A carregar dados da Caixa de Entrada...');
+            try {
+                let currentImport = await getInvoiceImport(initialImportId);
+                setActiveImport(currentImport);
+                
+                const previewUrl = await getInvoiceImportPreviewUrl(currentImport.file_path);
+                setFormData(prev => ({ ...prev, pdf_url: previewUrl || prev.pdf_url }));
+
+                if (currentImport.status === 'processing') {
+                    setUploadPhaseLabel('A aguardar leitura (OCR)...');
+                    currentImport = await pollImportUntilDone(initialImportId);
+                }
+
+                if (currentImport.status === 'ready' && currentImport.extracted_json) {
+                    applyImportedData(currentImport.extracted_json);
+                    setImportStatusMessage('Fatura carregada da Caixa de Entrada. Revise os dados e guarde.');
+                } else if (currentImport.status === 'failed') {
+                    setImportStatusMessage(`Falha na extração automática${currentImport.error ? `: ${currentImport.error}` : ''}. Preencha manualmente.`);
+                }
+                
+                setCaptureStep('form');
+            } catch (error) {
+                console.error('Error loading initial import:', error);
+                setImportStatusMessage('Erro ao carregar a fatura da Caixa de Entrada.');
+            } finally {
+                setUploading(false);
+            }
+        };
+
+        loadInitialImport();
+    }, [initialImportId, isNewInvoice]);
+
+    useEffect(() => {
         if (invoice) {
             if (loadedInvoiceIdRef.current === invoice.id) {
                 return;
@@ -879,6 +917,22 @@ export default function InvoiceForm({
             setUploadPhaseLabel('A enviar documento...');
             const createdImport = await createInvoiceImportFromPdf(file);
             setActiveImport(createdImport);
+
+            if (options?.mobileFlow) {
+                setUploadProgress(100);
+                setUploadPhaseLabel('Enviado com sucesso.');
+                setUploadSuccessMessage('Fatura enviada para a Caixa de Entrada do PC.');
+                setPendingImages([]);
+                
+                // Keep the success message visible for 3 seconds before resetting
+                setTimeout(() => {
+                    setCaptureStep('chooser');
+                    setUploadSuccessMessage('');
+                    setImportStatusMessage('');
+                }, 3000);
+                return;
+            }
+
             setUploadProgress(48);
             setUploadPhaseLabel('Documento associado à requisição.');
             const previewUrl = await getInvoiceImportPreviewUrl(createdImport.file_path);
@@ -891,7 +945,6 @@ export default function InvoiceForm({
 
             if (completedImport.status === 'failed') {
                 setImportStatusMessage(`Documento carregado, mas a extração automática falhou${completedImport.error ? `: ${completedImport.error}` : '.'}`);
-                if (options?.mobileFlow) setCaptureStep('preview');
                 return;
             }
 
@@ -923,11 +976,6 @@ export default function InvoiceForm({
                         : 'Dados extraídos. Revise e confirme antes de guardar.'
                 );
             }
-
-            if (options?.mobileFlow) {
-                setPendingImages([]);
-                setCaptureStep('form');
-            }
         } catch (error) {
             console.error('Error uploading file:', error);
             try {
@@ -937,18 +985,13 @@ export default function InvoiceForm({
                 setUploadPhaseLabel('Leitura local concluída.');
                 setUploadSuccessMessage('Fotografia carregada e extraída localmente com sucesso.');
                 setImportStatusMessage(
-                    `OCR indisponível no servidor. Extração local aplicada (data: ${localExtract.date || 'n/a'}, linhas: ${localExtract.lines?.length || 0}). Revise os dados antes de guardar.`
+                    `OCR indisponível no servidor. Extração local aplicada (data: ${localExtract.date || 'n/a'}, lines: ${localExtract.lines?.length || 0}). Revise os dados antes de guardar.`
                 );
-                if (options?.mobileFlow) {
-                    setPendingImages([]);
-                    setCaptureStep('form');
-                }
             } catch (localError) {
                 console.error('Local PDF parse also failed:', localError);
-                const errorMessage = error?.message || error?.error_description || (typeof error === 'string' ? error : 'Erro desconhecido');
+                const errorMessage = error instanceof Error ? error.message : (typeof error === 'string' ? error : 'Erro desconhecido');
                 setImportStatusMessage(`Falha no processamento inteligente da fatura: ${errorMessage}`);
                 alert(`Erro ao processar documento da fatura: ${errorMessage}`);
-                if (options?.mobileFlow) setCaptureStep('preview');
             }
         } finally {
             setUploading(false);

@@ -814,3 +814,17 @@ export async function getInvoiceImportPreviewUrl(filePath: string): Promise<stri
 
     return null;
 }
+export async function getPendingInvoiceImports(): Promise<InvoiceImport[]> {
+    const { data, error } = await supabase
+        .from('invoice_imports')
+        .select('*')
+        .in('status', ['processing', 'ready', 'failed'])
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching pending imports:', error);
+        return [];
+    }
+    
+    return (data || []).map(normalizeImportRow);
+}

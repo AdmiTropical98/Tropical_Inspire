@@ -18,6 +18,7 @@ export default function SupplierInvoiceDocumentPage({ mode }: SupplierInvoiceDoc
     const { supplierInvoices, addSupplierInvoice, updateSupplierInvoice } = useFinancial();
 
     const initialRequisitionId = searchParams.get('requisitionId') || '';
+    const initialImportId = searchParams.get('importId') || undefined;
 
     const selectedInvoice = useMemo(() => {
         if (mode !== 'edit' || !invoiceId) return null;
@@ -71,6 +72,7 @@ export default function SupplierInvoiceDocumentPage({ mode }: SupplierInvoiceDoc
                 vehicles={viaturas}
                 requisitions={requisicoes}
                 initialRequisition={selectedRequisition}
+                initialImportId={initialImportId}
                 onSave={handleSave}
                 onCancel={handleCancel}
             />

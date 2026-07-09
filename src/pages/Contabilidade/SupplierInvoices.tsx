@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Plus, Search, FileText, Download, Eye, Edit, Trash2,
     CheckCircle, Filter
 } from 'lucide-react';
-import type { SupplierInvoice } from '../../types';
+import type { SupplierInvoice, InvoiceImport } from '../../types';
+import { getPendingInvoiceImports } from '../../services/invoiceImportService';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useFinancial } from '../../contexts/FinancialContext';
 import StatusBadge from '../../components/common/StatusBadge';
@@ -30,6 +31,21 @@ export default function SupplierInvoices() {
         dateFrom: '',
         dateTo: ''
     });
+
+    const [pendingImports, setPendingImports] = useState<InvoiceImport[]>([]);
+
+    useEffect(() => {
+        loadPendingImports();
+    }, []);
+
+    const loadPendingImports = async () => {
+        try {
+            const imports = await getPendingInvoiceImports();
+            setPendingImports(imports);
+        } catch (error) {
+            console.error('Failed to load pending imports', error);
+        }
+    };
 
     const getInvoiceTotal = (invoice: SupplierInvoice) => invoice.total_final ?? invoice.total ?? invoice.total_value ?? 0;
     const getInvoiceBase = (invoice: SupplierInvoice) => invoice.total_liquido ?? invoice.base_amount ?? invoice.net_value ?? 0;
@@ -165,6 +181,50 @@ export default function SupplierInvoices() {
                     Nova Fatura
                 </button>
             </div>
+
+            {/* Pending Inbox */}
+            {pendingImports.length > 0 && (
+                <div className="bg-orange-50 border border-orange-200 rounded-xl p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <h2 className="text-lg font-bold text-orange-800 flex items-center gap-2">
+                                <FileText className="w-5 h-5" />
+                                Caixa de Entrada de Faturas ({pendingImports.length})
+                            </h2>
+                            <p className="text-sm text-orange-700 mt-1">
+                                Faturas fotografadas via telemóvel e enviadas para preenchimento.
+                            </p>
+                        </div>
+                        <button
+                            onClick={loadPendingImports}
+                            className="p-2 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors"
+                            title="Atualizar Caixa de Entrada"
+                        >
+                            <RefreshCw className="w-4 h-4" />
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {pendingImports.map((imp) => (
+                            <div key={imp.id} className="bg-white rounded-lg border border-orange-200 p-4 shadow-sm flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-semibold text-slate-800">
+                                        Data: {new Date(imp.created_at).toLocaleDateString('pt-PT')}
+                                    </p>
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        Estado: {imp.status === 'processing' ? 'A Processar...' : imp.status === 'ready' ? 'Pronta a completar' : 'Falha na leitura (Verificar)'}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => navigate(`/finance/faturas/nova?importId=${imp.id}`)}
+                                    className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition-colors"
+                                >
+                                    Completar
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Filters */}
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
