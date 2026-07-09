@@ -925,12 +925,12 @@ export default function InvoiceForm({
                 setUploadSuccessMessage('Fatura enviada para a Caixa de Entrada do PC.');
                 setPendingImages([]);
                 
-                // Keep the success message visible for 3 seconds before resetting
                 setTimeout(() => {
                     setCaptureStep('chooser');
                     setUploadSuccessMessage('');
                     setImportStatusMessage('');
-                }, 3000);
+                    if (onCancel) onCancel(); // Return to previous screen entirely
+                }, 2000);
                 return;
             }
 
@@ -991,8 +991,12 @@ export default function InvoiceForm({
             } catch (localError) {
                 console.error('Local PDF parse also failed:', localError);
                 const errorMessage = error instanceof Error ? error.message : (typeof error === 'string' ? error : 'Erro desconhecido');
-                setImportStatusMessage(`Falha no processamento inteligente da fatura: ${errorMessage}`);
+                setImportStatusMessage(`Falha no processamento: ${errorMessage}`);
                 alert(`Erro ao processar documento da fatura: ${errorMessage}`);
+                
+                if (options?.mobileFlow) {
+                    setCaptureStep('preview'); // Return to preview if it fails completely
+                }
             }
         } finally {
             setUploading(false);
@@ -1006,45 +1010,40 @@ export default function InvoiceForm({
             setCaptureStep('uploading');
             setUploadPhaseLabel('A processar imagens...');
             
-            let preparedFile: File;
-            if (pendingImages.length === 1) {
-                preparedFile = await dataUrlToFile(pendingImages[0].src, pendingImages[0].name);
-            } else {
-                const { jsPDF } = await import('jspdf');
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = pdf.internal.pageSize.getHeight();
+            const { jsPDF } = await import('jspdf');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
 
-                for (let i = 0; i < pendingImages.length; i++) {
-                    if (i > 0) pdf.addPage();
-                    const imgUrl = pendingImages[i].src;
-                    
-                    const img = new Image();
-                    img.src = imgUrl;
-                    await new Promise(resolve => img.onload = resolve);
-                    
-                    const imgRatio = img.width / img.height;
-                    const pdfRatio = pdfWidth / pdfHeight;
-                    
-                    let finalWidth = pdfWidth;
-                    let finalHeight = pdfHeight;
-                    let x = 0;
-                    let y = 0;
-
-                    if (imgRatio > pdfRatio) {
-                        finalHeight = pdfWidth / imgRatio;
-                        y = (pdfHeight - finalHeight) / 2;
-                    } else {
-                        finalWidth = pdfHeight * imgRatio;
-                        x = (pdfWidth - finalWidth) / 2;
-                    }
-
-                    pdf.addImage(imgUrl, 'JPEG', x, y, finalWidth, finalHeight);
-                }
+            for (let i = 0; i < pendingImages.length; i++) {
+                if (i > 0) pdf.addPage();
+                const imgUrl = pendingImages[i].src;
                 
-                const blob = pdf.output('blob');
-                preparedFile = new File([blob], `fatura-multipagina-${Date.now()}.pdf`, { type: 'application/pdf' });
+                const img = new Image();
+                img.src = imgUrl;
+                await new Promise(resolve => img.onload = resolve);
+                
+                const imgRatio = img.width / img.height;
+                const pdfRatio = pdfWidth / pdfHeight;
+                
+                let finalWidth = pdfWidth;
+                let finalHeight = pdfHeight;
+                let x = 0;
+                let y = 0;
+
+                if (imgRatio > pdfRatio) {
+                    finalHeight = pdfWidth / imgRatio;
+                    y = (pdfHeight - finalHeight) / 2;
+                } else {
+                    finalWidth = pdfHeight * imgRatio;
+                    x = (pdfWidth - finalWidth) / 2;
+                }
+
+                pdf.addImage(imgUrl, 'JPEG', x, y, finalWidth, finalHeight);
             }
+            
+            const blob = pdf.output('blob');
+            let preparedFile = new File([blob], `fatura-mobile-${Date.now()}.pdf`, { type: 'application/pdf' });
 
             await onFileUpload(preparedFile, { mobileFlow: true });
         } catch (error) {
@@ -1214,8 +1213,8 @@ export default function InvoiceForm({
                                 </div>
                                 <img src={img.src} alt={`Página ${index + 1}`} className="h-full w-full object-contain rounded-[22px]" />
                                 <div className="absolute bottom-6 flex gap-2">
-                                    <button onClick={() => handleRotatePreview(index)} className="p-4 bg-blue-600/90 text-white rounded-full hover:bg-blue-500 backdrop-blur-md shadow-lg">
-                                        <Crop className="w-6 h-6" />
+                                    <button onClick={() => handleRotatePreview(index)} className="flex items-center gap-2 px-6 py-3 bg-blue-600/90 text-white rounded-full hover:bg-blue-500 backdrop-blur-md shadow-lg font-medium">
+                                        <Crop className="w-5 h-5" /> Recortar Imagem
                                     </button>
                                 </div>
                             </div>
