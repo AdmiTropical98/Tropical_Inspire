@@ -15,7 +15,8 @@ import type {
     InvoiceImportExtractedData,
 } from '../types';
 import { supabase } from '../lib/supabase';
-import StatusBadge from './common/StatusBadge';
+import { Html5Qrcode } from 'html5-qrcode';
+import { AtcudData } from '../utils/qrCodeParser';import StatusBadge from './common/StatusBadge';
 import InvoiceFinancialSummary from './InvoiceFinancialSummary';
 import ImageCropper from './common/ImageCropper';
 import QRCodeScanner from './common/QRCodeScanner';
@@ -934,7 +935,7 @@ export default function InvoiceForm({
         await onFileUpload(file);
     };
 
-    const onFileUpload = async (file?: File | null, options?: { mobileFlow?: boolean }) => {
+    const onFileUpload = async (file?: File | null, options?: { mobileFlow?: boolean, jsonForDb?: any }) => {
         if (!file) return;
 
         setHasUserRequestedOcr(true);
@@ -947,7 +948,7 @@ export default function InvoiceForm({
             setImportStatusMessage('A ler documento e extrair QR/OCR...');
             setUploadProgress(28);
             setUploadPhaseLabel('A enviar documento...');
-            const createdImport = await createInvoiceImportFromPdf(file);
+            const createdImport = await createInvoiceImportFromPdf(file, options?.jsonForDb);
             setActiveImport(createdImport);
 
             if (options?.mobileFlow) {
@@ -1042,7 +1043,15 @@ export default function InvoiceForm({
             setUploadPhaseLabel('A processar imagens...');
             
             let preparedFile: File;
+            let extractedQrData: AtcudData | null = null;
             if (pendingImages.length === 1) {
+                try {
+                    const html5QrCode = new Html5Qrcode("qr-reader-hidden");
+                    const scanResult = await html5QrCode.scanFile(pendingImages[0].file, true);
+                    extractedQrData = parseAtcudQrCode(scanResult);
+                } catch (e) {
+                    console.warn("QR code local scan failed", e);
+                }
                 const compressedDataUrl = await compressImage(pendingImages[0].src, 1600, 0.85);
                 const baseName = pendingImages[0].name.replace(/\.[^/.]+$/, "");
                 preparedFile = await dataUrlToFile(compressedDataUrl, `${baseName}.jpeg`);
@@ -1083,7 +1092,16 @@ export default function InvoiceForm({
                 preparedFile = new File([blob], `fatura-mobile-${Date.now()}.pdf`, { type: 'application/pdf' });
             }
 
-            await onFileUpload(preparedFile, { mobileFlow: true });
+            const jsonForDb = extractedQrData ? {
+                supplier_name: extractedQrData.nif_emissor,
+                invoice_number: extractedQrData.numero_fatura,
+                date: extractedQrData.data_fatura,
+                total: extractedQrData.total_com_impostos || 0,
+                vat_total: extractedQrData.total_impostos || 0,
+                lines: []
+            } : undefined;
+
+            await onFileUpload(preparedFile, { mobileFlow: true, jsonForDb });
         } catch (error) {
             console.error('Error confirming mobile invoice image:', error);
             alert('Não foi possível preparar as fotografias para upload.');
