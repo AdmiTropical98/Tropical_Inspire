@@ -16,11 +16,11 @@ import type {
 } from '../types';
 import { supabase } from '../lib/supabase';
 import { Html5Qrcode } from 'html5-qrcode';
-import { AtcudData } from '../utils/qrCodeParser';import StatusBadge from './common/StatusBadge';
+import StatusBadge from './common/StatusBadge';
 import InvoiceFinancialSummary from './InvoiceFinancialSummary';
 import ImageCropper from './common/ImageCropper';
 import QRCodeScanner from './common/QRCodeScanner';
-import { parseAtcudQrCode } from '../utils/qrCodeParser';
+import { parseAtcudQrCode, type AtcudData } from '../utils/qrCodeParser';
 import { formatCurrency } from '../utils/format';
 import {
     createInvoiceImportFromPdf,
@@ -172,7 +172,8 @@ export default function InvoiceForm({
         payment_status: 'pending' as SupplierInvoice['payment_status'],
         payment_method: '',
         notes: '',
-        pdf_url: ''
+        pdf_url: '',
+        expense_category: ''
     });
     const loadedInvoiceIdRef = useRef<string | null>(null);
     const [manualIvaOverrides, setManualIvaOverrides] = useState<(string | null)[]>([null]);
@@ -526,6 +527,26 @@ export default function InvoiceForm({
             || suppliers.find((supplier) => normalizedSupplierName.includes(normalizeName(supplier.nome)))
             : undefined;
 
+        if (payload.mode === 'mobile-summary') {
+            setFormData((prev) => ({
+                ...prev,
+                supplier_id: prev.supplier_id || matchedSupplier?.id || '',
+                invoice_number: payload.invoice_number || prev.invoice_number,
+                issue_date: payload.date || prev.issue_date,
+                notes: payload.expense_description || prev.notes,
+                expense_category: payload.expense_category || prev.expense_category,
+            }));
+            
+            setAiFilledFields(new Set([
+                'supplier_id',
+                'invoice_number',
+                'issue_date',
+                'notes',
+                'expense_category'
+            ]));
+            return;
+        }
+
         setFormData((prev) => ({
             ...prev,
             supplier_id: prev.supplier_id || matchedSupplier?.id || '',
@@ -790,7 +811,7 @@ export default function InvoiceForm({
             return;
         }
 
-        const derivedExpenseType = validLines.map(line => line.description).join(' | ').slice(0, 180) || 'Fatura Fornecedor';
+        const derivedExpenseType = formData.expense_category || validLines.map(line => line.description).join(' | ').slice(0, 180) || 'Fatura Fornecedor';
 
         try {
             const savedInvoiceId = await onSave({
@@ -948,24 +969,12 @@ export default function InvoiceForm({
             setImportStatusMessage('A ler documento e extrair QR/OCR...');
             setUploadProgress(28);
             setUploadPhaseLabel('A enviar documento...');
-            const createdImport = await createInvoiceImportFromPdf(file, options?.jsonForDb);
+            const createdImport = await createInvoiceImportFromPdf(
+                file, 
+                options?.jsonForDb, 
+                options?.mobileFlow ? 'mobile-summary' : 'full'
+            );
             setActiveImport(createdImport);
-
-            if (options?.mobileFlow) {
-                setUploadProgress(100);
-                setUploadPhaseLabel('Enviado com sucesso.');
-                const qrStatus = options?.jsonForDb?.invoice_number ? '(Dados extraídos do QR Code!)' : '(QR Code não detetado na imagem)';
-                setUploadSuccessMessage(`Fatura enviada para a Caixa de Entrada do PC. ${qrStatus}`);
-                setPendingImages([]);
-                
-                setTimeout(() => {
-                    setCaptureStep('chooser');
-                    setUploadSuccessMessage('');
-                    setImportStatusMessage('');
-                    if (onCancel) onCancel(); // Return to previous screen entirely
-                }, 2000);
-                return;
-            }
 
             setUploadProgress(48);
             setUploadPhaseLabel('Documento associado à requisição.');
@@ -1674,6 +1683,24 @@ export default function InvoiceForm({
                                 <option value="card">Cartão</option>
                                 <option value="cash">Dinheiro</option>
                                 <option value="direct_debit">Débito Direto</option>
+                            </select>
+                            
+                            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 mb-2">
+                                Categoria da Despesa
+                            </label>
+                            <select
+                                value={formData.expense_category}
+                                onChange={(e) => setFormData(prev => ({ ...prev, expense_category: e.target.value }))}
+                                className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none ${aiFilledFields.has('expense_category') ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200'}`}
+                            >
+                                <option value="">Automática / Mista</option>
+                                <option value="Combustível">Combustível</option>
+                                <option value="Pneus">Pneus</option>
+                                <option value="Manutenção">Manutenção</option>
+                                <option value="Cartrack">Cartrack</option>
+                                <option value="Portagens">Portagens</option>
+                                <option value="Seguros">Seguros</option>
+                                <option value="Despesas Administrativas">Despesas Administrativas</option>
                             </select>
                         </div>
                         <div>

@@ -700,11 +700,12 @@ const updateImportRowWithFallback = async (importId: string, data: Record<string
     throw new Error('Unable to update invoice import');
 };
 
-const invokeInvoiceParser = async (importId: string, signedUrl: string): Promise<string | null> => {
+const invokeInvoiceParser = async (importId: string, signedUrl: string, mode: 'full' | 'mobile-summary' = 'full'): Promise<string | null> => {
     const parseResult = await supabase.functions.invoke('parse-invoice', {
         body: {
             importId,
             fileUrl: signedUrl,
+            mode,
         },
     });
 
@@ -723,7 +724,7 @@ const invokeInvoiceParser = async (importId: string, signedUrl: string): Promise
     return `OCR unavailable: ${parseErrorMessage} | fallback: ${fallbackErrorMessage}`;
 };
 
-export async function createInvoiceImportFromPdf(file: File, extractedData?: any): Promise<InvoiceImport> {
+export async function createInvoiceImportFromPdf(file: File, extractedData?: any, mode: 'full' | 'mobile-summary' = 'full'): Promise<InvoiceImport> {
     const fileExt = file.name.split('.').pop() || 'pdf';
     const fileName = `${Date.now()}-${randomToken()}.${fileExt}`;
     const storagePath = `raw/${fileName}`;
@@ -734,7 +735,7 @@ export async function createInvoiceImportFromPdf(file: File, extractedData?: any
 
     const { signedUrl } = await createSignedUrlFromAvailableBucket(resolveImportStoragePath(importRow));
 
-    const parserError = await invokeInvoiceParser(importRow.id, signedUrl);
+    const parserError = await invokeInvoiceParser(importRow.id, signedUrl, mode);
 
     if (parserError) {
         try {

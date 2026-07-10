@@ -72,7 +72,17 @@ const inferAllowedUnit = (description: string, rawUnit: unknown) => {
   return 'UN';
 };
 
-const normalizeResponse = (raw: any) => {
+const normalizeResponse = (raw: any, mode: 'full' | 'mobile-summary' = 'full') => {
+  if (mode === 'mobile-summary') {
+    return {
+      supplier: String(raw?.supplier || raw?.supplier_name || '').trim(),
+      date: normalizeDate(raw?.date || raw?.issue_date || raw?.invoice_date),
+      expense_description: String(raw?.expense_description || '').trim(),
+      expense_category: String(raw?.expense_category || '').trim(),
+      mode: 'mobile-summary',
+    };
+  }
+
   const lines = Array.isArray(raw?.lines)
     ? raw.lines
       .map((line: any) => {
@@ -109,30 +119,53 @@ const normalizeResponse = (raw: any) => {
     total: Math.max(0, normalizeNumber(raw?.total)),
     vat_total: Math.max(0, normalizeNumber(raw?.vat_total || raw?.vat || raw?.iva_total)),
     lines,
+    mode: 'full',
   };
 };
 
-const callOpenAIVision = async (fileUrl: string) => {
+const callOpenAIVision = async (fileUrl: string, mode: 'full' | 'mobile-summary' = 'full') => {
   const apiKey = Deno.env.get('OPENAI_API_KEY');
   if (!apiKey) throw new Error('OPENAI_API_KEY is not configured');
 
-  const prompt = [
-    'Extrai os dados de uma fatura de fornecedor portuguesa (pt-PT).',
-    'Responde APENAS JSON válido sem markdown nem texto adicional.',
-    'Formato obrigatório:',
-    JSON.stringify({
-      supplier: '',
-      invoice_number: '',
-      date: 'YYYY-MM-DD',
-      total: 0,
-      vat_total: 0,
-      lines: [{ description: '', unidade_medida: 'UN', qty: 1, unit_price: 0, vat_percent: 23 }],
-    }),
-    'IMPORTANTE: em lines incluir APENAS linhas faturáveis da grelha de itens/serviços (descrição + quantidade + unidade + preço).',
-    'IMPORTANTE 2: devolve TODAS as linhas da grelha (não resumir, não agrupar, não truncar), mesmo que sejam >50 linhas.',
-    'NÃO incluir IBAN, NIB, SWIFT/BIC, dados bancários, referências de pagamento, totais, subtotais, observações ou rodapé.',
-    'Se faltar algum campo, usa string vazia ou 0.',
-  ].join('\n');
+  let prompt = '';
+  
+  if (mode === 'mobile-summary') {
+    prompt = [
+      'Analisa esta fotografia de uma fatura ou recibo português (pt-PT).',
+      'O teu objetivo NÃO é extrair valores financeiros, mas sim identificar o tipo de despesa para ajudar o utilizador.',
+      'Identifica o Nome do fornecedor (supplier).',
+      'Lê os artigos/serviços comprados e cria uma "expense_description" curta, sintetizada e descritiva.',
+      'Exemplos de "expense_description": Se for BP/Galp com gasóleo -> "Abastecimento de combustível". Se for Norauto com pneus e óleo -> "Compra de pneus e óleo de motor". Se for Via Verde -> "Portagens Via Verde".',
+      'Também deves sugerir uma categoria (expense_category). Sugestões possíveis: Combustível, Pneus, Manutenção, Cartrack, Portagens, Seguros, Despesas Administrativas, ou outra adequada.',
+      'Extrai a data se visível (YYYY-MM-DD).',
+      'Responde APENAS JSON válido sem markdown nem texto adicional.',
+      'Formato obrigatório:',
+      JSON.stringify({
+        supplier: '',
+        date: 'YYYY-MM-DD',
+        expense_description: '',
+        expense_category: ''
+      }),
+    ].join('\n');
+  } else {
+    prompt = [
+      'Extrai os dados de uma fatura de fornecedor portuguesa (pt-PT).',
+      'Responde APENAS JSON válido sem markdown nem texto adicional.',
+      'Formato obrigatório:',
+      JSON.stringify({
+        supplier: '',
+        invoice_number: '',
+        date: 'YYYY-MM-DD',
+        total: 0,
+        vat_total: 0,
+        lines: [{ description: '', unidade_medida: 'UN', qty: 1, unit_price: 0, vat_percent: 23 }],
+      }),
+      'IMPORTANTE: em lines incluir APENAS linhas faturáveis da grelha de itens/serviços (descrição + quantidade + unidade + preço).',
+      'IMPORTANTE 2: devolve TODAS as linhas da grelha (não resumir, não agrupar, não truncar), mesmo que sejam >50 linhas.',
+      'NÃO incluir IBAN, NIB, SWIFT/BIC, dados bancários, referências de pagamento, totais, subtotais, observações ou rodapé.',
+      'Se faltar algum campo, usa string vazia ou 0.',
+    ].join('\n');
+  }
 
   const response = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
@@ -188,7 +221,7 @@ serve(async (req) => {
   let importId: string | undefined;
 
   try {
-    const { fileUrl, importId: incomingImportId } = await req.json();
+    const { fileUrl, importId: incomingImportId, mode = 'full' } = await req.json();
     importId = incomingImportId;
 
     if (!fileUrl) throw new Error('Missing fileUrl');
@@ -198,8 +231,8 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const aiRaw = await callOpenAIVision(fileUrl);
-    const parsed = normalizeResponse(aiRaw);
+    const aiRaw = await callOpenAIVision(fileUrl, mode as 'full' | 'mobile-summary');
+    const parsed = normalizeResponse(aiRaw, mode as 'full' | 'mobile-summary');
 
     if (importId) {
       await supabaseAdmin
