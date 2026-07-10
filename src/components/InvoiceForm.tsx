@@ -521,11 +521,15 @@ export default function InvoiceForm({
         const fallbackLine: SupplierInvoiceLine[] = hasImportedLines ? importedLines : [emptyLine()];
         const normalizedSupplierName = normalizeName(payload.supplier || '');
 
-        const matchedSupplier = normalizedSupplierName
-            ? suppliers.find((supplier) => normalizeName(supplier.nome) === normalizedSupplierName)
-            || suppliers.find((supplier) => normalizeName(supplier.nome).includes(normalizedSupplierName))
-            || suppliers.find((supplier) => normalizedSupplierName.includes(normalizeName(supplier.nome)))
+        let matchedSupplier = payload.supplier_nif 
+            ? suppliers.find(s => s.nif === payload.supplier_nif || s.nif?.replace(/\s+/g, '') === payload.supplier_nif?.replace(/\s+/g, ''))
             : undefined;
+            
+        if (!matchedSupplier && normalizedSupplierName) {
+            matchedSupplier = suppliers.find((supplier) => normalizeName(supplier.nome) === normalizedSupplierName)
+                || suppliers.find((supplier) => normalizeName(supplier.nome).includes(normalizedSupplierName))
+                || suppliers.find((supplier) => normalizedSupplierName.includes(normalizeName(supplier.nome)));
+        }
 
         if (payload.mode === 'mobile-summary') {
             setFormData((prev) => ({
@@ -967,11 +971,65 @@ export default function InvoiceForm({
         if (options?.mobileFlow) setCaptureStep('uploading');
         try {
             setImportStatusMessage('A ler documento e extrair QR/OCR...');
+            setUploadProgress(15);
+            setUploadPhaseLabel('A extrair QR Code...');
+            
+            let extractedQrData: AtcudData | null = null;
+            if (file.type === 'application/pdf') {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const pdfjsLib = (window as any).pdfjsLib;
+                    if (pdfjsLib && 'BarcodeDetector' in window) {
+                        const arrayBuffer = await file.arrayBuffer();
+                        const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer), disableWorker: true }).promise;
+                        const page = await pdf.getPage(1);
+                        const viewport = page.getViewport({ scale: 2.0 });
+                        const context = canvas.getContext('2d');
+                        if (context) {
+                            canvas.width = viewport.width;
+                            canvas.height = viewport.height;
+                            await page.render({ canvasContext: context, viewport }).promise;
+                            
+                            const blob = await new Promise<Blob | null>(r => canvas.toBlob(r, 'image/jpeg', 0.9));
+                            if (blob) {
+                                const previewSource = URL.createObjectURL(blob);
+                                const imgElement = document.createElement('img');
+                                imgElement.src = previewSource;
+                                await new Promise(r => { imgElement.onload = r; imgElement.onerror = r; });
+                                // @ts-ignore
+                                const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+                                const barcodes = await detector.detect(imgElement);
+                                if (barcodes.length > 0) {
+                                    for (const barcode of barcodes) {
+                                        const parsed = parseAtcudQrCode(barcode.rawValue);
+                                        if (parsed) {
+                                            extractedQrData = parsed;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch(e) {
+                    console.error('Local rasterize for QR scan failed', e);
+                }
+            }
+
+            const jsonForDb = { ...options?.jsonForDb, ...(extractedQrData ? {
+                invoice_number: extractedQrData.documentNumber,
+                date: extractedQrData.documentDate,
+                total: extractedQrData.totalAmount,
+                vat_total: extractedQrData.taxAmount,
+                net_total: extractedQrData.taxBase,
+                supplier_nif: extractedQrData.nif
+            } : {}) };
+
             setUploadProgress(28);
             setUploadPhaseLabel('A enviar documento...');
             const createdImport = await createInvoiceImportFromPdf(
                 file, 
-                options?.jsonForDb, 
+                jsonForDb, 
                 options?.mobileFlow ? 'mobile-summary' : 'full'
             );
             setActiveImport(createdImport);
@@ -1056,25 +1114,83 @@ export default function InvoiceForm({
             let extractedQrData: AtcudData | null = null;
             if (pendingImages.length === 1) {
                 try {
-                    if ('BarcodeDetector' in window) {
+                    setUploading(true);
+                    setUploadProgress(10);
+                    setUploadPhaseLabel('A iniciar upload...');
+
+                    let previewSource: string | undefined;
+                    let extractedQrData: AtcudData | null = null;
+                    let rasterizedPdfImage: File | null = null;
+
+                    if (pendingImages[0].file.type.startsWith('image/')) {
+                        previewSource = await readFileAsDataUrl(pendingImages[0].file);
+                        if (previewSource && 'BarcodeDetector' in window) {
+                            try {
+                                const imgElement = document.createElement('img');
+                                imgElement.src = previewSource;
+                                await new Promise(r => { imgElement.onload = r; imgElement.onerror = r; });
+                                // @ts-ignore
+                                const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+                                const barcodes = await detector.detect(imgElement);
+                                if (barcodes.length > 0) {
+                                    for (const barcode of barcodes) {
+                                        const parsed = parseAtcudQrCode(barcode.rawValue);
+                                        if (parsed) {
+                                            extractedQrData = parsed;
+                                            break;
+                                        }
+                                    }
+                                }
+                            } catch (e) {
+                                console.warn('BarcodeDetector failed or not fully supported', e);
+                            }
+                        }
+                    } else if (pendingImages[0].file.type === 'application/pdf') {
                         try {
-                            const imgElement = document.createElement('img');
-                            imgElement.src = pendingImages[0].src;
-                            await new Promise(r => { imgElement.onload = r; imgElement.onerror = r; });
-                            // @ts-ignore
-                            const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
-                            const barcodes = await detector.detect(imgElement);
-                            if (barcodes.length > 0) {
-                                for (const barcode of barcodes) {
-                                    const parsed = parseAtcudQrCode(barcode.rawValue);
-                                    if (parsed) {
-                                        extractedQrData = parsed;
-                                        break;
+                            const canvas = document.createElement('canvas');
+                            const pdfjsLib = (window as any).pdfjsLib;
+                            if (pdfjsLib) {
+                                const arrayBuffer = await pendingImages[0].file.arrayBuffer();
+                                const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer), disableWorker: true }).promise;
+                                const page = await pdf.getPage(1);
+                                const viewport = page.getViewport({ scale: 2.0 });
+                                const context = canvas.getContext('2d');
+                                if (context) {
+                                    canvas.width = viewport.width;
+                                    canvas.height = viewport.height;
+                                    await page.render({ canvasContext: context, viewport }).promise;
+                                    
+                                    const blob = await new Promise<Blob | null>(r => canvas.toBlob(r, 'image/jpeg', 0.9));
+                                    if (blob) {
+                                        rasterizedPdfImage = new File([blob], pendingImages[0].file.name.replace(/\.[^/.]+$/, "") + '.jpeg', { type: 'image/jpeg' });
+                                        previewSource = URL.createObjectURL(blob);
+                                        
+                                        if ('BarcodeDetector' in window) {
+                                            try {
+                                                const imgElement = document.createElement('img');
+                                                imgElement.src = previewSource;
+                                                await new Promise(r => { imgElement.onload = r; imgElement.onerror = r; });
+                                                // @ts-ignore
+                                                const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+                                                const barcodes = await detector.detect(imgElement);
+                                                if (barcodes.length > 0) {
+                                                    for (const barcode of barcodes) {
+                                                        const parsed = parseAtcudQrCode(barcode.rawValue);
+                                                        if (parsed) {
+                                                            extractedQrData = parsed;
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                            } catch (e) {
+                                                console.warn('BarcodeDetector failed on rasterized PDF', e);
+                                            }
+                                        }
                                     }
                                 }
                             }
-                        } catch (e) {
-                            console.warn('BarcodeDetector failed', e);
+                        } catch(e) {
+                            console.error('Local rasterize for QR scan failed', e);
                         }
                     }
 
