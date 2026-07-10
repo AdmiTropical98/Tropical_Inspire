@@ -464,21 +464,35 @@ const extractDetailedLines = (
 
         const tokens = row.items.sort((a, b) => a.x - b.x);
         const tokenTexts = tokens.map((item) => normalizeTokenForMatch(item.text)).filter(Boolean);
-        const unitIndex = findFirstUnitAnchorIndex(tokenTexts);
+        let unitIndex = findFirstUnitAnchorIndex(tokenTexts);
+        
+        let qtyToken: string | undefined;
+        let unitToken: InvoiceUnit = 'UN';
+        let numbersAfterUnit: number[] = [];
+        let descriptionTokens: string[] = [];
 
         if (unitIndex > 0) {
-            const qtyToken = tokenTexts[unitIndex - 1];
-            const qty = isNumericToken(qtyToken) ? toNumber(qtyToken) : 0;
-            const unitToken = normalizeAnchorUnitToInvoiceUnit(tokenTexts[unitIndex]);
+            qtyToken = tokenTexts[unitIndex - 1];
+            unitToken = normalizeAnchorUnitToInvoiceUnit(tokenTexts[unitIndex]) || 'UN';
+            numbersAfterUnit = tokenTexts.slice(unitIndex + 1).filter(isNumericToken).map(toNumber);
+            descriptionTokens = tokenTexts.slice(0, unitIndex - 1);
+        } else {
+            const firstTextIndex = tokenTexts.findIndex(t => !isNumericToken(t));
+            const lastTextIndex = tokenTexts.findLastIndex(t => !isNumericToken(t));
+            
+            if (firstTextIndex > 0 && lastTextIndex >= firstTextIndex) {
+                qtyToken = tokenTexts[firstTextIndex - 1];
+                unitToken = 'UN';
+                const tailTokens = tokenTexts.slice(lastTextIndex + 1);
+                numbersAfterUnit = tailTokens.filter(t => /^[0-9.,]+$/.test(t) && t.includes(',')).map(toNumber);
+                descriptionTokens = tokenTexts.slice(firstTextIndex, lastTextIndex + 1);
+            }
+        }
 
-            const numbersAfterUnit = tokenTexts
-                .slice(unitIndex + 1)
-                .filter((token) => isNumericToken(token))
-                .map((token) => toNumber(token));
-
-            const unitPrice = numbersAfterUnit[0] || 0;
+        const qty = qtyToken && isNumericToken(qtyToken) ? toNumber(qtyToken) : 0;
+        const unitPrice = numbersAfterUnit[0] || 0;
             if (qty > 0 && unitToken && unitPrice > 0) {
-                const rowDescription = tokenTexts.slice(0, unitIndex - 1).join(' ').replace(/\s+/g, ' ').trim();
+                const rowDescription = descriptionTokens.join(' ').replace(/\s+/g, ' ').trim();
                 const fullDescription = [...pendingDescriptionBuffer, rowDescription].join(' ').replace(/\s+/g, ' ').trim();
                 pendingDescriptionBuffer = [];
 
@@ -507,7 +521,6 @@ const extractDetailedLines = (
                     continue;
                 }
             }
-        }
 
         // Buffer/Continuation logic:
         // 1. If we have a current item, check if this line is purely text (no numeric clusters)
