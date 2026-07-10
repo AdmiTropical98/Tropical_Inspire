@@ -299,7 +299,7 @@ const extractInvoiceNumber = (lines: string[], compact: string, fallbackName: st
     for (const line of lines) {
         if (!/fatura|factura|invoice/i.test(line)) continue;
 
-        const prefixed = line.match(/\b([A-Z]{1,5}\s*\d{3,}(?:\/\d+)?)\b/i);
+        const prefixed = line.match(/\b([A-Z]{1,5}(?:\s+[A-Z]{1,5})?\s*\d{3,}(?:\/\s*\d+)?)\b/i);
         if (prefixed?.[1]) return prefixed[1].replace(/\s+/g, ' ').trim().toUpperCase();
 
         const trailing = line.match(/fatura\s*[:#\-]?\s*([A-Z0-9\/-]{3,40})/i);
@@ -356,7 +356,7 @@ const SECTION_MARKER_REGEX = /^\s*(duplicado|triplicado|segunda\s*via)\b/i;
 const UNIT_ANCHOR_REGEX = /^(UN|UND|UNID|UNIDADE|UNIDADES|UNI|HOR|H|HR|HRS|HORA|HORAS|L|LT|LTS|LITRO|LITROS|CX|CAIXA|CAIXAS|MT|MTS|METRO|METROS)$/i;
 
 const normalizeTokenForMatch = (token: string): string => token
-    .replace(/[|;,]/g, ' ')
+    .replace(/[|;]/g, ' ')
     .replace(/[()\[\]{}]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
