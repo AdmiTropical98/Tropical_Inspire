@@ -137,6 +137,36 @@ const extractPdfLines = async (file: File): Promise<string[]> => {
     return lines.map((line) => line.replace(/\s+/g, ' ').trim()).filter(Boolean);
 };
 
+const rasterizeFirstPageOfPdf = async (file: File): Promise<File> => {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer), disableWorker: true } as any).promise;
+    const page = await pdf.getPage(1);
+    
+    const viewport = page.getViewport({ scale: 2.0 });
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Could not get 2d context for canvas');
+    
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    
+    await page.render({
+        canvasContext: context,
+        viewport: viewport
+    }).promise;
+    
+    return new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+            if (blob) {
+                const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
+                resolve(new File([blob], `${nameWithoutExt}.jpeg`, { type: 'image/jpeg' }));
+            } else {
+                reject(new Error('Canvas to Blob failed'));
+            }
+        }, 'image/jpeg', 0.9);
+    });
+};
+
 const extractPdfRowsByGeometry = async (file: File): Promise<PositionalRow[]> => {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer), disableWorker: true } as any).promise;
@@ -733,9 +763,26 @@ export async function createInvoiceImportFromPdf(file: File, extractedData?: any
 
     const importRow = await insertImportRowWithFallback(storagePath, extractedData);
 
-    const { signedUrl } = await createSignedUrlFromAvailableBucket(resolveImportStoragePath(importRow));
+    const { signedUrl: originalSignedUrl } = await createSignedUrlFromAvailableBucket(resolveImportStoragePath(importRow));
+    let ocrUrl = originalSignedUrl;
 
-    const parserError = await invokeInvoiceParser(importRow.id, signedUrl, mode);
+    if (fileExt.toLowerCase() === 'pdf') {
+        try {
+            const rasterizedImage = await rasterizeFirstPageOfPdf(file);
+            const imageExt = 'jpeg';
+            const imageFileName = `${Date.now()}-${randomToken()}-ocr.${imageExt}`;
+            const imageStoragePath = `raw/${imageFileName}`;
+            
+            await uploadToAvailableBucket(imageStoragePath, rasterizedImage);
+            
+            const { signedUrl: imageSignedUrl } = await createSignedUrlFromAvailableBucket(imageStoragePath);
+            ocrUrl = imageSignedUrl;
+        } catch (e) {
+            console.error('Failed to rasterize PDF for OCR', e);
+        }
+    }
+
+    const parserError = await invokeInvoiceParser(importRow.id, ocrUrl, mode);
 
     if (parserError) {
         try {

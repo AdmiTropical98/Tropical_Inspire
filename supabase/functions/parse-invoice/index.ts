@@ -167,21 +167,21 @@ const callOpenAIVision = async (fileUrl: string, mode: 'full' | 'mobile-summary'
     ].join('\n');
   }
 
-  const response = await fetch('https://api.openai.com/v1/responses', {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4.1-mini',
-      max_output_tokens: 12000,
-      input: [
+      model: 'gpt-4o-mini',
+      max_tokens: 4096,
+      messages: [
         {
           role: 'user',
           content: [
-            { type: 'input_text', text: prompt },
-            { type: 'input_image', image_url: fileUrl },
+            { type: 'text', text: prompt },
+            { type: 'image_url', image_url: { url: fileUrl } },
           ],
         },
       ],
@@ -194,12 +194,13 @@ const callOpenAIVision = async (fileUrl: string, mode: 'full' | 'mobile-summary'
   }
 
   const payload = await response.json();
-  const text = payload?.output_text || '';
+  const text = payload.choices?.[0]?.message?.content || '';
 
   if (!text) return defaultJson;
 
   try {
-    return JSON.parse(text);
+    const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(cleanText);
   } catch {
     const jsonBlock = text.match(/\{[\s\S]*\}/);
     if (jsonBlock?.[0]) {
