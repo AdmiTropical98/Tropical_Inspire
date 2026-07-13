@@ -781,6 +781,9 @@ const invokeInvoiceParser = async (importId: string, signedUrl: string, mode: 'f
 };
 
 export async function createInvoiceImportFromPdf(file: File, extractedData?: any, mode: 'full' | 'mobile-summary' = 'full'): Promise<InvoiceImport> {
+    console.log('\n--- ETAPA 1: O ficheiro foi recebido? ---');
+    console.log(`Nome do ficheiro: ${file.name}\nTipo do ficheiro: ${file.type}\nTamanho: ${file.size} bytes`);
+    
     const fileExt = file.name.split('.').pop() || 'pdf';
     const fileName = `${Date.now()}-${randomToken()}.${fileExt}`;
     const storagePath = `raw/${fileName}`;
