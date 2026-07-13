@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const callOpenAIVisionForText = async (fileUrl: string) => {
+const callOpenAIVisionForText = async (fileUrl) => {
   const apiKey = Deno.env.get('OPENAI_API_KEY');
   if (!apiKey) throw new Error('OPENAI_API_KEY is not configured');
 
@@ -41,7 +41,7 @@ const callOpenAIVisionForText = async (fileUrl: string) => {
   return payload.choices?.[0]?.message?.content || '';
 };
 
-const callOpenAIStructurer = async (ocrText: string, qrData: any, learningRules: any[], fileName: string) => {
+const callOpenAIStructurer = async (ocrText, qrData, learningRules, fileName) => {
   const apiKey = Deno.env.get('OPENAI_API_KEY');
   if (!apiKey) throw new Error('OPENAI_API_KEY is not configured');
 
@@ -86,10 +86,6 @@ Important Rules:
 3. If QR Code data is provided, trust it above OCR text for totals and NIF.
 4. Confidence scores should reflect your certainty. If the OCR text is blurry or you can't clearly find the invoice number, set its score below 80.${rulesText}`;
 
-  console.log('\n--- ETAPA 4: Pedido enviado para a IA ---');
-  console.log('Prompt Enviado:\n', prompt);
-  console.log('Dados submetidos (FileName):', fileName);
-
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -113,8 +109,7 @@ Important Rules:
 
   const payload = await response.json();
   const text = payload.choices?.[0]?.message?.content || '{}';
-  console.log('\nResposta Completa da IA:\n', text);
-  return JSON.parse(text);
+  return { text, prompt };
 };
 
 serve(async (req) => {
@@ -122,19 +117,17 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  let importId: string | undefined;
+  let importId;
+  let currentStep = 'Start';
 
   try {
-    const { fileUrl, importId: incomingImportId, ocrText: providedOcrText, qrData, fileName = '' } = await req.json();
+    currentStep = '[1] Request recebida';
+    console.log(currentStep);
+    const { fileUrl, importId: incomingImportId, ocrText: providedOcrText, qrData = {}, fileName = '' } = await req.json();
     importId = incomingImportId;
 
-    if (!fileUrl && !providedOcrText) throw new Error('Missing fileUrl or ocrText');
-
-    console.log('\n--- ETAPA 3: O QR Code foi lido? ---');
-    if (qrData && Object.keys(qrData).length > 0) {
-        console.log('Conteúdo bruto do QR Code:', JSON.stringify(qrData, null, 2));
-    } else {
-        console.log('QR Code não encontrado');
+    if (!fileUrl && !providedOcrText) {
+        throw new Error('Missing fileUrl or ocrText');
     }
 
     const supabaseAdmin = createClient(
@@ -142,16 +135,30 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // 1. Get OCR Text (use provided from PDF, or extract via Vision for Image)
+    currentStep = '[2] PDF convertido / Ficheiro analisado';
+    console.log(currentStep, { fileUrl, fileName, hasProvidedOcr: !!providedOcrText });
+
+    // 1. Get OCR Text
+    currentStep = '[3] OCR iniciado';
+    console.log(currentStep);
     let ocrText = providedOcrText;
     if (!ocrText || ocrText.trim() === '') {
       ocrText = await callOpenAIVisionForText(fileUrl);
     }
     
-    console.log('\n--- ETAPA 2: O OCR foi executado? ---');
-    console.log('Texto completo extraído:\n', ocrText);
+    currentStep = '[4] OCR concluído';
+    console.log(currentStep, 'Texto completo extraído:\n' + ocrText);
 
-    // 2. Fetch learning rules
+    currentStep = '[5] QR iniciado';
+    console.log(currentStep);
+    if (qrData && Object.keys(qrData).length > 0) {
+        currentStep = '[6] QR concluído';
+        console.log(currentStep, 'Conteúdo bruto do QR Code:', JSON.stringify(qrData, null, 2));
+    } else {
+        currentStep = '[6] QR concluído';
+        console.log(currentStep, 'QR Code não encontrado');
+    }
+
     let learningRules = [];
     try {
       const { data } = await supabaseAdmin.from('invoice_learning_rules').select('*').limit(50);
@@ -160,12 +167,21 @@ serve(async (req) => {
       console.error('Failed to fetch learning rules', e);
     }
 
-    // 4. Organize with AI
-    const structuredJson = await callOpenAIStructurer(ocrText, qrData || {}, learningRules, fileName);
+    currentStep = '[7] Prompt enviado à IA';
+    console.log(currentStep);
+    const aiResult = await callOpenAIStructurer(ocrText, qrData, learningRules, fileName);
+    console.log('Prompt Enviado:\n', aiResult.prompt);
 
-    // Normalize basic numbers just to be safe
+    currentStep = '[8] Resposta recebida';
+    console.log(currentStep);
+    console.log('Resposta Completa da IA:\n', aiResult.text);
+
+    currentStep = '[9] JSON validado';
+    console.log(currentStep);
+    const structuredJson = JSON.parse(aiResult.text);
+
     if (structuredJson.products && Array.isArray(structuredJson.products)) {
-        structuredJson.products = structuredJson.products.map((p: any) => ({
+        structuredJson.products = structuredJson.products.map((p) => ({
             ...p,
             qty: Number(p.qty) || 1,
             unit_price: Number(p.unit_price) || 0,
@@ -173,10 +189,6 @@ serve(async (req) => {
         }));
     }
 
-    console.log('\n--- ETAPA 5: Antes de gravar na base de dados ---');
-    console.log('JSON Recebido:\n', JSON.stringify(structuredJson, null, 2));
-
-    // VALIDAÇÃO
     if (!structuredJson.invoice_number) {
         throw new Error('Falha na extração: invoice_number não identificado na fatura.');
     }
@@ -188,6 +200,8 @@ serve(async (req) => {
     }
 
     if (importId) {
+      currentStep = '[10] Dados gravados';
+      console.log(currentStep);
       await supabaseAdmin
         .from('invoice_imports')
         .update({ 
@@ -199,7 +213,6 @@ serve(async (req) => {
         })
         .eq('id', importId);
 
-      console.log('\n--- ETAPA 6: Depois de gravar ---');
       console.log(`Campos gravados:\nNúmero: ${structuredJson.invoice_number}\nFornecedor: ${structuredJson.supplier || structuredJson.supplier_vat}\nData: ${structuredJson.invoice_date}\nLíquido: ${structuredJson.net_amount}\nIVA: ${structuredJson.vat_amount}\nTotal: ${structuredJson.total_amount}\nDescrição: ${structuredJson.expense_description}`);
     }
 
@@ -207,7 +220,15 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
-  } catch (error: any) {
+  } catch (error) {
+    console.error('Error during execution:', error);
+
+    const errorPayload = {
+        step: currentStep,
+        error: error.message || String(error),
+        stack: error.stack || 'No stack trace available'
+    };
+
     try {
       if (importId) {
         const supabaseAdmin = createClient(
@@ -217,16 +238,16 @@ serve(async (req) => {
 
         await supabaseAdmin
           .from('invoice_imports')
-          .update({ status: 'failed', error: String(error?.message || 'Parsing failed').slice(0, 1000) })
+          .update({ status: 'failed', error: String(errorPayload.error).slice(0, 1000) })
           .eq('id', importId);
       }
     } catch {
-      // ignore secondary errors
+      // ignore
     }
 
-    return new Response(JSON.stringify({ error: error?.message || 'Unexpected parse error' }), {
+    return new Response(JSON.stringify(errorPayload), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 400, // Or 500
     });
   }
 });
