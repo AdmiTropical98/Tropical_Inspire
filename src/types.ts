@@ -720,22 +720,25 @@ export interface SupplierInvoiceLine {
 
 export type InvoiceImportStatus = 'processing' | 'ready' | 'failed' | 'confirmed';
 
-export interface InvoiceImportExtractedLine {
+export interface InvoiceImportExtractedProduct {
     description: string;
-    unidade_medida?: InvoiceUnit;
     qty: number;
     unit_price: number;
     vat_percent: 0 | 6 | 13 | 23;
-    vat_value?: number;
 }
 
 export interface InvoiceImportExtractedData {
-    supplier: string;
-    invoice_number: string;
-    date: string;
-    total: number;
-    vat_total: number;
-    lines: InvoiceImportExtractedLine[];
+    invoice_number: string | null;
+    supplier: string | null;
+    supplier_vat: string | null;
+    invoice_date: string | null;
+    net_amount: number | null;
+    vat_amount: number | null;
+    total_amount: number | null;
+    expense_description: string | null;
+    suggested_category: string | null;
+    vehicle_registrations: string[];
+    products: InvoiceImportExtractedProduct[];
 }
 
 export interface InvoiceImport {
@@ -743,6 +746,8 @@ export interface InvoiceImport {
     file_path: string;
     status: InvoiceImportStatus;
     extracted_json?: InvoiceImportExtractedData | null;
+    ocr_text?: string | null;
+    confidence_scores?: Record<string, number> | null;
     error?: string | null;
     created_at: string;
 }

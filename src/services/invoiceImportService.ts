@@ -647,10 +647,20 @@ export async function parseInvoicePdfLocally(file: File): Promise<InvoiceImportE
     return {
         supplier: supplierMatch?.[1]?.trim() || supplierFromHeader,
         invoice_number: invoiceNumber,
-        date: issueDate || toIsoDate(fallbackDateMatch?.[1] || ''),
-        total,
-        vat_total: vatTotal,
-        lines: extractedLines,
+        invoice_date: issueDate || toIsoDate(fallbackDateMatch?.[1] || ''),
+        total_amount: total,
+        vat_amount: vatTotal,
+        net_amount: Math.max(0, total - vatTotal),
+        supplier_vat: null,
+        expense_description: null,
+        suggested_category: null,
+        vehicle_registrations: [],
+        products: extractedLines.map(line => ({
+            description: line.description,
+            qty: line.qty,
+            unit_price: line.unit_price,
+            vat_percent: line.vat_percent as 0 | 6 | 13 | 23
+        })),
     };
 }
 
@@ -743,12 +753,15 @@ const updateImportRowWithFallback = async (importId: string, data: Record<string
     throw new Error('Unable to update invoice import');
 };
 
-const invokeInvoiceParser = async (importId: string, signedUrl: string, mode: 'full' | 'mobile-summary' = 'full'): Promise<string | null> => {
+const invokeInvoiceParser = async (importId: string, signedUrl: string, mode: 'full' | 'mobile-summary' = 'full', fileName: string, extractedData?: any, ocrText?: string): Promise<string | null> => {
     const parseResult = await supabase.functions.invoke('parse-invoice', {
         body: {
             importId,
             fileUrl: signedUrl,
             mode,
+            fileName,
+            qrData: extractedData,
+            ocrText
         },
     });
 
@@ -779,7 +792,15 @@ export async function createInvoiceImportFromPdf(file: File, extractedData?: any
     const { signedUrl: originalSignedUrl } = await createSignedUrlFromAvailableBucket(resolveImportStoragePath(importRow));
     let ocrUrl = originalSignedUrl;
 
+    let localOcrText = '';
     if (fileExt.toLowerCase() === 'pdf') {
+        try {
+            const lines = await extractPdfLines(file);
+            localOcrText = lines.join('\n');
+        } catch (e) {
+            console.error('Failed to extract PDF text locally', e);
+        }
+
         try {
             const rasterizedImage = await rasterizeFirstPageOfPdf(file);
             const imageExt = 'jpeg';
@@ -795,7 +816,7 @@ export async function createInvoiceImportFromPdf(file: File, extractedData?: any
         }
     }
 
-    const parserError = await invokeInvoiceParser(importRow.id, ocrUrl, mode);
+    const parserError = await invokeInvoiceParser(importRow.id, ocrUrl, mode, file.name, extractedData, localOcrText);
 
     if (parserError) {
         try {
@@ -851,7 +872,8 @@ export async function reparseInvoiceImport(importId: string, filePath: string) {
         processed_at: null,
     });
 
-    const parserError = await invokeInvoiceParser(importId, signedUrl);
+    const fileName = filePath.split('/').pop() || '';
+    const parserError = await invokeInvoiceParser(importId, signedUrl, 'full', fileName, null);
     if (parserError) {
         try {
             await updateImportRowWithFallback(importId, {

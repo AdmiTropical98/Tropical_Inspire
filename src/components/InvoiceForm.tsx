@@ -484,8 +484,9 @@ export default function InvoiceForm({
         };
     };
 
-    const applyImportedData = (payload: InvoiceImportExtractedData) => {
-        const importedLines: SupplierInvoiceLine[] = (payload.lines || [])
+    const applyImportedData = (payload: any) => {
+        const payloadLines = payload.products || payload.lines || [];
+        const importedLines: SupplierInvoiceLine[] = payloadLines
             .map((line) => {
                 const quantity = Math.max(0, Number(line.qty) || 0) || 1;
                 const inferredLineTotal = Math.max(0, Number((line as any).total_value || (line as any).total || (line as any).net_value || 0));
@@ -521,8 +522,8 @@ export default function InvoiceForm({
         const fallbackLine: SupplierInvoiceLine[] = hasImportedLines ? importedLines : [emptyLine()];
         const normalizedSupplierName = normalizeName(payload.supplier || '');
 
-        let matchedSupplier = payload.supplier_nif 
-            ? suppliers.find(s => s.nif === payload.supplier_nif || s.nif?.replace(/\s+/g, '') === payload.supplier_nif?.replace(/\s+/g, ''))
+        let matchedSupplier = (payload.supplier_vat || payload.supplier_nif)
+            ? suppliers.find(s => s.nif === payload.supplier_vat || s.nif === payload.supplier_nif || s.nif?.replace(/\s+/g, '') === (payload.supplier_vat || payload.supplier_nif)?.replace(/\s+/g, ''))
             : undefined;
             
         if (!matchedSupplier && normalizedSupplierName) {
@@ -555,7 +556,9 @@ export default function InvoiceForm({
             ...prev,
             supplier_id: prev.supplier_id || matchedSupplier?.id || '',
             invoice_number: payload.invoice_number || prev.invoice_number,
-            issue_date: payload.date || prev.issue_date,
+            issue_date: payload.invoice_date || payload.date || prev.issue_date,
+            notes: payload.expense_description || prev.notes,
+            expense_category: payload.suggested_category || prev.expense_category,
             lines: hasImportedLines ? fallbackLine : prev.lines,
         }));
 
@@ -818,6 +821,26 @@ export default function InvoiceForm({
         const derivedExpenseType = formData.expense_category || validLines.map(line => line.description).join(' | ').slice(0, 180) || 'Fatura Fornecedor';
 
         try {
+            if (activeImport?.extracted_json && formData.supplier_id) {
+                const aiCategory = activeImport.extracted_json.suggested_category || '';
+                const aiDesc = activeImport.extracted_json.expense_description || '';
+                const userCategory = formData.expense_category || '';
+                const userDesc = formData.notes || '';
+                const supplierObj = suppliers.find(s => s.id === formData.supplier_id);
+
+                if (supplierObj?.nif && ((aiCategory && aiCategory !== userCategory) || (aiDesc && aiDesc !== userDesc))) {
+                    import('../lib/supabase').then(({ supabase }) => {
+                        supabase.from('invoice_learning_rules').insert({
+                            nif: supplierObj.nif,
+                            supplier_name: supplierObj.nome,
+                            target_category: userCategory || null,
+                            target_description: userDesc || null,
+                            rule_type: 'manual_correction',
+                            confidence_threshold: 100
+                        }).then(() => console.log('Learning rule saved')).catch(console.error);
+                    });
+                }
+            }
             const savedInvoiceId = await onSave({
                 supplier_id: formData.supplier_id,
                 requisition_id: formData.requisition_id || undefined,
@@ -1490,7 +1513,15 @@ export default function InvoiceForm({
                 disabled={uploading}
             />
 
-            {captureStep === 'form' && (
+            {captureStep === 'form' && (() => {
+                const getFieldClassName = (field: string) => {
+                    if (!aiFilledFields.has(field)) return 'border-slate-200';
+                    const score = activeImport?.confidence_scores?.[field === 'supplier_id' ? 'supplier' : field];
+                    if (score !== undefined && score < 80) return 'border-orange-300 bg-orange-50/50';
+                    return 'border-emerald-200 bg-emerald-50/30';
+                };
+                
+                return (
             <form onSubmit={handleSubmit} className="p-6 space-y-8">
                 {/* Supplier and Invoice Number */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1501,7 +1532,7 @@ export default function InvoiceForm({
                         <select
                             value={formData.supplier_id}
                             onChange={(e) => setFormData(prev => ({ ...prev, supplier_id: e.target.value }))}
-                            className={`w-full bg-slate-50/50 border rounded-xl px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 outline-none ${aiFilledFields.has('supplier_id') ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200'}`}
+                            className={`w-full bg-slate-50/50 border rounded-xl px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 outline-none ${getFieldClassName('supplier_id')}`}
                             required
                         >
                             <option value="">Selecionar fornecedor</option>
@@ -1520,7 +1551,7 @@ export default function InvoiceForm({
                             type="text"
                             value={formData.invoice_number}
                             onChange={(e) => setFormData(prev => ({ ...prev, invoice_number: e.target.value }))}
-                            className={`w-full bg-slate-50/50 border rounded-xl px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 outline-none ${aiFilledFields.has('invoice_number') ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200'}`}
+                            className={`w-full bg-slate-50/50 border rounded-xl px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 outline-none ${getFieldClassName('invoice_number')}`}
                             required
                         />
                     </div>
@@ -1554,7 +1585,7 @@ export default function InvoiceForm({
                             type="date"
                             value={formData.issue_date}
                             onChange={(e) => setFormData(prev => ({ ...prev, issue_date: e.target.value }))}
-                            className={`w-full bg-slate-50/50 border rounded-xl px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 outline-none ${aiFilledFields.has('issue_date') ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200'}`}
+                            className={`w-full bg-slate-50/50 border rounded-xl px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 outline-none ${getFieldClassName('issue_date')}`}
                             required
                         />
                     </div>
@@ -1897,7 +1928,8 @@ export default function InvoiceForm({
                     </button>
                 </div>
             </form>
-            )}
+                );
+            })()}
 
             {showImageCropper && croppingIndex !== null && pendingImages[croppingIndex] && (
                 <ImageCropper
