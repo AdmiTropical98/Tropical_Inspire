@@ -767,9 +767,17 @@ const invokeInvoiceParser = async (importId: string, signedUrl: string, mode: 'f
 
     console.log('--- Resposta da Edge Function (parse-invoice) ---');
     console.log('Dados:', parseResult.data);
-    console.log('Erro:', parseResult.error);
+    console.log('Erro Supabase:', parseResult.error);
 
-    if (!parseResult.error) return null;
+    // Se a Edge Function devolver 200 mas com erro no payload JSON
+    if (parseResult.data && parseResult.data.error) {
+        const errObj = parseResult.data;
+        return `OCR unavailable: [${errObj.step}] ${errObj.error}`;
+    }
+
+    if (parseResult.error) {
+        return `OCR unavailable: ${parseResult.error.message || 'FunctionsHttpError'}`;
+    }
 
     const fallbackResult = await supabase.functions.invoke('process-invoice-import', {
         body: {

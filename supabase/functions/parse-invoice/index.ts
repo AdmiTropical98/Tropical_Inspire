@@ -247,7 +247,7 @@ serve(async (req) => {
 
     return new Response(JSON.stringify(errorPayload), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400, // Or 500
+      status: 200, // Changed to 200 so Supabase JS doesn't hide the JSON body
     });
   }
 });
