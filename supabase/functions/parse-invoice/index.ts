@@ -1,56 +1,23 @@
 // @ts-nocheck
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { encode as base64Encode } from 'https://deno.land/std@0.168.0/encoding/base64.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const callOpenAIVisionForText = async (fileUrl) => {
-  const apiKey = Deno.env.get('OPENAI_API_KEY');
-  if (!apiKey) throw new Error('OPENAI_API_KEY is not configured');
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      max_tokens: 4096,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: 'Please extract all the raw text from this document accurately. Do not format it or add markdown. Just return the pure extracted text.' },
-            { type: 'image_url', image_url: { url: fileUrl } },
-          ],
-        },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`OpenAI Vision error (${response.status}): ${text.slice(0, 500)}`);
-  }
-
-  const payload = await response.json();
-  return payload.choices?.[0]?.message?.content || '';
-};
-
-const callOpenAIStructurer = async (ocrText, qrData, learningRules, fileName) => {
-  const apiKey = Deno.env.get('OPENAI_API_KEY');
-  if (!apiKey) throw new Error('OPENAI_API_KEY is not configured');
+const callGeminiStructurer = async (ocrText, qrData, learningRules, fileName, fileUrl) => {
+  const apiKey = Deno.env.get('GEMINI_API_KEY');
+  if (!apiKey) throw new Error('GEMINI_API_KEY is not configured');
 
   const rulesText = learningRules.length > 0 
     ? `\nHere are some user-defined learning rules for specific suppliers. If the invoice matches these keywords/NIF, prefer these categories and descriptions:\n${JSON.stringify(learningRules, null, 2)}`
     : '';
 
   const prompt = `You are a strict JSON data extraction assistant for Portuguese invoices (pt-PT).
-Your task is to take the provided raw OCR text, filename, and QR code data, and organize it into a strict JSON structure.
+Your task is to take the provided document/image, filename, and QR code data, and organize it into a strict JSON structure.
 DO NOT invent financial values. If you are unsure, output null.
 
 Output JSON Format Requirements:
@@ -81,34 +48,55 @@ Output JSON Format Requirements:
 }
 
 Important Rules:
-1. ONLY return valid JSON. Do not include markdown \`\`\`json.
+1. ONLY return valid JSON without any markdown formatting.
 2. In 'products', include ONLY billable items. Do NOT include Totals, IBANs, or payment details.
-3. If QR Code data is provided, trust it above OCR text for totals and NIF.
-4. Confidence scores should reflect your certainty. If the OCR text is blurry or you can't clearly find the invoice number, set its score below 80.${rulesText}`;
+3. If QR Code data is provided, trust it above everything else for totals and NIF.
+4. Confidence scores should reflect your certainty. If the document is blurry or you can't clearly find the invoice number, set its score below 80.${rulesText}`;
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const parts = [
+    { text: prompt },
+    { text: `FileName: ${fileName}\nQR Data: ${JSON.stringify(qrData)}\n\nRaw OCR Text (if available):\n${ocrText || 'Nenhum OCR fornecido'}` }
+  ];
+
+  if (fileUrl) {
+    try {
+      const fileRes = await fetch(fileUrl);
+      if (fileRes.ok) {
+        const arrayBuffer = await fileRes.arrayBuffer();
+        const base64 = base64Encode(arrayBuffer);
+        const mimeType = fileUrl.toLowerCase().includes('.pdf') ? 'application/pdf' : 'image/jpeg';
+        parts.push({
+          inlineData: {
+            mimeType,
+            data: base64
+          }
+        });
+      }
+    } catch (e) {
+      console.error('Falha ao descarregar fileUrl para enviar ao Gemini', e);
+    }
+  }
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: prompt },
-        { role: 'user', content: `FileName: ${fileName}\nQR Data: ${JSON.stringify(qrData)}\n\nRaw OCR Text:\n${ocrText}` }
-      ],
+      contents: [{ role: 'user', parts }],
+      generationConfig: {
+        responseMimeType: 'application/json'
+      }
     }),
   });
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`OpenAI Chat error (${response.status}): ${text.slice(0, 500)}`);
+    throw new Error(`Gemini API error (${response.status}): ${text.slice(0, 500)}`);
   }
 
   const payload = await response.json();
-  const text = payload.choices?.[0]?.message?.content || '{}';
+  const text = payload.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
   return { text, prompt };
 };
 
@@ -138,13 +126,9 @@ serve(async (req) => {
     currentStep = '[2] PDF convertido / Ficheiro analisado';
     console.log(currentStep, { fileUrl, fileName, hasProvidedOcr: !!providedOcrText });
 
-    // 1. Get OCR Text
     currentStep = '[3] OCR iniciado';
     console.log(currentStep);
-    let ocrText = providedOcrText;
-    if (!ocrText || ocrText.trim() === '') {
-      ocrText = await callOpenAIVisionForText(fileUrl);
-    }
+    let ocrText = providedOcrText || '';
     
     currentStep = '[4] OCR concluído';
     console.log(currentStep, 'Texto completo extraído:\n' + ocrText);
@@ -167,12 +151,12 @@ serve(async (req) => {
       console.error('Failed to fetch learning rules', e);
     }
 
-    currentStep = '[7] Prompt enviado à IA';
+    currentStep = '[7] Prompt enviado à IA (Gemini)';
     console.log(currentStep);
-    const aiResult = await callOpenAIStructurer(ocrText, qrData, learningRules, fileName);
+    const aiResult = await callGeminiStructurer(ocrText, qrData, learningRules, fileName, fileUrl);
     console.log('Prompt Enviado:\n', aiResult.prompt);
 
-    currentStep = '[8] Resposta recebida';
+    currentStep = '[8] Resposta recebida (Gemini)';
     console.log(currentStep);
     console.log('Resposta Completa da IA:\n', aiResult.text);
 
@@ -247,7 +231,7 @@ serve(async (req) => {
 
     return new Response(JSON.stringify(errorPayload), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200, // Changed to 200 so Supabase JS doesn't hide the JSON body
+      status: 200,
     });
   }
 });
