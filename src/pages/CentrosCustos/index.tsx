@@ -418,7 +418,7 @@ export default function CentrosCustos() {
                                     </div>
                                     <div className="flex flex-col items-end gap-1.5">
                                         <HealthBadge variation={variation} />
-                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                        <div className="flex gap-1 transition-all">
                                             <button onClick={e => { e.stopPropagation(); handleEditCC(cc); }}
                                                 className="p-1.5 text-slate-700 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all">
                                                 <Edit2 className="w-3.5 h-3.5" />
