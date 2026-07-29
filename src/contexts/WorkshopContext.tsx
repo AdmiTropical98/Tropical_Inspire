@@ -2541,11 +2541,11 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             .filter(t => t.vehicleId === transaction.vehicleId && t.status === 'confirmed' && new Date(t.timestamp) > new Date(transaction.timestamp))
             .reduce((prev, curr) => (new Date(curr.timestamp) < new Date(prev.timestamp) ? curr : prev), { timestamp: '9999-12-31', km: Infinity } as any);
 
-        if (transaction.km < prevTx.km) {
-            throw new Error(`Leitura de odómetro inválida. O valor anterior (${new Date(prevTx.timestamp).toLocaleDateString()}) foi ${prevTx.km} KM.`);
+        if (transaction.km > 0 && transaction.km < prevTx.km) {
+            if (!transaction.isExternal) throw new Error(`Leitura de odómetro inválida. O valor anterior (${new Date(prevTx.timestamp).toLocaleDateString()}) foi ${prevTx.km} KM.`);
         }
-        if (transaction.km > nextTx.km) {
-            throw new Error(`Leitura de odómetro inválida. Existe um registo posterior (${new Date(nextTx.timestamp).toLocaleDateString()}) com ${nextTx.km} KM.`);
+        if (transaction.km > 0 && transaction.km > nextTx.km) {
+            if (!transaction.isExternal) throw new Error(`Leitura de odómetro inválida. Existe um registo posterior (${new Date(nextTx.timestamp).toLocaleDateString()}) com ${nextTx.km} KM.`);
         }
 
         // Auto-calculate consumption if possible
@@ -2580,10 +2580,15 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             pumpCounterAfter: (finalStatus === 'confirmed' && !transaction.isExternal) ? pumpCounterAfter : undefined
         };
 
+        const isUuid = (str: string | undefined | null) => {
+            if (!str) return false;
+            return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+        };
+
         const { error: insertError } = await supabase.from('fuel_transactions').insert({
             id: transactionToSave.id,
             driver_id: transactionToSave.driverId,
-            vehicle_id: transactionToSave.vehicleId,
+            vehicle_id: isUuid(transactionToSave.vehicleId) ? transactionToSave.vehicleId : null,
             liters: transactionToSave.liters,
             km: transactionToSave.km,
             staff_id: transactionToSave.staffId,
