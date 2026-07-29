@@ -557,7 +557,8 @@ export default function Combustivel() {
                 'Posto': 'VILAMOURA',
                 'Produto': 'GASOLEO',
                 'Quantidade': 64.77,
-                'Valor total a faturar': 99.66
+                'Valor total a faturar': 99.66,
+                'Centro de Custo': 'Ex: Escritório Lisboa'
             }
         ]);
         const wb = XLSX.utils.book_new();
