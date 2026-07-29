@@ -7,7 +7,8 @@ import {
   BarChart3, Award,
   UserCheck, Activity,
   Settings2, UserCog as UserCogIcon, LogOut,
-  AlertTriangle, ClipboardCheck, Wallet, Camera
+  AlertTriangle, ClipboardCheck, Wallet, Camera,
+  Droplet, CreditCard, Map
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -70,6 +71,8 @@ const Profile = lazy(() => import('./pages/Profile/MyProfile'));
 const ColaboradorApp = lazy(() => import('./pages/Colaborador'));
 const ExploracaoFrota = lazy(() => import('./pages/ExploracaoFrota'));
 const TransportesEva = lazy(() => import('./pages/TransportesEva'));
+const Combustivel = lazy(() => import('./pages/Combustivel'));
+const ViaVerde = lazy(() => import('./pages/ViaVerde'));
 
 const LegacySupplierActionRedirect: React.FC = () => {
   const location = useLocation();
@@ -643,6 +646,33 @@ function App() {
           active: activeTab === 'requisicoes',
         } as NavItem]
         : []),
+      ...(hasAccess(userRole, 'combustivel') || isAdminRole
+        ? [{
+          key: 'combustivel',
+          label: 'Combustíveis',
+          icon: Droplet,
+          path: '/combustivel',
+          active: activeTab === 'combustivel',
+        } as NavItem]
+        : []),
+      ...(hasAccess(userRole, 'via_verde') || isAdminRole
+        ? [{
+          key: 'via-verde',
+          label: 'Via Verdes',
+          icon: CreditCard,
+          path: '/via-verde',
+          active: activeTab === 'via-verde',
+        } as NavItem]
+        : []),
+      ...(hasAccess(userRole, 'eva') || isAdminRole
+        ? [{
+          key: 'transportes-eva',
+          label: 'EVA',
+          icon: Map,
+          path: '/transportes-eva',
+          active: activeTab === 'transportes-eva',
+        } as NavItem]
+        : []),
     ],
   };
 
@@ -802,9 +832,9 @@ function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard setActiveTab={handleNavigate} />} />
-        <Route path="/frota/login" element={<Login />} />
-        <Route path="/inventario/login" element={<InventoryLogin />} />
-        <Route path="/operacoes/login" element={<OperacoesLogin />} />
+        <Route path="/frota/login" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/inventario/login" element={<Navigate to="/inventario/dashboard" replace />} />
+        <Route path="/operacoes/login" element={<Navigate to="/operacoes/dashboard" replace />} />
         <Route path="/frota/dashboard" element={<Dashboard setActiveTab={handleNavigate} />} />
         <Route path="/action.php" element={<LegacySupplierActionRedirect />} />
         <Route path="/public_html_api/action.php" element={<LegacySupplierActionRedirect />} />
@@ -822,7 +852,7 @@ function App() {
         <Route path="/escalas" element={<Navigate to="/operacoes/escalas" replace />} />
         <Route path="/escalas-history" element={<EscalasHistory />} />
         <Route path="/horas" element={<Horas />} />
-        <Route path="/combustivel" element={<Navigate to="/frota-exploracao" replace />} />
+        <Route path="/combustivel" element={<Suspense fallback={<div className="p-8 text-slate-400">A carregar Combustíveis...</div>}><Combustivel /></Suspense>} />
         <Route path="/utilizadores" element={<UserManagementTab />} />
         <Route path="/gestores" element={<GestoresTab />} />
         <Route path="/equipa-oficina" element={<EquipaOficinaTab />} />
@@ -836,7 +866,7 @@ function App() {
         <Route path="/controlo-operacional" element={<ControloOperacionalTab />} />
         <Route path="/fornecedores" element={<Fornecedores />} />
         <Route path="/fornecedores/:supplierId" element={<SupplierProfile />} />
-        <Route path="/via-verde" element={<Navigate to="/frota-exploracao" replace />} />
+        <Route path="/via-verde" element={<Suspense fallback={<div className="p-8 text-slate-400">A carregar Via Verde...</div>}><ViaVerde /></Suspense>} />
         <Route path="/carregamentos" element={<Carregamentos />} />
         <Route path="/eficiencia-frota" element={<EficienciaFrota />} />
         <Route path="/mensagens" element={<Suspense fallback={<div>Loading Chat...</div>}><Mensagens /></Suspense>} />
