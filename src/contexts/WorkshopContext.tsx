@@ -332,8 +332,9 @@ interface WorkshopContextType {
             valor_total: number;
         }[]
     ) => Promise<void>;
-    addCentroCusto: (cc: CentroCusto) => void; // NEW
-    deleteCentroCusto: (id: string) => void; // NEW
+    addCentroCusto: (cc: CentroCusto) => void;
+    updateCentroCusto: (id: string, updates: Partial<CentroCusto>) => void;
+    deleteCentroCusto: (id: string) => void;
     addEvaTransport: (t: EvaTransport) => void;
     deleteEvaTransport: (id: string) => void;
     addMotorista: (m: Motorista) => void;
@@ -4132,6 +4133,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         const { error } = await supabase.from('centros_custos').insert(cc);
         if (!error) setCentrosCustos(prev => [...prev, cc]);
     };
+    const updateCentroCusto = async (id: string, updates: Partial<CentroCusto>) => {
+        const { error } = await supabase.from('centros_custos').update(updates).eq('id', id);
+        if (!error) setCentrosCustos(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+    };
     const deleteCentroCusto = async (id: string) => {
         const { error } = await supabase.from('centros_custos').delete().eq('id', id);
         if (!error) setCentrosCustos(prev => prev.filter(c => c.id !== id));
@@ -5150,6 +5155,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             deleteRequisicao,
             toggleRequisicaoStatus,
             addCentroCusto,
+            updateCentroCusto,
             deleteCentroCusto,
             addEvaTransport,
             deleteEvaTransport,

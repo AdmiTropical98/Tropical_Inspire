@@ -3,7 +3,7 @@ import PageHeader from '../../components/common/PageHeader';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useFinancial } from '../../contexts/FinancialContext';
 import {
-    Plus, Trash2, Building2, MapPin, X, Download, Users, Car, Fuel,
+    Plus, Trash2, Building2, MapPin, X, Download, Users, Car, Fuel, Edit2,
     Wallet, ChevronRight, Zap, Wrench, TrendingUp, TrendingDown, Minus,
     ArrowUpRight, ArrowDownRight, Trophy, AlertTriangle, BarChart3,
     Calendar, Filter, ChevronLeft, Info
@@ -140,7 +140,7 @@ function HealthBadge({ variation }: { variation: number | null }) {
 
 /* ════════════════════════════════════════════════ MAIN ════════════════ */
 export default function CentrosCustos() {
-    const { centrosCustos, addCentroCusto, deleteCentroCusto, fuelTransactions, requisicoes, motoristas, manualHours, viaturas } = useWorkshop();
+    const { centrosCustos, addCentroCusto, updateCentroCusto, deleteCentroCusto, fuelTransactions, requisicoes, motoristas, manualHours, viaturas } = useWorkshop();
     const { tolls, charging } = useFinancial();
 
     const [showForm, setShowForm] = useState(false);
@@ -149,6 +149,14 @@ export default function CentrosCustos() {
     const [isRepairing, setIsRepairing] = useState(false);
     const [nome, setNome] = useState('');
     const [localizacao, setLocalizacao] = useState('');
+    const [editingId, setEditingId] = useState<string | null>(null);
+
+    const handleEditCC = (cc: CentroCusto) => {
+        setEditingId(cc.id);
+        setNome(cc.nome);
+        setLocalizacao(cc.localizacao || '');
+        setShowForm(true);
+    };
 
     /* ─── period filtering ─── */
     const cutoff = useMemo(() => periodStart(period), [period]);
@@ -238,8 +246,12 @@ export default function CentrosCustos() {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!nome) return;
-        addCentroCusto({ id: crypto.randomUUID(), nome, localizacao });
-        setShowForm(false); setNome(''); setLocalizacao('');
+        if (editingId) {
+            updateCentroCusto(editingId, { nome, localizacao });
+        } else {
+            addCentroCusto({ id: crypto.randomUUID(), nome, localizacao });
+        }
+        setShowForm(false); setNome(''); setLocalizacao(''); setEditingId(null);
     };
 
     const exportCCReport = (cc: CentroCusto) => {
@@ -285,7 +297,7 @@ export default function CentrosCustos() {
                 icon={Building2}
                 actions={
                     <div className="flex items-center gap-2">
-                        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20">
+                        <button onClick={() => { setEditingId(null); setNome(''); setLocalizacao(''); setShowForm(true); }} className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20">
                             <Plus className="w-5 h-5" /> Novo Centro
                         </button>
                         <button onClick={handleRepairData} disabled={isRepairing} title="Corrigir Centros"
@@ -383,7 +395,7 @@ export default function CentrosCustos() {
                         <div
                             key={cc.id}
                             onClick={() => setSelectedCC(cc)}
-                            className={`group relative bg-[#0f172a] border rounded-3xl overflow-visible cursor-pointer hover:border-blue-500/60 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300
+                            className={`group relative bg-white border rounded-3xl overflow-visible cursor-pointer hover:border-blue-500/60 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300
                             ${variation !== null && variation > 20 ? 'border-red-500/40' : variation !== null && variation > 5 ? 'border-amber-500/30' : 'border-slate-200'}`}
                         >
                             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-[80px] -mr-16 -mt-16 group-hover:bg-blue-500/10 transition-all" />
@@ -406,10 +418,16 @@ export default function CentrosCustos() {
                                     </div>
                                     <div className="flex flex-col items-end gap-1.5">
                                         <HealthBadge variation={variation} />
-                                        <button onClick={e => { e.stopPropagation(); deleteCentroCusto(cc.id); }}
-                                            className="p-1.5 text-slate-700 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100">
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
+                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                            <button onClick={e => { e.stopPropagation(); handleEditCC(cc); }}
+                                                className="p-1.5 text-slate-700 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all">
+                                                <Edit2 className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button onClick={e => { e.stopPropagation(); deleteCentroCusto(cc.id); }}
+                                                className="p-1.5 text-slate-700 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all">
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -493,12 +511,12 @@ export default function CentrosCustos() {
                                 {/* Cost overview */}
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                     {[
-                                        { label: 'Custo Total', val: selectedEnriched.cur.total, icon: BarChart3, color: 'text-white' },
+                                        { label: 'Custo Total', val: selectedEnriched.cur.total, icon: BarChart3, color: 'text-slate-900' },
                                         { label: 'vs Período Anterior', val: null, var: selectedEnriched.variation, icon: TrendingUp, color: '' },
-                                        { label: '€/Litro Médio', val: selectedEnriched.cur.eurPerLitre, icon: Fuel, color: 'text-blue-400', suffix: ' €/L' },
-                                        { label: 'Abastecimentos', val: selectedEnriched.cur.fuel.length, icon: Fuel, color: 'text-amber-400', noEur: true },
+                                        { label: '€/Litro Médio', val: selectedEnriched.cur.eurPerLitre, icon: Fuel, color: 'text-blue-600', suffix: ' €/L' },
+                                        { label: 'Abastecimentos', val: selectedEnriched.cur.fuel.length, icon: Fuel, color: 'text-amber-600', noEur: true },
                                     ].map((k, i) => (
-                                        <div key={i} className="bg-white/90/60 border border-slate-200 rounded-2xl p-4">
+                                        <div key={i} className="bg-white border border-slate-200 rounded-2xl p-4">
                                             <k.icon className={`w-5 h-5 ${k.color || 'text-slate-400'} mb-2`} />
                                             <p className="text-[10px] text-slate-500 font-black uppercase mb-1">{k.label}</p>
                                             {k.var !== undefined ? (
@@ -506,7 +524,7 @@ export default function CentrosCustos() {
                                             ) : k.noEur ? (
                                                 <p className="text-xl font-black text-slate-900">{k.val}</p>
                                             ) : (
-                                                <p className={`text-xl font-black ${k.color || 'text-white'}`}>
+                                                <p className={`text-xl font-black ${k.color || 'text-slate-900'}`}>
                                                     {k.val !== null && k.val !== undefined ? (k.suffix ? `${(k.val as number).toFixed(3)}${k.suffix}` : eur(k.val as number)) : '—'}
                                                 </p>
                                             )}
@@ -517,13 +535,13 @@ export default function CentrosCustos() {
                                 {/* Category breakdown */}
                                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                                     {[
-                                        { label: 'Combustível', val: selectedEnriched.cur.fuelCost, icon: Fuel, color: 'text-blue-400' },
-                                        { label: 'Carregamentos EV', val: selectedEnriched.cur.evCost, icon: Zap, color: 'text-cyan-400' },
-                                        { label: 'Via Verde', val: selectedEnriched.cur.vvCost, icon: Wallet, color: 'text-emerald-400' },
-                                        { label: 'Requisições', val: selectedEnriched.cur.reqCost, icon: Building2, color: 'text-amber-400' },
-                                        { label: 'Mão de Obra', val: selectedEnriched.cur.labor, icon: Users, color: 'text-indigo-400' },
+                                        { label: 'Combustível', val: selectedEnriched.cur.fuelCost, icon: Fuel, color: 'text-blue-600' },
+                                        { label: 'Carregamentos EV', val: selectedEnriched.cur.evCost, icon: Zap, color: 'text-cyan-600' },
+                                        { label: 'Via Verde', val: selectedEnriched.cur.vvCost, icon: Wallet, color: 'text-emerald-600' },
+                                        { label: 'Requisições', val: selectedEnriched.cur.reqCost, icon: Building2, color: 'text-amber-600' },
+                                        { label: 'Mão de Obra', val: selectedEnriched.cur.labor, icon: Users, color: 'text-indigo-600' },
                                     ].map(k => (
-                                        <div key={k.label} className="bg-white/90 border border-white/5 rounded-2xl p-4">
+                                        <div key={k.label} className="bg-white border border-slate-200 rounded-2xl p-4">
                                             <k.icon className={`w-5 h-5 ${k.color} mb-2`} />
                                             <p className="text-[10px] text-slate-500 font-black uppercase mb-1">{k.label}</p>
                                             <p className="text-lg font-black text-slate-900">{eur(k.val)}</p>
@@ -540,11 +558,11 @@ export default function CentrosCustos() {
                                     {/* Fuel */}
                                     <div>
                                         <h3 className="text-sm font-black text-slate-900 flex items-center gap-2 mb-3">
-                                            <Fuel className="w-4 h-4 text-blue-400" />Abastecimentos ({selectedEnriched.cur.fuel.length})
+                                            <Fuel className="w-4 h-4 text-blue-600" />Abastecimentos ({selectedEnriched.cur.fuel.length})
                                         </h3>
-                                        <div className="bg-white/40 rounded-2xl border border-white/5 overflow-hidden">
+                                        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
                                             <table className="w-full text-xs text-left">
-                                                <thead className="bg-[#020617] text-slate-500 font-bold">
+                                                <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
                                                     <tr>
                                                         <th className="px-4 py-3">Data/Hora</th>
                                                         <th className="px-4 py-3">Viatura</th>
@@ -552,24 +570,24 @@ export default function CentrosCustos() {
                                                         <th className="px-4 py-3 text-right">Custo</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody className="divide-y divide-white/5">
+                                                <tbody className="divide-y divide-slate-100">
                                                     {selectedEnriched.cur.fuel.slice(0, 8).map((t, i) => {
                                                         const { date, time } = formatDateTime(t.timestamp);
                                                         return (
-                                                        <tr key={i} className="hover:bg-white/5 transition-colors">
-                                                            <td className="px-4 py-2.5 text-slate-400">
+                                                        <tr key={i} className="hover:bg-slate-50 transition-colors">
+                                                            <td className="px-4 py-2.5 text-slate-500">
                                                                 <div className="flex flex-col">
                                                                     <span>{date}</span>
-                                                                    <span className="text-[10px] text-slate-600">{time}</span>
+                                                                    <span className="text-[10px] text-slate-400">{time}</span>
                                                                 </div>
                                                             </td>
                                                             <td className="px-4 py-2.5 text-slate-900 font-bold">{viaturas.find(v => v.id === t.vehicleId)?.matricula || '---'}</td>
-                                                            <td className="px-4 py-2.5 text-slate-300">{(t.liters || 0).toFixed(1)}L</td>
-                                                            <td className="px-4 py-2.5 text-right text-blue-400 font-mono font-bold">{(t.totalCost || 0).toFixed(2)}€</td>
+                                                            <td className="px-4 py-2.5 text-slate-600">{(t.liters || 0).toFixed(1)}L</td>
+                                                            <td className="px-4 py-2.5 text-right text-blue-600 font-mono font-bold">{(t.totalCost || 0).toFixed(2)}€</td>
                                                         </tr>
                                                     )})}
                                                     {selectedEnriched.cur.fuel.length === 0 && (
-                                                        <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-600">Sem registos no período</td></tr>
+                                                        <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-400">Sem registos no período</td></tr>
                                                     )}
                                                 </tbody>
                                             </table>
@@ -579,27 +597,27 @@ export default function CentrosCustos() {
                                     {/* Via Verde */}
                                     <div>
                                         <h3 className="text-sm font-black text-slate-900 flex items-center gap-2 mb-3">
-                                            <Wallet className="w-4 h-4 text-emerald-400" />Via Verde ({selectedEnriched.cur.vv.length})
+                                            <Wallet className="w-4 h-4 text-emerald-600" />Via Verde ({selectedEnriched.cur.vv.length})
                                         </h3>
-                                        <div className="bg-white/40 rounded-2xl border border-white/5 overflow-hidden">
+                                        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
                                             <table className="w-full text-xs text-left">
-                                                <thead className="bg-[#020617] text-slate-500 font-bold">
+                                                <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
                                                     <tr>
                                                         <th className="px-4 py-3">Data</th>
                                                         <th className="px-4 py-3">Detalhe</th>
                                                         <th className="px-4 py-3 text-right">Valor</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody className="divide-y divide-white/5">
+                                                <tbody className="divide-y divide-slate-100">
                                                     {selectedEnriched.cur.vv.slice(0, 8).map((t, i) => (
-                                                        <tr key={i} className="hover:bg-white/5 transition-colors">
-                                                            <td className="px-4 py-2.5 text-slate-400">{new Date(t.entry_time).toLocaleDateString('pt-PT')}</td>
+                                                        <tr key={i} className="hover:bg-slate-50 transition-colors">
+                                                            <td className="px-4 py-2.5 text-slate-500">{new Date(t.entry_time).toLocaleDateString('pt-PT')}</td>
                                                             <td className="px-4 py-2.5 text-slate-900 text-xs truncate max-w-[140px]">{t.type === 'parking' ? t.entry_point : `${t.entry_point} → ${t.exit_point}`}</td>
-                                                            <td className="px-4 py-2.5 text-right text-emerald-400 font-mono font-bold">{(t.amount || 0).toFixed(2)}€</td>
+                                                            <td className="px-4 py-2.5 text-right text-emerald-600 font-mono font-bold">{(t.amount || 0).toFixed(2)}€</td>
                                                         </tr>
                                                     ))}
                                                     {selectedEnriched.cur.vv.length === 0 && (
-                                                        <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-600">Sem registos no período</td></tr>
+                                                        <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">Sem registos no período</td></tr>
                                                     )}
                                                 </tbody>
                                             </table>
@@ -609,27 +627,27 @@ export default function CentrosCustos() {
                                     {/* EV */}
                                     <div>
                                         <h3 className="text-sm font-black text-slate-900 flex items-center gap-2 mb-3">
-                                            <Zap className="w-4 h-4 text-cyan-400" />Carregamentos EV ({selectedEnriched.cur.ev.length})
+                                            <Zap className="w-4 h-4 text-cyan-600" />Carregamentos EV ({selectedEnriched.cur.ev.length})
                                         </h3>
-                                        <div className="bg-white/40 rounded-2xl border border-white/5 overflow-hidden">
+                                        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
                                             <table className="w-full text-xs text-left">
-                                                <thead className="bg-[#020617] text-slate-500 font-bold">
+                                                <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
                                                     <tr>
                                                         <th className="px-4 py-3">Data</th>
                                                         <th className="px-4 py-3">Viatura</th>
                                                         <th className="px-4 py-3 text-right">kWh / Custo</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody className="divide-y divide-white/5">
+                                                <tbody className="divide-y divide-slate-100">
                                                     {selectedEnriched.cur.ev.slice(0, 8).map((c, i) => (
-                                                        <tr key={i} className="hover:bg-white/5 transition-colors">
-                                                            <td className="px-4 py-2.5 text-slate-400">{new Date(c.date).toLocaleDateString('pt-PT')}</td>
+                                                        <tr key={i} className="hover:bg-slate-50 transition-colors">
+                                                            <td className="px-4 py-2.5 text-slate-500">{new Date(c.date).toLocaleDateString('pt-PT')}</td>
                                                             <td className="px-4 py-2.5 text-slate-900 font-bold">{viaturas.find(v => v.id === c.vehicle_id)?.matricula || '---'}</td>
-                                                            <td className="px-4 py-2.5 text-right text-cyan-400 font-mono font-bold">{(c.kwh || 0).toFixed(1)} kWh · {(c.cost || 0).toFixed(2)}€</td>
+                                                            <td className="px-4 py-2.5 text-right text-cyan-600 font-mono font-bold">{(c.kwh || 0).toFixed(1)} kWh · {(c.cost || 0).toFixed(2)}€</td>
                                                         </tr>
                                                     ))}
                                                     {selectedEnriched.cur.ev.length === 0 && (
-                                                        <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-600">Sem registos no período</td></tr>
+                                                        <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">Sem registos no período</td></tr>
                                                     )}
                                                 </tbody>
                                             </table>
@@ -639,27 +657,27 @@ export default function CentrosCustos() {
                                     {/* Requisições */}
                                     <div>
                                         <h3 className="text-sm font-black text-slate-900 flex items-center gap-2 mb-3">
-                                            <Car className="w-4 h-4 text-amber-400" />Requisições ({selectedEnriched.cur.req.length})
+                                            <Car className="w-4 h-4 text-amber-600" />Requisições ({selectedEnriched.cur.req.length})
                                         </h3>
-                                        <div className="bg-white/40 rounded-2xl border border-white/5 overflow-hidden">
+                                        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
                                             <table className="w-full text-xs text-left">
-                                                <thead className="bg-[#020617] text-slate-500 font-bold">
+                                                <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
                                                     <tr>
                                                         <th className="px-4 py-3">Data</th>
                                                         <th className="px-4 py-3">Descrição</th>
                                                         <th className="px-4 py-3 text-right">Custo</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody className="divide-y divide-white/5">
+                                                <tbody className="divide-y divide-slate-100">
                                                     {selectedEnriched.cur.req.slice(0, 8).map((r, i) => (
-                                                        <tr key={i} className="hover:bg-white/5 transition-colors">
-                                                            <td className="px-4 py-2.5 text-slate-400">{new Date(r.data).toLocaleDateString('pt-PT')}</td>
+                                                        <tr key={i} className="hover:bg-slate-50 transition-colors">
+                                                            <td className="px-4 py-2.5 text-slate-500">{new Date(r.data).toLocaleDateString('pt-PT')}</td>
                                                             <td className="px-4 py-2.5 text-slate-900 truncate max-w-[160px]">{r.itens?.map((it: any) => it.descricao).join(', ') || '---'}</td>
-                                                            <td className="px-4 py-2.5 text-right text-amber-400 font-mono font-bold">{(r.custo || 0).toFixed(2)}€</td>
+                                                            <td className="px-4 py-2.5 text-right text-amber-600 font-mono font-bold">{(r.custo || 0).toFixed(2)}€</td>
                                                         </tr>
                                                     ))}
                                                     {selectedEnriched.cur.req.length === 0 && (
-                                                        <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-600">Sem registos no período</td></tr>
+                                                        <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">Sem registos no período</td></tr>
                                                     )}
                                                 </tbody>
                                             </table>
@@ -671,11 +689,11 @@ export default function CentrosCustos() {
                                 {selectedEnriched.cur.drivers.length > 0 && (
                                     <div>
                                         <h3 className="text-sm font-black text-slate-900 flex items-center gap-2 mb-3">
-                                            <Users className="w-4 h-4 text-indigo-400" />Equipa ({selectedEnriched.cur.drivers.length})
+                                            <Users className="w-4 h-4 text-indigo-600" />Equipa ({selectedEnriched.cur.drivers.length})
                                         </h3>
                                         <div className="flex flex-wrap gap-2">
                                             {selectedEnriched.cur.drivers.map(d => (
-                                                <div key={d.id} className="flex items-center gap-2 bg-white/90 border border-slate-200 rounded-xl px-3 py-2">
+                                                <div key={d.id} className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2">
                                                     <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-black text-white">{d.nome.charAt(0)}</div>
                                                     <div>
                                                         <p className="text-slate-900 text-xs font-bold">{d.nome}</p>
@@ -694,16 +712,16 @@ export default function CentrosCustos() {
                 {/* ── NEW CC FORM ── */}
                 {showForm && (
                     <div className="fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center z-[100] p-4">
-                        <div className="bg-[#0f172a] w-full max-w-md rounded-3xl border border-slate-200 shadow-2xl overflow-hidden">
-                            <div className="p-8 border-b border-slate-200">
-                                <h2 className="text-2xl font-black text-slate-900">Nova Unidade</h2>
+                        <div className="bg-white w-full max-w-md rounded-3xl border border-slate-200 shadow-2xl overflow-hidden">
+                            <div className="p-8 border-b border-slate-100">
+                                <h2 className="text-xl font-bold text-slate-900">{editingId ? 'Editar Centro de Custo' : 'Novo Centro de Custo'}</h2>
                                 <p className="text-slate-500 text-sm mt-1">Registe um novo centro de custo.</p>
                             </div>
                             <form onSubmit={handleSubmit} className="p-8 space-y-5">
                                 <div>
                                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Nome / Escritório</label>
                                     <input type="text" required value={nome} onChange={e => setNome(e.target.value)}
-                                        className="w-full bg-[#020617] border border-slate-200 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-blue-500 transition-all font-bold placeholder:text-slate-700"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-blue-500 transition-all font-bold placeholder:text-slate-400"
                                         placeholder="Ex: Escritório Lisboa" />
                                 </div>
                                 <div>
@@ -711,13 +729,13 @@ export default function CentrosCustos() {
                                     <div className="relative">
                                         <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
                                         <input type="text" value={localizacao} onChange={e => setLocalizacao(e.target.value)}
-                                            className="w-full bg-[#020617] border border-slate-200 rounded-2xl pl-12 pr-5 py-4 text-white focus:outline-none focus:border-blue-500 transition-all font-bold placeholder:text-slate-700"
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-5 py-4 text-slate-900 focus:outline-none focus:border-blue-500 transition-all font-bold placeholder:text-slate-400"
                                             placeholder="Ex: Av. da Liberdade" />
                                     </div>
                                 </div>
                                 <div className="flex gap-4">
                                     <button type="button" onClick={() => setShowForm(false)} className="flex-1 px-6 py-4 text-slate-400 hover:text-slate-900 hover:bg-white/90 rounded-2xl font-bold transition-all">Cancelar</button>
-                                    <button type="submit" className="flex-1 px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black transition-all shadow-lg shadow-blue-500/20">Confirmar</button>
+                                    <button type="submit" className="flex-1 px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black transition-all shadow-lg shadow-blue-500/20">{editingId ? 'Guardar' : 'Confirmar'}</button>
                                 </div>
                             </form>
                         </div>
