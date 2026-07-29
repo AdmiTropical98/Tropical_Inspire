@@ -8,7 +8,7 @@ import {
   UserCheck, Activity,
   Settings2, UserCog as UserCogIcon, LogOut,
   AlertTriangle, ClipboardCheck, Wallet, Camera,
-  Droplet, CreditCard, Map
+  Droplet, CreditCard, Map, Network
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -747,6 +747,15 @@ function App() {
           icon: Wallet,
           path: '/contabilidade',
           active: activeTab === 'contabilidade' || activeTab === 'finance',
+        } as NavItem]
+        : []),
+      ...(hasAccess(userRole, 'centros_custos') || isAdminRole
+        ? [{
+          key: 'centros-custos',
+          label: 'Centros de Custo',
+          icon: Network,
+          path: '/centros-custos',
+          active: activeTab === 'centros-custos',
         } as NavItem]
         : []),
     ],
