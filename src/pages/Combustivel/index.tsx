@@ -537,11 +537,19 @@ export default function Combustivel() {
     const parseImportNumber = (val: any): number => {
         if (typeof val === 'number') return val;
         if (typeof val === 'string') {
-            let normalized = val.trim().replace(/\s/g, '');
-            // If comma exists, it's likely the decimal separator (European). Remove dots (thousands) and fix comma.
-            if (normalized.includes(',')) {
+            let normalized = val.trim().replace(/\s/g, '').replace('€', '').replace('L', '').replace('l', '');
+            
+            const lastComma = normalized.lastIndexOf(',');
+            const lastDot = normalized.lastIndexOf('.');
+            
+            if (lastComma > lastDot) {
                 normalized = normalized.replace(/\./g, '').replace(',', '.');
+            } else if (lastDot > lastComma) {
+                normalized = normalized.replace(/,/g, '');
+            } else if (lastComma > -1) {
+                normalized = normalized.replace(',', '.');
             }
+
             const num = parseFloat(normalized);
             return isNaN(num) ? 0 : num;
         }
@@ -658,7 +666,10 @@ export default function Combustivel() {
             return;
         }
 
-        if (!confirm(`Confirma a importação de ${rowsToImport.length} registos selecionados?`)) return;
+                const totalLitersToImport = rowsToImport.reduce((sum, row) => sum + parseImportNumber(row['Litros']), 0);
+        const totalCostToImport = rowsToImport.reduce((sum, row) => sum + parseImportNumber(row['Total']), 0);
+
+        if (!confirm(`Confirma a importação de ${rowsToImport.length} registos selecionados?\n\nResumo:\nTotal Litros: ${totalLitersToImport.toFixed(2)} L\nCusto Total: ${totalCostToImport.toFixed(2)} €`)) return;
 
         let successCount = 0;
         let errorCount = 0;
