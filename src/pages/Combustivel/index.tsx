@@ -879,142 +879,154 @@ export default function Combustivel() {
         : null;
     const costForecast = estimatedMonthlyUsage * avgPrice;
 
-    const exportIntervalsPDF = () => {
+    const exportCostCenterPDF = () => {
         const doc = new jsPDF();
-        const sortedRefills = [...tankRefills].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-
-        // Helper for colors
         const colors = {
             primary: [15, 23, 42],
             secondary: [51, 65, 85],
             accent: [16, 185, 129],
-            danger: [220, 38, 38],
-            bg: [248, 250, 252]
+            bg: [248, 250, 252],
+            border: [226, 232, 240]
         };
+
+        const confirmedTxs = fuelTransactions.filter(tx => tx.status === 'confirmed');
+
+        // Group by Cost Center
+        const grouped = confirmedTxs.reduce((acc, tx) => {
+            const ccId = tx.centroCustoId || 'unassigned';
+            if (!acc[ccId]) {
+                acc[ccId] = {
+                    transactions: [],
+                    totalLiters: 0,
+                    totalCost: 0
+                };
+            }
+            acc[ccId].transactions.push(tx);
+            acc[ccId].totalLiters += tx.liters || 0;
+            acc[ccId].totalCost += tx.totalCost || 0;
+            return acc;
+        }, {});
+
+        const ccList = Object.keys(grouped).map(ccId => {
+            if (ccId === 'unassigned') {
+                return { id: ccId, nome: 'Sem Centro de Custo', ...grouped[ccId] };
+            }
+            const cc = centrosCustos.find(c => c.id === ccId);
+            return { id: ccId, nome: cc?.nome || 'Desconhecido', ...grouped[ccId] };
+        }).sort((a, b) => b.totalCost - a.totalCost);
 
         // Header Design
         doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
-        doc.rect(0, 0, 210, 40, 'F');
+        doc.rect(0, 0, 210, 45, 'F');
 
-        doc.setFontSize(22);
+        doc.setFontSize(24);
         doc.setTextColor(255, 255, 255);
         doc.setFont('helvetica', 'bold');
-        doc.text('AUDITORIA DE COMBUSTÍVEL', 14, 25);
+        doc.text('Relatório de Custos', 14, 26);
 
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(200, 200, 200);
-        doc.text(`Gerado em: ${new Date().toLocaleString()}`, 14, 33);
-        doc.text(`Capacidade Tanque: ${fuelTank.capacity} L | Nível Atual: ${fuelTank.currentLevel.toFixed(1)} L`, 140, 33);
+        doc.text(`Gerado em: ${new Date().toLocaleString()}`, 14, 35);
+        
+        const totalGlobalCost = confirmedTxs.reduce((sum, tx) => sum + (tx.totalCost || 0), 0);
+        const totalGlobalLiters = confirmedTxs.reduce((sum, tx) => sum + (tx.liters || 0), 0);
+        
+        doc.text(`Total Litros: ${totalGlobalLiters.toFixed(1)} L | Total Custos: ${totalGlobalCost.toFixed(2)} €`, 110, 35);
 
-        let yPos = 50;
+        let yPos = 55;
 
-        // Process periods
-        const intervals = [];
-        const latestRefill = sortedRefills[sortedRefills.length - 1];
-        const currentPeriodTransactions = fuelTransactions.filter(tx =>
-            !tx.isExternal && tx.status === 'confirmed' &&
-            (!latestRefill || new Date(tx.timestamp) > new Date(latestRefill.timestamp))
-        );
+        // SUMMARY PAGE
+        doc.setFontSize(14);
+        doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Resumo por Centro de Custo', 14, yPos);
+        yPos += 8;
 
-        if (latestRefill || currentPeriodTransactions.length > 0) {
-            intervals.push({
-                title: 'ESTADO ATUAL (Desde o último reabastecimento)',
-                refill: null,
-                transactions: currentPeriodTransactions,
-                isCurrent: true
-            });
-        }
+        const summaryData = ccList.map(cc => [
+            cc.nome,
+            `${cc.transactions.length}`,
+            `${cc.totalLiters.toFixed(1)} L`,
+            `${cc.totalCost.toFixed(2)} €`
+        ]);
 
-        for (let i = sortedRefills.length - 1; i >= 0; i--) {
-            const refill = sortedRefills[i];
-            const prevRefill = i > 0 ? sortedRefills[i - 1] : null;
-            const start = prevRefill ? new Date(prevRefill.timestamp) : new Date(0);
-            const end = new Date(refill.timestamp);
+        autoTable(doc, {
+            startY: yPos,
+            head: [['Centro de Custo', 'Nº Abastecimentos', 'Litros', 'Custo Total']],
+            body: summaryData,
+            theme: 'grid',
+            headStyles: {
+                fillColor: [16, 185, 129],
+                textColor: [255, 255, 255],
+                fontSize: 10,
+                fontStyle: 'bold',
+                halign: 'center'
+            },
+            columnStyles: {
+                0: { cellWidth: 'auto' },
+                1: { cellWidth: 35, halign: 'center' },
+                2: { cellWidth: 35, halign: 'right' },
+                3: { cellWidth: 35, halign: 'right' }
+            },
+            styles: { fontSize: 9, cellPadding: 4, lineColor: colors.border },
+            alternateRowStyles: { fillColor: colors.bg },
+            margin: { left: 14, right: 14 }
+        });
 
-            const intervalTxs = fuelTransactions.filter(tx =>
-                !tx.isExternal && tx.status === 'confirmed' &&
-                new Date(tx.timestamp) > start &&
-                new Date(tx.timestamp) <= end
-            );
+        yPos = doc.lastAutoTable.finalY + 20;
 
-            intervals.push({
-                title: `Entrega: ${refill.supplier || 'N/A'}`,
-                subtitle: `${new Date(refill.timestamp).toLocaleString()}`,
-                refill,
-                transactions: intervalTxs,
-                isCurrent: false
-            });
-        }
-
-        intervals.forEach((interval) => {
-            if (yPos > 230) {
+        // DETAILS PAGE(S)
+        ccList.forEach((cc) => {
+            if (yPos > 240) {
                 doc.addPage();
                 yPos = 20;
             }
 
-            // Interval Header
+            // CC Header
             doc.setFillColor(241, 245, 249);
-            doc.rect(14, yPos, 182, 12, 'F');
-            doc.setDrawColor(203, 213, 225);
-            doc.line(14, yPos, 14, yPos + 12);
+            doc.rect(14, yPos, 182, 14, 'F');
+            doc.setDrawColor(16, 185, 129);
+            doc.setLineWidth(1);
+            doc.line(14, yPos, 14, yPos + 14);
 
-            doc.setFontSize(11);
+            doc.setFontSize(12);
             doc.setTextColor(15, 23, 42);
             doc.setFont('helvetica', 'bold');
-            doc.text(interval.title, 18, yPos + 8);
+            doc.text(cc.nome.toUpperCase(), 18, yPos + 9);
 
-            if (interval.subtitle) {
-                doc.setFontSize(8);
-                doc.setTextColor(100, 116, 139);
-                doc.setFont('helvetica', 'normal');
-                doc.text(interval.subtitle, 150, yPos + 8);
-            }
+            doc.setFontSize(9);
+            doc.setTextColor(100, 116, 139);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Litros: ${cc.totalLiters.toFixed(1)} L  |  Custos: ${cc.totalCost.toFixed(2)} €`, 130, yPos + 9);
+
             yPos += 18;
 
-            // Summary row for the period
-            if (interval.refill || interval.isCurrent) {
-                doc.setFontSize(9);
-                doc.setTextColor(71, 85, 105);
-                const totalOut = interval.transactions.reduce((s, t) => s + t.liters, 0);
-                const costOut = interval.transactions.reduce((s, t) => s + (t.totalCost || 0), 0);
-
-                let summaryText = `Consumo: ${totalOut.toFixed(1)} L | Custo: ${costOut.toFixed(2)} €`;
-                if (interval.refill) {
-                    summaryText += ` | Entregue: ${interval.refill.litersAdded} L | Nível Final: ${interval.refill.levelAfter} L`;
-                    const totalCalc = interval.refill.levelBefore + interval.refill.litersAdded;
-                    if (totalCalc > 6000) {
-                        doc.setTextColor(220, 38, 38);
-                        summaryText += ` | EXCESSO: +${(totalCalc - 6000).toFixed(1)} L`;
-                    }
-                }
-                doc.text(summaryText, 14, yPos);
-                yPos += 8;
-            }
-
-            const tableData = interval.transactions.map(tx => {
-                const viatura = viaturas.find(v => v.id === tx.vehicleId || v.matricula === tx.vehicleId);
-                const motorista = motoristas.find(m => m.id === tx.driverId);
-                return [
-                    new Date(tx.timestamp).toLocaleString(),
-                    viatura?.matricula || tx.vehicleId || 'N/A',
-                    motorista?.nome || tx.staffName || 'N/A',
-                    `${tx.liters.toFixed(1)} L`,
-                    `${tx.totalCost?.toFixed(2) || '0.00'} €`
-                ];
-            });
+            const tableData = cc.transactions
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                .map(tx => {
+                    const viatura = viaturas.find(v => v.id === tx.vehicleId || v.matricula === tx.vehicleId);
+                    const motorista = motoristas.find(m => m.id === tx.driverId);
+                    return [
+                        new Date(tx.timestamp).toLocaleString(),
+                        viatura?.matricula || tx.vehicleId || 'N/A',
+                        motorista?.nome || tx.staffName || 'N/A',
+                        `${tx.liters.toFixed(1)} L`,
+                        `${tx.totalCost?.toFixed(2) || '0.00'} €`
+                    ];
+                });
 
             autoTable(doc, {
                 startY: yPos,
                 head: [['Data/Hora', 'Viatura', 'Motorista', 'Litros', 'Custo']],
                 body: tableData,
-                theme: 'grid',
+                theme: 'plain',
                 headStyles: {
-                    fillColor: [15, 23, 42],
-                    textColor: [255, 255, 255],
-                    fontSize: 9,
+                    textColor: [51, 65, 85],
+                    fontSize: 8,
                     fontStyle: 'bold',
-                    halign: 'center'
+                    fillColor: [255, 255, 255],
+                    lineColor: [226, 232, 240],
+                    lineWidth: { bottom: 0.5 }
                 },
                 columnStyles: {
                     0: { cellWidth: 40 },
@@ -1023,14 +1035,15 @@ export default function Combustivel() {
                     3: { cellWidth: 25, halign: 'right' },
                     4: { cellWidth: 25, halign: 'right' }
                 },
-                styles: { fontSize: 8, cellPadding: 3 },
+                styles: { fontSize: 8, cellPadding: 3, textColor: [71, 85, 105], lineColor: [241, 245, 249], lineWidth: { bottom: 0.1 } },
                 margin: { left: 14, right: 14 }
             });
 
-            yPos = (doc as any).lastAutoTable.finalY + 15;
+            yPos = doc.lastAutoTable.finalY + 15;
         });
 
-        const pageCount = (doc as any).internal.getNumberOfPages();
+        // Add page numbers
+        const pageCount = doc.internal.getNumberOfPages();
         for (let i = 1; i <= pageCount; i++) {
             doc.setPage(i);
             doc.setFontSize(8);
@@ -1039,7 +1052,7 @@ export default function Combustivel() {
             doc.text('Tropical Inspire - Gestão de Frota e Oficina', 14, 285);
         }
 
-        doc.save(`auditoria_tanque_${new Date().toISOString().split('T')[0]}.pdf`);
+        doc.save(`relatorio_custos_${new Date().toISOString().split('T')[0]}.pdf`);
     };
 
     const handleUpdateTransaction = async (e: React.FormEvent) => {
@@ -2444,11 +2457,11 @@ export default function Combustivel() {
                                         Exportar Auditoria (Excel)
                                     </button>
                                     <button
-                                        onClick={exportIntervalsPDF}
+                                        onClick={exportCostCenterPDF}
                                         className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-xl shadow-emerald-500/20"
                                     >
                                         <FileSpreadsheet className="w-5 h-5" />
-                                        Exportar PDF Detalhado
+                                        PDF por Centro de Custo
                                     </button>
                                 </div>
                             </div>
