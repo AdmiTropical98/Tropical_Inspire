@@ -73,6 +73,7 @@ const ExploracaoFrota = lazy(() => import('./pages/ExploracaoFrota'));
 const TransportesEva = lazy(() => import('./pages/TransportesEva'));
 const Combustivel = lazy(() => import('./pages/Combustivel'));
 const ViaVerde = lazy(() => import('./pages/ViaVerde'));
+const ModoOficina = lazy(() => import('./pages/ModoOficina/index'));
 
 const LegacySupplierActionRedirect: React.FC = () => {
   const location = useLocation();
@@ -378,6 +379,9 @@ function App() {
   const isFullScreenPage = isMapPage;
   const useDesktopLayoutForNativeRouting = isCapacitorAndroid && location.pathname === '/roteirizacao';
 
+  const isOficinaArea =
+    location.pathname === '/oficina' ||
+    location.pathname.startsWith('/oficina/');
   const isColaboradorArea =
     location.pathname === '/colaborador' ||
     location.pathname.startsWith('/colaborador/') ||
@@ -444,6 +448,25 @@ function App() {
 
   if (androidAutoMode) {
     return <DriverMode />;
+  }
+
+  if (isOficinaArea) {
+    if (!isAuthenticated) return <Login />;
+    
+    return (
+      <div className={`app-root min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-amber-500/20 ${isCapacitorAndroid ? 'android-native-shell w-screen max-w-[100vw] m-0 p-0' : 'w-full'}`}>
+        <Suspense fallback={
+          <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
+            <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
+            <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">A iniciar Modo Oficina...</p>
+          </div>
+        }>
+          <Routes>
+            <Route path="/*" element={<ModoOficina />} />
+          </Routes>
+        </Suspense>
+      </div>
+    );
   }
 
   if (isColaboradorArea) {

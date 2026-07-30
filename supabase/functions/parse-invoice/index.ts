@@ -77,6 +77,11 @@ Important Rules:
     }
   }
 
+  // Temporary debug to fetch available models
+  const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+  const listJson = await listRes.json();
+  const availableModels = (listJson.models || []).map(m => m.name).filter(name => name.includes('gemini'));
+
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: {
@@ -92,7 +97,7 @@ Important Rules:
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Gemini API error (${response.status}): ${text.slice(0, 500)}`);
+    throw new Error(`Gemini API error (${response.status}): ${text.slice(0, 500)}. AVAILABLE MODELS: ${JSON.stringify(availableModels)}`);
   }
 
   const payload = await response.json();
