@@ -2531,14 +2531,14 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         let pumpCounterAfter = 0;
 
         // KM Validation (Sequential for the specific vehicle)
-        // Find the record that comes immediately BEFORE this one in time for the same vehicle
+        // Find the record that comes immediately BEFORE this one in time for the same vehicle (ignoring external imports)
         const prevTx = fuelTransactions
-            .filter(t => t.vehicleId === transaction.vehicleId && t.status === 'confirmed' && new Date(t.timestamp) < new Date(transaction.timestamp))
+            .filter(t => t.vehicleId === transaction.vehicleId && t.status === 'confirmed' && !t.isExternal && new Date(t.timestamp) < new Date(transaction.timestamp))
             .reduce((prev, curr) => (new Date(curr.timestamp) > new Date(prev.timestamp) ? curr : prev), { timestamp: '1970-01-01', km: 0 } as any);
 
-        // Find the record that comes immediately AFTER this one in time for the same vehicle
+        // Find the record that comes immediately AFTER this one in time for the same vehicle (ignoring external imports)
         const nextTx = fuelTransactions
-            .filter(t => t.vehicleId === transaction.vehicleId && t.status === 'confirmed' && new Date(t.timestamp) > new Date(transaction.timestamp))
+            .filter(t => t.vehicleId === transaction.vehicleId && t.status === 'confirmed' && !t.isExternal && new Date(t.timestamp) > new Date(transaction.timestamp))
             .reduce((prev, curr) => (new Date(curr.timestamp) < new Date(prev.timestamp) ? curr : prev), { timestamp: '9999-12-31', km: Infinity } as any);
 
         if (transaction.km > 0 && transaction.km < prevTx.km) {
