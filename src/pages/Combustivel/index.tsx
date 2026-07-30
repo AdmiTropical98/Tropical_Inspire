@@ -639,7 +639,8 @@ export default function Combustivel() {
                 });
 
                 const ccName = normalized['Centro de Custo'];
-                const matchedCC = centrosCustos.find(c => c.nome.toLowerCase() === ccName?.toLowerCase());
+                const ccNameStr = ccName ? String(ccName).trim().toLowerCase() : '';
+                const matchedCC = centrosCustos.find(c => c.nome.toLowerCase() === ccNameStr);
 
                 return {
                     ...normalized,
