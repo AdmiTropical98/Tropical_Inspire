@@ -1008,6 +1008,7 @@ export default function Combustivel() {
                     const motorista = motoristas.find(m => m.id === tx.driverId);
                     return [
                         new Date(tx.timestamp).toLocaleString(),
+                        tx.station || 'N/A',
                         viatura?.matricula || tx.vehicleId || 'N/A',
                         motorista?.nome || tx.staffName || 'N/A',
                         `${tx.liters.toFixed(1)} L`,
@@ -1017,7 +1018,7 @@ export default function Combustivel() {
 
             autoTable(doc, {
                 startY: yPos,
-                head: [['Data/Hora', 'Viatura', 'Motorista', 'Litros', 'Custo']],
+                head: [['Data/Hora', 'Posto', 'Viatura', 'Motorista', 'Litros', 'Custo']],
                 body: tableData,
                 theme: 'plain',
                 headStyles: {
@@ -1029,11 +1030,12 @@ export default function Combustivel() {
                     lineWidth: { bottom: 0.5 }
                 },
                 columnStyles: {
-                    0: { cellWidth: 40 },
-                    1: { cellWidth: 30, halign: 'center' },
-                    2: { cellWidth: 'auto' },
-                    3: { cellWidth: 25, halign: 'right' },
-                    4: { cellWidth: 25, halign: 'right' }
+                    0: { cellWidth: 35 },
+                    1: { cellWidth: 30 },
+                    2: { cellWidth: 25, halign: 'center' },
+                    3: { cellWidth: 'auto' },
+                    4: { cellWidth: 20, halign: 'right' },
+                    5: { cellWidth: 25, halign: 'right' }
                 },
                 styles: { fontSize: 8, cellPadding: 3, textColor: [71, 85, 105], lineColor: [241, 245, 249], lineWidth: { bottom: 0.1 } },
                 margin: { left: 14, right: 14 }
