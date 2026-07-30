@@ -1855,7 +1855,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 baselineTotalizer: tankData.baseline_totalizer
             });
 
-            const { data: transData } = await supabase.from('fuel_transactions').select('*');
+            const { data: transData } = await supabase.from('fuel_transactions').select('*').order('timestamp', { ascending: false }).limit(2000);
             if (transData) setFuelTransactions(transData.map((t: any) => ({
                 ...t,
                 driverId: t.driver_id,
@@ -1871,7 +1871,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 receiptUrl: t.receipt_url
             })));
 
-            const { data: refillData } = await supabase.from('tank_refills').select('*');
+            const { data: refillData } = await supabase.from('tank_refills').select('*').order('timestamp', { ascending: false }).limit(500);
             if (refillData) setTankRefills(refillData.map((r: any) => ({ ...r, litersAdded: r.liters_added, levelBefore: r.level_before, levelAfter: r.level_after, totalSpentSinceLast: r.total_spent_since_last, pumpMeterReading: r.pump_meter_reading, systemExpectedReading: r.system_expected_reading, staffId: r.staff_id, staffName: r.staff_name, pricePerLiter: r.price_per_liter, totalCost: r.total_cost })));
 
             // 6. Admin Users (Only if admin)
