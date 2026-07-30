@@ -446,7 +446,7 @@ function App() {
       (!isOperationsOnlyRole && (hasAccess(userRole, 'frota', 'ver') || hasAccess(userRole, 'dashboard', 'ver')))
     );
 
-  if (androidAutoMode) {
+  if (androidAutoMode && !isOficinaArea) {
     return <DriverMode />;
   }
 
