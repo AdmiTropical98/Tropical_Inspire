@@ -2601,9 +2601,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             pump_counter_after: transactionToSave.pumpCounterAfter,
             is_external: transactionToSave.isExternal,
             consumo_calculado: transactionToSave.consumoCalculado,
-            is_anormal: transactionToSave.isAnormal,
-            fuel_type: (transactionToSave as any).fuelType || null,
-            receipt_url: (transactionToSave as any).receiptUrl || null
+            is_anormal: transactionToSave.isAnormal
         });
 
         if (insertError) {
