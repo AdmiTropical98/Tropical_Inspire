@@ -2143,7 +2143,13 @@ export default function Combustivel() {
                                     <div className="flex items-center gap-4">
                                         <div>
                                             <h3 className="font-bold text-slate-900 text-xl">Pré-visualização ({bpTransactions.length} registos)</h3>
-                                            <p className="text-[11px] text-slate-500">Registos encontrados: {bpTransactions.length}</p>
+                                            <div className="flex items-center gap-3 mt-1">
+                                                <p className="text-[12px] text-slate-500">Encontrados: {bpTransactions.length}</p>
+                                                <div className="h-3 w-[1px] bg-slate-300"></div>
+                                                <p className="text-[12px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md">
+                                                    Total do Ficheiro: {bpTransactions.reduce((sum, row) => sum + parseImportNumber(row['Litros']), 0).toFixed(2)} L | {bpTransactions.reduce((sum, row) => sum + parseImportNumber(row['Total']), 0).toFixed(2)} €
+                                                </p>
+                                            </div>
                                         </div>
                                         {selectedRows.length > 0 && (
                                             <div className="flex items-center gap-2 bg-blue-600/20 px-3 py-1.5 rounded-lg border border-blue-500/30 animate-in fade-in slide-in-from-left-2">
