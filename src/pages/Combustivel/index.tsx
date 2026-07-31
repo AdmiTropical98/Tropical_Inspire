@@ -199,6 +199,7 @@ export default function Combustivel() {
 
         setBpTransactions(prev => [...prev, newRow]);
         setIsManualBPOpen(false);
+        alert('Atenção: O registo foi adicionado à tabela de importação abaixo.\nTem de o selecionar e clicar em "Importar para a Base de Dados" para que fique guardado definitivamente no histórico!');
         // Reset form but keep date/time/price for convenience? No, unsafe. Reset all.
         setManualBPForm({
             date: new Date().toISOString().split('T')[0],
