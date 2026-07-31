@@ -2556,18 +2556,13 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             ? Number(((transaction.liters / (transaction.km - lastTxForCons.km)) * 100).toFixed(2))
             : undefined;
 
-        // If explicitly confirmed AND NOT EXTERNAL, calculate tank updates immediately
+        // If explicitly confirmed AND NOT EXTERNAL, calculate tank updates
+        pumpCounterAfter = undefined;
+        let newLevel: number | undefined = undefined;
         if (finalStatus === 'confirmed' && !transaction.isExternal) {
             const currentTotalizer = fuelTank.pumpTotalizer || 0;
             pumpCounterAfter = currentTotalizer + transaction.liters;
-            const newLevel = Math.max(0, fuelTank.currentLevel - transaction.liters);
-
-            // Update Tank immediately
-            await updateFuelTank({
-                ...fuelTank,
-                currentLevel: newLevel,
-                pumpTotalizer: pumpCounterAfter
-            });
+            newLevel = Math.max(0, fuelTank.currentLevel - transaction.liters);
         }
 
         const transactionToSave: FuelTransaction = {
@@ -2587,7 +2582,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
         const { error: insertError } = await supabase.from('fuel_transactions').insert({
             id: transactionToSave.id,
-            driver_id: transactionToSave.driverId,
+            driver_id: isUuid(transactionToSave.driverId) ? transactionToSave.driverId : null,
             vehicle_id: isUuid(transactionToSave.vehicleId) ? transactionToSave.vehicleId : null,
             liters: transactionToSave.liters,
             km: transactionToSave.km,
@@ -2606,6 +2601,15 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
         if (insertError) {
             throw new Error(`Erro na base de dados: ${insertError.message}`);
+        }
+
+        // Update Tank immediately AFTER successful insert
+        if (finalStatus === 'confirmed' && !transaction.isExternal && pumpCounterAfter !== undefined && newLevel !== undefined) {
+            await updateFuelTank({
+                ...fuelTank,
+                currentLevel: newLevel,
+                pumpTotalizer: pumpCounterAfter
+            });
         }
 
         setFuelTransactions(prev => [transactionToSave, ...prev]);
