@@ -82,37 +82,37 @@ const ModoOficina: React.FC = () => {
             <div className="bg-white border-b border-slate-200 px-6 py-4 flex gap-4 overflow-x-auto shrink-0 shadow-sm">
                 <button
                     onClick={() => setActiveTab('abastecer')}
-                    className={\`flex-1 py-6 px-4 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all \${
+                    className={`flex-1 py-6 px-4 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all ${
                         activeTab === 'abastecer' 
                         ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-2 ring-blue-600 ring-offset-2' 
                         : 'bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-800 border border-slate-200'
-                    }\`}
+                    }`}
                 >
-                    <Fuel className={\`w-10 h-10 \${activeTab === 'abastecer' ? 'text-blue-200' : 'text-slate-400'}\`} />
+                    <Fuel className={`w-10 h-10 ${activeTab === 'abastecer' ? 'text-blue-200' : 'text-slate-400'}`} />
                     <span className="font-black text-xl tracking-wide">Abastecer Viatura</span>
                 </button>
 
                 <button
                     onClick={() => setActiveTab('receber')}
-                    className={\`flex-1 py-6 px-4 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all \${
+                    className={`flex-1 py-6 px-4 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all ${
                         activeTab === 'receber' 
                         ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-2 ring-emerald-600 ring-offset-2' 
                         : 'bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-800 border border-slate-200'
-                    }\`}
+                    }`}
                 >
-                    <ArrowDownToLine className={\`w-10 h-10 \${activeTab === 'receber' ? 'text-emerald-200' : 'text-slate-400'}\`} />
+                    <ArrowDownToLine className={`w-10 h-10 ${activeTab === 'receber' ? 'text-emerald-200' : 'text-slate-400'}`} />
                     <span className="font-black text-xl tracking-wide">Receber Combustível</span>
                 </button>
 
                 <button
                     onClick={() => setActiveTab('historico')}
-                    className={\`flex-1 py-6 px-4 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all \${
+                    className={`flex-1 py-6 px-4 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all ${
                         activeTab === 'historico' 
                         ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 ring-2 ring-amber-600 ring-offset-2' 
                         : 'bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-800 border border-slate-200'
-                    }\`}
+                    }`}
                 >
-                    <History className={\`w-10 h-10 \${activeTab === 'historico' ? 'text-amber-200' : 'text-slate-400'}\`} />
+                    <History className={`w-10 h-10 ${activeTab === 'historico' ? 'text-amber-200' : 'text-slate-400'}`} />
                     <span className="font-black text-xl tracking-wide">Histórico</span>
                 </button>
             </div>
