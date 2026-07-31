@@ -77,10 +77,10 @@ const NUMERIC_TOKEN_RE = /^-?\d{1,3}(?:\.\d{3})*(?:,\d+)?$|^-?\d+(?:,\d+)?$/;
 const CARD_HEADER_RE = /CART[ÃA]O\s*(?:N[.ºO]?|N\.)?\s*\d+/i;
 const TOTAL_LINE_RE = /(TOTAL\s+DO\s+CART[ÃA]O|RESUMO\s+DO\s+IVA|TOTAL\s+FATURA|TOTAL\s+A\s+TRANSPORTAR|SUBTOTAL|TOTAL\s+GERAL|RESUMO\s+DE\s+PRODUTOS|P[ÁA]GINA)/i;
 const TRANSACTION_HEADER_RE = /\bDATA\b.*\bTAL[ÃA]O\b|\bDATA\b.*\bKM\b.*\bPRODUTO\b/i;
-const BP_TRANSACTION_PREFIX_RE = /^(\d{6}|\d{2}[\/.-]\d{2}[\/.-]\d{2,4})\s+(\d{5,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6})\s+(.+?)\s+(?:(\d{4,8})\s+)?(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE|GPL|GNV|GASOIL)\s+(.+)$/i;
-const BP_TRANSACTION_LINE_RE = /^(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6})\s+(.+?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE|GPL|GNV|GASOIL)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s*$/i;
-const BP_TRANSACTION_LINE_RE_7COL = /^(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6})\s+(.+?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE|GPL|GNV|GASOIL)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s*$/i;
-const BP_ROW_ANCHOR_RE = /(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6})\s+/gi;
+const BP_TRANSACTION_PREFIX_RE = /^(\d{6}|\d{2}[\/.-]\d{2}[\/.-]\d{2,4})\s+(\d{5,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6}|OFICINA)\s+(.+?)\s+(?:(\d{4,8})\s+)?(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE-?\w*|ADBLUE|GPL|GNV|GASOIL)\s+(.+)$/i;
+const BP_TRANSACTION_LINE_RE = /^(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6}|OFICINA)\s+(.+?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE-?\w*|ADBLUE|GPL|GNV|GASOIL)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s*$/i;
+const BP_TRANSACTION_LINE_RE_7COL = /^(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6}|OFICINA)\s+(.+?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE-?\w*|ADBLUE|GPL|GNV|GASOIL)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s*$/i;
+const BP_ROW_ANCHOR_RE = /(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6}|OFICINA)\s+/gi;
 
 const normalizeDashes = (val: string): string => {
     return val
@@ -140,11 +140,12 @@ const cleanNumberToken = (val: string): string => {
 };
 
 const normalizeFuelToken = (val: string): string => {
-    return val
+    const cleaned = val
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^A-Za-z0-9]/g, '')
         .toUpperCase();
+    if (cleaned.includes('ADBLUE')) return 'ADBLUE';
+    return cleaned.replace(/[^A-Z0-9]/g, '');
 };
 
 const isFuelToken = (val: string): boolean => {
