@@ -53,7 +53,7 @@ const ReceberCombustivel: React.FC = () => {
         // Check if tank has capacity
         const availableSpace = fuelTank.capacity - fuelTank.currentLevel;
         if (litersVal > availableSpace) {
-            setError(\`Aviso: O tanque apenas tem capacidade para mais \${availableSpace.toFixed(2)} L. Está a tentar inserir \${litersVal} L.\`);
+            setError(`Aviso: O tanque apenas tem capacidade para mais ${availableSpace.toFixed(2)} L. Está a tentar inserir ${litersVal} L.`);
             return;
         }
 

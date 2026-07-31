@@ -51,7 +51,7 @@ const AbastecerViatura: React.FC = () => {
         }
 
         if (fuelTank.currentLevel < litersVal) {
-            setError(\`Aviso: O tanque apenas tem \${fuelTank.currentLevel.toFixed(2)} L disponíveis.\`);
+            setError(`Aviso: O tanque apenas tem ${fuelTank.currentLevel.toFixed(2)} L disponíveis.`);
             // We might still allow it, but for safety let's block or just warn.
             // Actually, let's block to prevent negative stock in a tablet mode.
             return;
@@ -150,14 +150,14 @@ const AbastecerViatura: React.FC = () => {
                                                 setSelectedVehicleId(v.id);
                                                 setSearchTerm(v.matricula);
                                             }}
-                                            className={\`p-4 rounded-xl text-left border-2 transition-all \${
+                                            className={`p-4 rounded-xl text-left border-2 transition-all ${
                                                 selectedVehicleId === v.id
                                                 ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/30'
                                                 : 'bg-white border-slate-200 text-slate-700 hover:border-blue-300'
-                                            }\`}
+                                            }`}
                                         >
                                             <div className="text-2xl font-black tracking-wider">{v.matricula}</div>
-                                            <div className={\`text-sm mt-1 truncate \${selectedVehicleId === v.id ? 'text-blue-100' : 'text-slate-500'}\`}>
+                                            <div className={`text-sm mt-1 truncate ${selectedVehicleId === v.id ? 'text-blue-100' : 'text-slate-500'}`}>
                                                 {v.marca} {v.modelo}
                                             </div>
                                         </button>

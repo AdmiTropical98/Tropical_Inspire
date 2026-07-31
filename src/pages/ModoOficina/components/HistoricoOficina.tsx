@@ -77,17 +77,17 @@ const HistoricoOficina: React.FC = () => {
                         {combinedHistory.map((item) => (
                             <div 
                                 key={item.id} 
-                                className={\`p-6 rounded-2xl border-2 flex items-center gap-6 shadow-sm transition-all \${
+                                className={`p-6 rounded-2xl border-2 flex items-center gap-6 shadow-sm transition-all ${
                                     item.type === 'abastecimento' 
                                     ? 'bg-white border-blue-100' 
                                     : 'bg-emerald-50/30 border-emerald-100'
-                                }\`}
+                                }`}
                             >
-                                <div className={\`p-4 rounded-2xl shrink-0 \${
+                                <div className={`p-4 rounded-2xl shrink-0 ${
                                     item.type === 'abastecimento' 
                                     ? 'bg-blue-100 text-blue-600' 
                                     : 'bg-emerald-100 text-emerald-600'
-                                }\`}>
+                                }`}>
                                     {item.type === 'abastecimento' ? (
                                         <Fuel className="w-8 h-8" />
                                     ) : (
@@ -97,9 +97,9 @@ const HistoricoOficina: React.FC = () => {
                                 
                                 <div className="flex-1">
                                     <div className="flex items-center gap-3 mb-1">
-                                        <span className={\`text-sm font-bold uppercase tracking-widest px-2 py-1 rounded-lg \${
+                                        <span className={`text-sm font-bold uppercase tracking-widest px-2 py-1 rounded-lg ${
                                             item.type === 'abastecimento' ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'
-                                        }\`}>
+                                        }`}>
                                             {item.type === 'abastecimento' ? 'Saída (Abastecimento)' : 'Entrada (Fornecedor)'}
                                         </span>
                                         <span className="text-slate-400 font-medium">
@@ -123,9 +123,9 @@ const HistoricoOficina: React.FC = () => {
                                 </div>
                                 
                                 <div className="text-right">
-                                    <div className={\`text-4xl font-black \${
+                                    <div className={`text-4xl font-black ${
                                         item.type === 'abastecimento' ? 'text-blue-600' : 'text-emerald-600'
-                                    }\`}>
+                                    }`}>
                                         {item.type === 'abastecimento' ? '-' : '+'}{item.liters.toFixed(2)} <span className="text-2xl text-slate-400 font-bold">L</span>
                                     </div>
                                     <div className="text-slate-400 font-medium text-sm mt-1">
