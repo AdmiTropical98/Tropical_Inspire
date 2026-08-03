@@ -376,11 +376,14 @@ export async function extractTextFromPDF(file: File): Promise<string> {
 function parseFromCompactText(compact: string, invoiceRef: string): any[] {
     const out: any[] = [];
 
+    // Strip "Total do Cartão" and other summary lines before parsing
+    const cleanCompact = compact.replace(/(TOTAL\s+DO\s+CART[ÃA]O|RESUMO\s+DO\s+IVA|TOTAL\s+FATURA|TOTAL\s+A\s+TRANSPORTAR|SUBTOTAL|TOTAL\s+GERAL|RESUMO\s+DE\s+PRODUTOS|P[ÁA]GINA)[\s\S]{0,80}?(\n|$)/gi, ' ');
+
     // Example tolerant pattern:
     // 020226 010712664 56-VD-25 PORTIMAO - RAMINHA 312333 GASOLEO 67,18 ... 107,36
     const rowRegex = /(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,2}-[A-Z0-9]{1,2}-[A-Z0-9]{1,2}|[A-Z0-9-]{6,8})\s+(.{3,80}?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLINA|DIESEL|ADBLUE|GPL|GNV)[\s\S]{0,40}?(\d{1,3}(?:\.\d{3})?,\d{2})[\s\S]{0,40}?(\d{1,3}(?:\.\d{3})?,\d{2})/gi;
 
-    for (const m of compact.matchAll(rowRegex)) {
+    for (const m of cleanCompact.matchAll(rowRegex)) {
         const date = bpDateToISO(m[1]);
         const talao = m[2];
         const plate = formatPlate(m[3]);
@@ -475,8 +478,13 @@ function parseFromTransactionChunks(compact: string, invoiceRef: string): any[] 
         if (!posto) continue;
 
         // Numeric values after product. We search for realistic liters and total.
+        // Strip out any "Total do Cartão" or "Resumo" that might have been grouped into this chunk
+        const stopWords = /(TOTAL\s+DO\s+CART[ÃA]O|RESUMO\s+DO\s+IVA|TOTAL\s+FATURA|TOTAL\s+A\s+TRANSPORTAR|SUBTOTAL|TOTAL\s+GERAL|RESUMO\s+DE\s+PRODUTOS|P[ÁA]GINA)/i;
+        const stopMatch = afterProduct.match(stopWords);
+        const cleanAfterProduct = stopMatch ? afterProduct.slice(0, stopMatch.index) : afterProduct;
+
         // All decimal numbers after the product keyword
-        const decimalTokens = (afterProduct.slice(0, 120).match(/-?\d{1,3}(?:\.\d{3})*,\d+|-?\d+,\d+/g) || [])
+        const decimalTokens = (cleanAfterProduct.slice(0, 120).match(/-?\d{1,3}(?:\.\d{3})*,\d+|-?\d+,\d+/g) || [])
             .map(cleanNumberToken)
             .filter(t => t.includes(','));
         if (decimalTokens.length < 2) continue;
@@ -575,7 +583,11 @@ function parseFromDateTalaoChunks(compact: string, invoiceRef: string): any[] {
             }
         }
 
-        const decimalTokens = (afterProduct.slice(0, 120).match(/-?\d{1,3}(?:\.\d{3})*,\d+|-?\d+,\d+/g) || [])
+        const stopWords = /(TOTAL\s+DO\s+CART[ÃA]O|RESUMO\s+DO\s+IVA|TOTAL\s+FATURA|TOTAL\s+A\s+TRANSPORTAR|SUBTOTAL|TOTAL\s+GERAL|RESUMO\s+DE\s+PRODUTOS|P[ÁA]GINA)/i;
+        const stopMatch = afterProduct.match(stopWords);
+        const cleanAfterProduct = stopMatch ? afterProduct.slice(0, stopMatch.index) : afterProduct;
+
+        const decimalTokens = (cleanAfterProduct.slice(0, 120).match(/-?\d{1,3}(?:\.\d{3})*,\d+|-?\d+,\d+/g) || [])
             .map(cleanNumberToken);
         if (decimalTokens.length < 2) continue;
 
