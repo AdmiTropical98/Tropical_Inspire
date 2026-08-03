@@ -2562,8 +2562,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             last_refill_date: tank.lastRefillDate,
             average_price: tank.averagePrice,
             baseline_date: tank.baselineDate,
-            baseline_level: tank.baselineLevel,
-            baseline_totalizer: tank.baselineTotalizer
+            baseline_level: tank.baselineLevel
         });
         if (error) {
             console.error("Erro ao atualizar tanque:", error);
