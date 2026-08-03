@@ -1141,6 +1141,45 @@ export default function Combustivel() {
         XLSX.writeFile(wb, `Relatorio_Auditoria_Combustivel_${new Date().toISOString().split('T')[0]}.xlsx`);
     };
 
+    const exportFilteredHistoryToExcel = () => {
+        const filteredTxs = fuelTransactions.filter(tx => {
+            const matchesVehicle = !filters.vehicleId || tx.vehicleId === filters.vehicleId;
+            const matchesCC = !filters.centroCustoId || tx.centroCustoId === filters.centroCustoId;
+            const matchesDate = !filters.startDate || (tx.timestamp || '').startsWith(filters.startDate);
+            const matchesFonte = filters.fonte === 'todas' || (filters.fonte === 'interna' && !tx.isExternal) || (filters.fonte === 'externa' && tx.isExternal);
+            return matchesVehicle && matchesCC && matchesDate && matchesFonte;
+        });
+
+        if (filteredTxs.length === 0) {
+            alert('Não há registos para exportar com os filtros atuais.');
+            return;
+        }
+
+        const dataToExport = filteredTxs.map(tx => {
+            const driver = motoristas.find(m => m.id === tx.driverId);
+            const vehicle = viaturas.find(v => v.id === tx.vehicleId);
+            const cc = centrosCustos.find(c => c.id === tx.centroCustoId);
+
+            return {
+                'Data': new Date(tx.timestamp).toLocaleString(),
+                'Fonte': tx.isExternal ? 'BP' : 'Oficina',
+                'Motorista': driver?.nome || 'N/A',
+                'Viatura': vehicle?.matricula || tx.vehicleId,
+                'Centro de Custo': cc?.nome || 'N/A',
+                'Km': tx.km || 'N/A',
+                'Litros': tx.liters,
+                'Preço/L (€)': tx.pricePerLiter || 0,
+                'Custo Total (€)': tx.totalCost || 0
+            };
+        });
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        XLSX.utils.book_append_sheet(wb, ws, "Histórico");
+
+        XLSX.writeFile(wb, `Historico_Abastecimentos_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
     const exportWorkshopRefuelSheetPDF = () => {
         const doc = new jsPDF('l', 'mm', 'a4');
         const pageWidth = doc.internal.pageSize.getWidth();
@@ -1982,6 +2021,14 @@ export default function Combustivel() {
                                     <option value="interna">Fonte: Oficina (Manuais)</option>
                                     <option value="externa">Fonte: BP (Importados)</option>
                                 </select>
+                                <div className="w-[1px] h-4 bg-slate-300 mx-1" />
+                                <button
+                                    onClick={exportFilteredHistoryToExcel}
+                                    className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl font-bold transition-all text-sm ml-auto"
+                                >
+                                    <Download className="w-4 h-4" />
+                                    Exportar Excel
+                                </button>
                             </div>
                         </div>
 
