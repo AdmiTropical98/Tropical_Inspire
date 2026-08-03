@@ -48,7 +48,8 @@ export default function Combustivel() {
         driverId: '',
         centroCustoId: '',
         startDate: '',
-        endDate: ''
+        endDate: '',
+        fonte: 'todas'
     });
     const [isManualBPOpen, setIsManualBPOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<any | null>(null);
@@ -1971,6 +1972,16 @@ export default function Combustivel() {
                                     onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
                                     className="bg-transparent text-sm text-slate-700 outline-none font-bold"
                                 />
+                                <div className="w-[1px] h-4 bg-slate-300 mx-1" />
+                                <select
+                                    value={filters.fonte}
+                                    onChange={(e) => setFilters({ ...filters, fonte: e.target.value })}
+                                    className="bg-transparent text-sm text-slate-700 outline-none font-bold"
+                                >
+                                    <option value="todas">Fonte: Todas</option>
+                                    <option value="interna">Fonte: Oficina (Manuais)</option>
+                                    <option value="externa">Fonte: BP (Importados)</option>
+                                </select>
                             </div>
                         </div>
 
@@ -1993,7 +2004,8 @@ export default function Combustivel() {
                                             const matchesVehicle = !filters.vehicleId || tx.vehicleId === filters.vehicleId;
                                             const matchesCC = !filters.centroCustoId || tx.centroCustoId === filters.centroCustoId;
                                             const matchesDate = !filters.startDate || (tx.timestamp || '').startsWith(filters.startDate);
-                                            return matchesVehicle && matchesCC && matchesDate;
+                                            const matchesFonte = filters.fonte === 'todas' || (filters.fonte === 'interna' && !tx.isExternal) || (filters.fonte === 'externa' && tx.isExternal);
+                                            return matchesVehicle && matchesCC && matchesDate && matchesFonte;
                                         })
                                         .map(tx => {
                                             const driver = motoristas.find(m => m.id === tx.driverId);
