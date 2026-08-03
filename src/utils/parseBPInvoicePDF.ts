@@ -125,12 +125,11 @@ const bpDateToISO = (raw: string): string => {
 };
 
 /** Validate that a 6-digit token is a plausible DDMMYY date (not a KM or other number) */
-const isValidBPDate = (token: string): boolean => {
-    if (!/^\d{6}$/.test(token)) return false;
-    const dd = parseInt(token.slice(0, 2), 10);
-    const mm = parseInt(token.slice(2, 4), 10);
-    const yy = parseInt(token.slice(4, 6), 10);
-    return dd >= 1 && dd <= 31 && mm >= 1 && mm <= 12 && yy >= 20 && yy <= 35;
+const isValidBPDate = (raw: string): boolean => {
+    if (!/^\d{6}$/.test(raw)) return false;
+    const day = parseInt(raw.slice(0, 2), 10);
+    const month = parseInt(raw.slice(2, 4), 10);
+    return day >= 1 && day <= 31 && month >= 1 && month <= 12;
 };
 
 const cleanNumberToken = (val: string): string => {
@@ -424,6 +423,7 @@ function parseFromTransactionChunks(compact: string, invoiceRef: string): any[] 
     // - fix split product tokens ("GAS OLEO" → "GASOLEO", "GAS OIL" → "GASOIL")
     const normalized = compact
         .replace(/[\u2010\u2011\u2012\u2013\u2014]/g, '-')
+        .replace(/CARTÃO\s+N[º°]?\s+\d+/gi, ' ')
         .replace(/\bGAS\s+OLEO\b/gi, 'GASOLEO')
         .replace(/\bGAS\s+OIL\b/gi, 'GASOIL')
         .replace(/\bGASÓ\s*LEO\b/gi, 'GASOLEO')
@@ -460,7 +460,7 @@ function parseFromTransactionChunks(compact: string, invoiceRef: string): any[] 
         // From prefix, capture KM as last 4-8 digit integer before product.
         const prefixTokens = beforeProduct.split(/\s+/).filter(Boolean);
         let km = 0;
-        let kmPos = -1;
+        let kmPos = prefixTokens.length; // Default to end of prefix
         for (let j = prefixTokens.length - 1; j >= 0; j--) {
             if (/^\d{4,8}$/.test(prefixTokens[j])) {
                 km = parseEU(prefixTokens[j]);
@@ -468,7 +468,6 @@ function parseFromTransactionChunks(compact: string, invoiceRef: string): any[] 
                 break;
             }
         }
-        if (kmPos < 0) continue;
 
         // Station text: everything between the fixed header tokens (date, talão, plate)
         // and the KM value. The header is exactly 3 tokens (already consumed by anchor).
@@ -534,6 +533,7 @@ function parseFromDateTalaoChunks(compact: string, invoiceRef: string): any[] {
 
     const normalized = compact
         .replace(/[\u2010\u2011\u2012\u2013\u2014]/g, '-')
+        .replace(/CARTÃO\s+N[º°]?\s+\d+/gi, ' ')
         .replace(/\bGAS\s+OLEO\b/gi, 'GASOLEO')
         .replace(/\bGAS\s+OIL\b/gi, 'GASOIL')
         .replace(/\bGASÓ\s*LEO\b/gi, 'GASOLEO')
