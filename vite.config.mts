@@ -34,6 +34,9 @@ export default defineConfig({
         ]
       },
       workbox: {
+        cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
         maximumFileSizeToCacheInBytes: 20 * 1024 * 1024, // 20MB to handle large chunks and assets
         navigateFallbackDenylist: [
           /^\/api\//,
