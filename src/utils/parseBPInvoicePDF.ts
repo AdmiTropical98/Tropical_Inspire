@@ -20,6 +20,10 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLi
 
 /** One fuel transaction extracted from the BP invoice */
 export interface BPInvoiceTransaction {
+    /** Marker to explicitly identify valid transactions versus subtotals */
+    type?: 'transaction';
+    /** The original unparsed text for the row */
+    rawText?: string;
     /** ISO date string YYYY-MM-DD */
     date: string;
     /** Talão / voucher number */
@@ -1046,6 +1050,8 @@ function parseTransactionLine(
     if (!Number.isFinite(total) || total <= 0) return null;
 
     return {
+        type: 'transaction',
+        rawText: compact.substring(0, 100), // just to have some text
         date:         bpDateToISO(tokens[dateIdx]),
         talaoCupao:   tokens[talaoIdx],
         matricula:    formatPlate(tokens[plateIdx]),
@@ -1256,6 +1262,8 @@ export function parseBPFuelReport(text: string): FuelTransaction[] {
         if (liters <= 0 || total <= 0) continue;
 
         transactions.push({
+            type: 'transaction',
+            rawText: m[0],
             date: bpDateToISO(m[1]),
             receipt: m[2],
             vehicle: formatPlate(m[3]),
