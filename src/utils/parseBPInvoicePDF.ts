@@ -79,7 +79,7 @@ const PLATE_COMPACT_RE = /^[A-Z0-9]{6}$/i;
 const DATE_TOKEN_RE = /^(\d{6}|\d{2}[\/.-]\d{2}[\/.-]\d{2,4})$/;
 const NUMERIC_TOKEN_RE = /^-?\d{1,3}(?:\.\d{3})*(?:,\d+)?$|^-?\d+(?:,\d+)?$/;
 const CARD_HEADER_RE = /CART[ÃA]O\s*(?:N[.ºO]?|N\.)?\s*\d+/i;
-const TOTAL_LINE_RE = /(TOTAL\s+DO\s+CART[ÃA]O|RESUMO\s+DO\s+IVA|TOTAL\s+FATURA|TOTAL\s+A\s+TRANSPORTAR|SUBTOTAL|TOTAL\s+GERAL|RESUMO\s+DE\s+PRODUTOS|P[ÁA]GINA)/i;
+const TOTAL_LINE_RE = /(TOTAL\s+DO\s+CART|RESUMO\s+DO\s+IVA|TOTAL\s+FATURA|TOTAL\s+A\s+TRANSPORTAR|SUBTOTAL|TOTAL\s+GERAL|RESUMO\s+DE\s+PRODUTOS|P[ÁA]GINA)/i;
 const TRANSACTION_HEADER_RE = /\bDATA\b.*\bTAL[ÃA]O\b|\bDATA\b.*\bKM\b.*\bPRODUTO\b/i;
 const BP_TRANSACTION_PREFIX_RE = /^(\d{6}|\d{2}[\/.-]\d{2}[\/.-]\d{2,4})\s+(\d{5,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6}|OFICINA)\s+(.+?)\s+(?:(\d{4,8})\s+)?(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE-?\w*|ADBLUE|GPL|GNV|GASOIL)\s+(.+)$/i;
 const BP_TRANSACTION_LINE_RE = /^(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6}|OFICINA)\s+(.+?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE-?\w*|ADBLUE|GPL|GNV|GASOIL)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s*$/i;
@@ -380,7 +380,7 @@ function parseFromCompactText(compact: string, invoiceRef: string): any[] {
     const out: any[] = [];
 
     // Strip "Total do Cartão" and other summary lines before parsing
-    const cleanCompact = compact.replace(/(TOTAL\s+DO\s+CART[ÃA]O|RESUMO\s+DO\s+IVA|TOTAL\s+FATURA|TOTAL\s+A\s+TRANSPORTAR|SUBTOTAL|TOTAL\s+GERAL|RESUMO\s+DE\s+PRODUTOS|P[ÁA]GINA)[\s\S]{0,80}?(\n|$)/gi, ' ');
+    const cleanCompact = compact.replace(/(TOTAL\s+DO\s+CART|RESUMO\s+DO\s+IVA|TOTAL\s+FATURA|TOTAL\s+A\s+TRANSPORTAR|SUBTOTAL|TOTAL\s+GERAL|RESUMO\s+DE\s+PRODUTOS|P[ÁA]GINA)[\s\S]{0,80}?(\n|$)/gi, ' ');
 
     // Example tolerant pattern:
     // 020226 010712664 56-VD-25 PORTIMAO - RAMINHA 312333 GASOLEO 67,18 ... 107,36
@@ -482,7 +482,7 @@ function parseFromTransactionChunks(compact: string, invoiceRef: string): any[] 
 
         // Numeric values after product. We search for realistic liters and total.
         // Strip out any "Total do Cartão" or "Resumo" that might have been grouped into this chunk
-        const stopWords = /(TOTAL\s+DO\s+CART[ÃA]O|RESUMO\s+DO\s+IVA|TOTAL\s+FATURA|TOTAL\s+A\s+TRANSPORTAR|SUBTOTAL|TOTAL\s+GERAL|RESUMO\s+DE\s+PRODUTOS|P[ÁA]GINA)/i;
+        const stopWords = /(TOTAL\s+DO\s+CART|RESUMO\s+DO\s+IVA|TOTAL\s+FATURA|TOTAL\s+A\s+TRANSPORTAR|SUBTOTAL|TOTAL\s+GERAL|RESUMO\s+DE\s+PRODUTOS|P[ÁA]GINA)/i;
         const stopMatch = afterProduct.match(stopWords);
         const cleanAfterProduct = stopMatch ? afterProduct.slice(0, stopMatch.index) : afterProduct;
 
@@ -587,7 +587,7 @@ function parseFromDateTalaoChunks(compact: string, invoiceRef: string): any[] {
             }
         }
 
-        const stopWords = /(TOTAL\s+DO\s+CART[ÃA]O|RESUMO\s+DO\s+IVA|TOTAL\s+FATURA|TOTAL\s+A\s+TRANSPORTAR|SUBTOTAL|TOTAL\s+GERAL|RESUMO\s+DE\s+PRODUTOS|P[ÁA]GINA)/i;
+        const stopWords = /(TOTAL\s+DO\s+CART|RESUMO\s+DO\s+IVA|TOTAL\s+FATURA|TOTAL\s+A\s+TRANSPORTAR|SUBTOTAL|TOTAL\s+GERAL|RESUMO\s+DE\s+PRODUTOS|P[ÁA]GINA)/i;
         const stopMatch = afterProduct.match(stopWords);
         const cleanAfterProduct = stopMatch ? afterProduct.slice(0, stopMatch.index) : afterProduct;
 
