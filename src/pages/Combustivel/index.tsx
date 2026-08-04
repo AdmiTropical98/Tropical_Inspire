@@ -2202,7 +2202,7 @@ export default function Combustivel() {
                                 <div className="flex flex-wrap justify-between items-center gap-4">
                                     <div className="flex items-center gap-4">
                                         <div>
-                                            <h3 className="font-bold text-slate-900 text-xl">Pré-visualização ({bpTransactions.length} registos)</h3>
+                                            <h3 className="font-bold text-slate-900 text-xl">Pré-visualização (v2.1) ({bpTransactions.length} registos)</h3>
                                             <div className="flex items-center gap-3 mt-1">
                                                 <p className="text-[12px] text-slate-500">Encontrados: {bpTransactions.length}</p>
                                                 <div className="h-3 w-[1px] bg-slate-300"></div>
