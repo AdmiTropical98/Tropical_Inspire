@@ -679,9 +679,18 @@ export default function Combustivel() {
 
         for (const row of rowsToImport as any[]) {
             try {
+                // Validação estrita exigida pelo utilizador
+                const plate = row['Matrícula'];
+                const rawData = row['Data'] || row['Dia Hora'];
+                const rawLitros = row['Litros'] || row['Quantidade'];
+                const rawPosto = row['Posto'] || row['Local'];
+                
+                if (!plate || !rawData || !rawLitros || !rawPosto) {
+                    throw new Error('Registo ignorado: Falta Data, Matrícula, Litros ou Posto.');
+                }
+
                 // Find Vehicle (Fuzzy Match: Remove spaces, dashes, case insensitive)
                 const normalizePlate = (p: string) => p?.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-                const plate = row['Matrícula'];
                 const cleanPlate = normalizePlate(plate);
                 const vehicle = viaturas.find(v => normalizePlate(v.matricula) === cleanPlate);
 
