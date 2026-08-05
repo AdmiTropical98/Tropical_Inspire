@@ -79,9 +79,7 @@ const PLATE_COMPACT_RE = /^[A-Z0-9]{6}$/i;
 const DATE_TOKEN_RE = /^(\d{6}|\d{2}[\/.-]\d{2}[\/.-]\d{2,4})$/;
 const NUMERIC_TOKEN_RE = /^-?\d{1,3}(?:\.\d{3})*(?:,\d+)?$|^-?\d+(?:,\d+)?$/;
 const CARD_HEADER_RE = /CART[ÃA]O\s*(?:N[.ºO]?|N\.)?\s*\d+/i;
-const TOTAL_LINE_RE = /(TOTAL\s+DO\s+CART|RESUMO\s+DO\s+IVA|TOTAL\s+FATURA|TOTAL\s+A\s+TRANSPORTAR|SUBTOTAL|TOTAL\s+GERAL|RESUMO\s+DE\s+PRODUTOS|P[ÁA]GINA)/i;
-const TRANSACTION_HEADER_RE = /\bDATA\b.*\bTAL[ÃA]O\b|\bDATA\b.*\bKM\b.*\bPRODUTO\b/i;
-const BP_TRANSACTION_PREFIX_RE = /^(\d{6}|\d{2}[\/.-]\d{2}[\/.-]\d{2,4})\s+(\d{5,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6}|OFICINA)\s+(.+?)\s+(?:(\d{4,8})\s+)?(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE-?\w*|ADBLUE|GPL|GNV|GASOIL)\s+(.+)$/i;
+const TOTAL_LINE_RE = /(TOTAL\s*DO\s*CART|RESUMO\s*DO\s*IVA|TOTAL\s*FATURA|TOTAL\s*A\s*TRANSPORTAR|SUBTOTAL|TOTAL\s*GERAL|RESUMO\s*DE\s*PRODUTOS|P[ÁA]GINA)/i;
 const BP_TRANSACTION_LINE_RE = /^(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6}|OFICINA)\s+(.+?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE-?\w*|ADBLUE|GPL|GNV|GASOIL)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s*$/i;
 const BP_TRANSACTION_LINE_RE_7COL = /^(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6}|OFICINA)\s+(.+?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE-?\w*|ADBLUE|GPL|GNV|GASOIL)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s*$/i;
 const BP_ROW_ANCHOR_RE = /(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6}|OFICINA)\s+/gi;
@@ -482,7 +480,7 @@ function parseFromTransactionChunks(compact: string, invoiceRef: string): any[] 
 
         // Numeric values after product. We search for realistic liters and total.
         // Strip out any "Total do Cartão" or "Resumo" that might have been grouped into this chunk
-        const stopWords = /(TOTAL\s+DO\s+CART|RESUMO\s+DO\s+IVA|TOTAL\s+FATURA|TOTAL\s+A\s+TRANSPORTAR|SUBTOTAL|TOTAL\s+GERAL|RESUMO\s+DE\s+PRODUTOS|P[ÁA]GINA)/i;
+        const stopWords = /(TOTAL|SUBTOTAL|RESUMO|CART[ÃA]O|CARTAO|P[ÁA]GINA|FATURA|VALOR|TAXA)/i;
         const stopMatch = afterProduct.match(stopWords);
         const cleanAfterProduct = stopMatch ? afterProduct.slice(0, stopMatch.index) : afterProduct;
 
@@ -587,7 +585,7 @@ function parseFromDateTalaoChunks(compact: string, invoiceRef: string): any[] {
             }
         }
 
-        const stopWords = /(TOTAL\s+DO\s+CART|RESUMO\s+DO\s+IVA|TOTAL\s+FATURA|TOTAL\s+A\s+TRANSPORTAR|SUBTOTAL|TOTAL\s+GERAL|RESUMO\s+DE\s+PRODUTOS|P[ÁA]GINA)/i;
+        const stopWords = /(TOTAL|SUBTOTAL|RESUMO|CART[ÃA]O|CARTAO|P[ÁA]GINA|FATURA|VALOR|TAXA)/i;
         const stopMatch = afterProduct.match(stopWords);
         const cleanAfterProduct = stopMatch ? afterProduct.slice(0, stopMatch.index) : afterProduct;
 
@@ -774,12 +772,32 @@ function parseCanonicalFromLines(lines: string[][], invoiceRef: string): any[] {
             const product = normalizeFuelToken(m[6]);
             const tail = m[7] ?? '';
 
-            const decimals = [...tail.matchAll(/-?\d{1,3}(?:\.\d{3})?,\d+/g)].map(v => v[0]);
+            const stopWords = /(TOTAL|SUBTOTAL|RESUMO|CART[ÃA]O|CARTAO|P[ÁA]GINA|FATURA|VALOR|TAXA)/i;
+            const stopMatch = tail.match(stopWords);
+            const cleanTail = stopMatch ? tail.slice(0, stopMatch.index) : tail;
+
+            const decimals = [...cleanTail.matchAll(/-?\d{1,3}(?:\.\d{3})?,\d+/g)].map(v => cleanNumberToken(v[0]));
             if (decimals.length < 2) return;
 
-            const liters = parseEU(decimals[0]);
             const total = parseEU(decimals[decimals.length - 1]);
-            const unit = liters > 0 ? total / liters : 0;
+            if (total <= 0) return;
+
+            let liters = parseEU(decimals[0]);
+            let unit = liters > 0 ? total / liters : 0;
+            
+            if (!(liters > 0 && liters <= 200 && unit >= 0.6 && unit <= 4.5)) {
+                liters = 0;
+                for (const t of decimals.slice(0, Math.min(3, decimals.length - 1))) {
+                    const v = parseEU(t);
+                    if (v <= 0 || v > 200) continue;
+                    unit = total / v;
+                    if (unit >= 0.6 && unit <= 4.5) {
+                        liters = v;
+                        break;
+                    }
+                }
+            }
+            if (liters <= 0) return;
 
             const row = {
                 _manualDate: date,
@@ -789,7 +807,7 @@ function parseCanonicalFromLines(lines: string[][], invoiceRef: string): any[] {
                 'Posto': location,
                 'Produto': product,
                 'Litros': liters,
-                'Preço Unitário': unit,
+                'Preço Unitário': total / liters,
                 'Total': total,
                 '_talao': receipt,
                 '_invoiceRef': invoiceRef,
