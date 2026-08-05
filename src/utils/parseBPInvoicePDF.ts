@@ -314,12 +314,20 @@ async function extractLines(file: File): Promise<string[][]> {
             const text = raw.str?.trim();
             if (!text) continue;
 
-            const x = raw.transform[4];
+            let vx = raw.transform[4];
+            let vy = raw.transform[5];
+
+            // If the PDF is rotated 90 or 270 degrees, swap axes for visual bucketing
+            if (Math.abs(raw.transform[0]) < 0.001 && Math.abs(raw.transform[1]) > 0) {
+                vx = raw.transform[5];
+                vy = -raw.transform[4];
+            }
+
             // Snap Y to nearest bucket so items on the same visual line collapse
-            const y = Math.round(raw.transform[5] / Y_BUCKET) * Y_BUCKET;
+            const y = Math.round(vy / Y_BUCKET) * Y_BUCKET;
 
             if (!buckets.has(y)) buckets.set(y, []);
-            buckets.get(y)!.push({ x, text });
+            buckets.get(y)!.push({ x: vx, text });
         }
 
         // Sort lines top-to-bottom (descending Y in PDF coordinate space)
