@@ -679,9 +679,27 @@ export default function Combustivel() {
 
         for (const row of rowsToImport as any[]) {
             try {
+                // Proteção Arquitetural: Rejeição explícita de metadados e subtotais
+                if (row.type && row.type !== 'transaction') {
+                    throw new Error(`Registo ignorado: Objeto classificado como subtotal/total (${row.type})`);
+                }
+
+                const forbidden = [
+                    "Total do Cartão",
+                    "Total FATURA",
+                    "Resumo do IVA",
+                    "Resumo de Produtos",
+                    "CARTÃO Nº"
+                ];
+
+                const rawText = row.rawText || Object.values(row).join(' ');
+                if (forbidden.some(x => rawText.includes(x))) {
+                    throw new Error('Registo ignorado: Contém palavras-chave proibidas de subtotais/cabeçalhos.');
+                }
+
                 // Validação estrita exigida pelo utilizador
                 const plate = row['Matrícula'];
-                const rawData = row['Data'] || row['Dia Hora'];
+                const rawData = row['Data'] || row['Dia Hora'] || row._manualDate;
                 const rawLitros = row['Litros'] || row['Quantidade'];
                 const rawPosto = row['Posto'] || row['Local'];
                 
