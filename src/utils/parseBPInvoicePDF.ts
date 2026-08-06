@@ -4,7 +4,7 @@ import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 export interface ParsedBPTransaction {
     _manualDate: string;
     Hora: string;
-    Matrícula: string;
+    'Matrícula': string;
     Km: string;
     Posto: string;
     Produto: string;
@@ -199,7 +199,7 @@ function extractTransactionsFromBlock(block: CardBlock, invoiceRef: string): Par
         transactions.push({
             _manualDate: normalizeDate(rawDate),
             Hora: '', // BP doesn't usually provide time in this block
-            Matrícula: plate,
+            'Matrícula': plate,
             Km: km,
             Posto: location,
             Produto: normalizeFuelToken(fuelToken),
@@ -223,7 +223,7 @@ function deduplicateTransactions(transactions: ParsedBPTransaction[]): ParsedBPT
 
     for (const tx of transactions) {
         // Unique key: Talao + Date + Plate + Total + Liters
-        const key = `${tx._talao}_${tx._manualDate}_${tx.Matrícula}_${tx.Total}_${tx.Litros}`;
+        const key = `${tx._talao}_${tx._manualDate}_${tx['Matrícula']}_${tx.Total}_${tx.Litros}`;
         if (!seen.has(key)) {
             seen.add(key);
             unique.push(tx);
