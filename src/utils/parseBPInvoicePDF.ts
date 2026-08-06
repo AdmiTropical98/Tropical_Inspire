@@ -1,15 +1,15 @@
-﻿import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 // ---- INTERFACES ----
 export interface ParsedBPTransaction {
     _manualDate: string;
     Hora: string;
-    MatrÃ­cula: string;
+    Matrícula: string;
     Km: string;
     Posto: string;
     Produto: string;
     Litros: number;
-    'PreÃ§o UnitÃ¡rio': number;
+    'Preço Unitário': number;
     Total: number;
     _talao: string;
     _invoiceRef: string;
@@ -30,14 +30,14 @@ const cleanNumberToken = (val: string): string => {
 
 const normalizeFuelToken = (val: string): string => {
     const raw = val.toUpperCase().replace(/\s+/g, '');
-    if (raw.includes('GASOLEO') || raw.includes('GASÃ“LEO') || raw.includes('DIESEL') || raw.includes('GASOIL')) {
-        return 'GasÃ³leo';
+    if (raw.includes('GASOLEO') || raw.includes('GASÓLEO') || raw.includes('DIESEL') || raw.includes('GASOIL')) {
+        return 'Gasóleo';
     }
-    if (raw.includes('ULTIMATE') || raw.includes('ULT')) return 'GasÃ³leo Ultimate';
+    if (raw.includes('ULTIMATE') || raw.includes('ULT')) return 'Gasóleo Ultimate';
     if (raw.includes('GASOLINA')) return 'Gasolina';
     if (raw.includes('ADBLUE')) return 'AdBlue';
     if (raw.includes('GPL') || raw.includes('GNV')) return 'GPL';
-    return 'GasÃ³leo'; // Default fallback
+    return 'Gasóleo'; // Default fallback
 };
 
 const fixPlateOCR = (plate: string): string => {
@@ -115,8 +115,8 @@ function segmentIntoCardBlocks(lines: string[][]): CardBlock[] {
     const blocks: CardBlock[] = [];
     let currentBlock: CardBlock | null = null;
 
-    const CARD_START_RE = /CART[ÃƒA]O\s*(?:N[.ÂºO]?|N\.)?\s*(\d{10,})/i;
-    const BLOCK_END_RE = /(TOTAL\s*DO\s*CART|RESUMO\s*DO\s*IVA|TOTAL\s*FATURA|TOTAL\s*A\s*TRANSPORTAR|SUBTOTAL|TOTAL\s*GERAL|RESUMO\s*DE\s*PRODUTOS|P[ÃA]GINA)/i;
+    const CARD_START_RE = /CART[ÃA]O\s*(?:N[.ºO]?|N\.)?\s*(\d{10,})/i;
+    const BLOCK_END_RE = /(TOTAL\s*DO\s*CART|RESUMO\s*DO\s*IVA|TOTAL\s*FATURA|TOTAL\s*A\s*TRANSPORTAR|SUBTOTAL|TOTAL\s*GERAL|RESUMO\s*DE\s*PRODUTOS|P[ÁA]GINA)/i;
 
     for (const lineTokens of lines) {
         const fullLine = lineTokens.join(' ');
@@ -124,7 +124,6 @@ function segmentIntoCardBlocks(lines: string[][]): CardBlock[] {
         // Check for start of a new card block
         const startMatch = fullLine.match(CARD_START_RE);
         if (startMatch) {
-            console.log("FOUND CARD:", startMatch[1]);
             currentBlock = {
                 cardNumber: startMatch[1],
                 lines: []
@@ -137,13 +136,11 @@ function segmentIntoCardBlocks(lines: string[][]): CardBlock[] {
         if (currentBlock) {
             // Check for end of the block
             if (BLOCK_END_RE.test(fullLine)) {
-                console.log("END CARD BLOCK:", fullLine);
                 currentBlock = null;
                 continue;
             }
 
             // Accumulate lines for this block
-            console.log("LINE:", fullLine);
             currentBlock.lines.push(lineTokens);
         }
     }
@@ -157,7 +154,7 @@ function extractTransactionsFromBlock(block: CardBlock, invoiceRef: string): Par
     
     // We expect lines to contain Date, Receipt, Plate, Location, Km, Fuel, Liter, Unit, Total
     // However, some fields might be empty or combined. We'll merge the tokens and run a regex.
-    const TRANSACTION_REGEX = /^(\d{6}|\d{2}[\/.-]\d{2}[\/.-]\d{2,4})\s+(\d{5,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6}|OFICINA)\s+(.+?)\s+(?:(\d{3,8})\s+)?(GAS\s*OLEO\+?|GAS\s*Ã“LEO|GAS\s*OLEO|GAS\s*OIL|DIESEL|ULTIMATE|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE-?\w*|GPL|GNV)\s+(.+)$/i;
+    const TRANSACTION_REGEX = /^(\d{6}|\d{2}[\/.-]\d{2}[\/.-]\d{2,4})\s+(\d{5,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6}|OFICINA)\s+(.+?)\s+(?:(\d{3,8})\s+)?(GAS\s*OLEO\+?|GAS\s*ÓLEO|GAS\s*OLEO|GAS\s*OIL|DIESEL|ULTIMATE|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE-?\w*|GPL|GNV)\s+(.+)$/i;
 
     for (const lineTokens of block.lines) {
         const fullLine = lineTokens.join(' ');
@@ -202,12 +199,12 @@ function extractTransactionsFromBlock(block: CardBlock, invoiceRef: string): Par
         transactions.push({
             _manualDate: normalizeDate(rawDate),
             Hora: '', // BP doesn't usually provide time in this block
-            MatrÃ­cula: plate,
+            Matrícula: plate,
             Km: km,
             Posto: location,
             Produto: normalizeFuelToken(fuelToken),
             Litros: liters,
-            'PreÃ§o UnitÃ¡rio': rawTotal / liters,
+            'Preço Unitário': rawTotal / liters,
             Total: rawTotal,
             _talao: receipt,
             _invoiceRef: invoiceRef,
@@ -226,7 +223,7 @@ function deduplicateTransactions(transactions: ParsedBPTransaction[]): ParsedBPT
 
     for (const tx of transactions) {
         // Unique key: Talao + Date + Plate + Total + Liters
-        const key = `${tx._talao}_${tx._manualDate}_${tx.MatrÃ­cula}_${tx.Total}_${tx.Litros}`;
+        const key = `${tx._talao}_${tx._manualDate}_${tx.Matrícula}_${tx.Total}_${tx.Litros}`;
         if (!seen.has(key)) {
             seen.add(key);
             unique.push(tx);
@@ -258,7 +255,7 @@ export async function parseBPInvoicePDF(file: File | Blob | Uint8Array | ArrayBu
     let invoiceRef = 'DESCONHECIDO';
     for (const line of lines) {
         const full = line.join(' ');
-        const refMatch = full.match(/Fatura\s*n[Âº.oÂ°]?\s*:?\s*([A-Z0-9\s/]+)/i);
+        const refMatch = full.match(/Fatura\s*n[º.o°]?\s*:?\s*([A-Z0-9\s/]+)/i);
         if (refMatch) {
             invoiceRef = refMatch[1].trim();
             break;
