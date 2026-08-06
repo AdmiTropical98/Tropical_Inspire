@@ -1,4 +1,9 @@
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configurar o worker do PDF.js
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 // ---- INTERFACES ----
 export interface ParsedBPTransaction {
