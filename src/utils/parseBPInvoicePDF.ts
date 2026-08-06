@@ -233,6 +233,7 @@ function extractTransactionsFromBlock(block: CardBlock, invoiceRef: string): Par
             _source: 'block_parser',
             _selectedCC: '',
         });
+        }
     }
 
     return transactions;
