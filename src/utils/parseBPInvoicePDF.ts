@@ -163,17 +163,34 @@ function extractTransactionsFromBlock(block: CardBlock, invoiceRef: string): Par
 
     for (const lineTokens of block.lines) {
         const fullLine = lineTokens.join(' ');
-        const match = fullLine.match(TRANSACTION_REGEX);
         
-        if (!match) continue;
+        // BUG FIX: O PDF.js agrupa transações na mesma string se tiverem o mesmo Y_BUCKET.
+        // Dividimos a string em múltiplas caso existam múltiplos inícios de transação.
+        const matches = [...fullLine.matchAll(/(?:^|\s)(\d{6}|\d{2}[\/.-]\d{2}[\/.-]\d{2,4})\s+(\d{5,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6}|OFICINA)/gi)];
+        
+        const subLines = [];
+        if (matches.length > 1) {
+            for (let i = 0; i < matches.length; i++) {
+                const start = matches[i].index ?? 0;
+                const end = i + 1 < matches.length ? (matches[i + 1].index ?? fullLine.length) : fullLine.length;
+                subLines.push(fullLine.substring(start, end).trim());
+            }
+        } else {
+            subLines.push(fullLine);
+        }
 
-        const rawDate = match[1];
-        const receipt = match[2];
-        const plate = fixPlateOCR(match[3]);
-        const location = match[4].trim();
-        const km = match[5] || '';
-        const fuelToken = match[6];
-        const tail = match[7];
+        for (const subLine of subLines) {
+            const match = subLine.match(TRANSACTION_REGEX);
+            
+            if (!match) continue;
+
+            const rawDate = match[1];
+            const receipt = match[2];
+            const plate = fixPlateOCR(match[3]);
+            const location = match[4].trim();
+            const km = match[5] || '';
+            const fuelToken = match[6];
+            const tail = match[7];
 
         const decimals = [...tail.matchAll(/-?\d{1,3}(?:\.\d{3})?,\d+/g)].map(v => cleanNumberToken(v[0]));
         if (decimals.length < 2) continue;
