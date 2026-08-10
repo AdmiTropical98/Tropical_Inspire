@@ -50,14 +50,14 @@ import WorkshopAssets from './pages/Workshop/WorkshopAssets';
 import AssignedTools from './pages/Workshop/AssignedTools';
 import LayoutMobile from './components/layout/LayoutMobile';
 import LayoutDesktop from './components/layout/LayoutDesktop';
-import DriverMode from './pages/DriverMode';
+
 import InventoryModule from './pages/Inventario/InventoryModule';
 import OperacoesModule from './pages/Operacoes/OperacoesModule';
 import OperacoesLogin from './pages/Auth/OperacoesLogin';
 import DashboardLanding from './pages/Auth/DashboardLanding';
 import FornecedoresLogin from './pages/FornecedoresERP/FornecedoresLogin';
 import FornecedoresModule from './pages/FornecedoresERP/FornecedoresModule';
-import { isAndroidAuto } from './utils/isAndroidAuto';
+
 import TabletApp from './pages/Tablet/TabletApp';
 import { useDeviceType } from './hooks/useDeviceType';
 
@@ -269,6 +269,7 @@ function App() {
   const { unreadCount } = useChat();
   const navigate = useNavigate();
   const location = useLocation();
+  const deviceType = useDeviceType();
   const [viewportWidth, setViewportWidth] = useState(
     typeof window === 'undefined' ? 1440 : window.innerWidth
   );
@@ -282,7 +283,7 @@ function App() {
 
   const isCapacitorNative = Capacitor.isNativePlatform();
   const isCapacitorAndroid = isCapacitorNative && Capacitor.getPlatform() === 'android';
-  const androidAutoMode = isAndroidAuto();
+
   const isMobileViewport = viewportWidth < MOBILE_MAX_WIDTH;
   const isMobileLayout = isCapacitorNative || isMobileViewport;
 
@@ -343,26 +344,7 @@ function App() {
     };
   }, [isCapacitorAndroid]);
 
-  useEffect(() => {
-    const root = document.getElementById('root');
 
-    if (!androidAutoMode) {
-      document.documentElement.classList.remove('android-auto-root');
-      document.body.classList.remove('android-auto-root');
-      root?.classList.remove('android-auto-root');
-      return;
-    }
-
-    document.documentElement.classList.add('android-auto-root');
-    document.body.classList.add('android-auto-root');
-    root?.classList.add('android-auto-root');
-
-    return () => {
-      document.documentElement.classList.remove('android-auto-root');
-      document.body.classList.remove('android-auto-root');
-      root?.classList.remove('android-auto-root');
-    };
-  }, [androidAutoMode]);
 
   // Derive activeTab from current path
   const activeTab = location.pathname.split('/')[1] || 'dashboard';
@@ -451,11 +433,9 @@ function App() {
       (!isOperationsOnlyRole && (hasAccess(userRole, 'frota', 'ver') || hasAccess(userRole, 'dashboard', 'ver')))
     );
 
-  if (androidAutoMode && !isOficinaArea && !isTabletArea) {
-    return <DriverMode />;
-  }
 
-  if (isTabletArea) {
+
+  if (isTabletArea || deviceType === 'tablet') {
     if (!isAuthenticated) return <Login />;
     return <TabletApp />;
   }
