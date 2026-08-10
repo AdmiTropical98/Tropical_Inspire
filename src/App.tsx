@@ -58,6 +58,8 @@ import DashboardLanding from './pages/Auth/DashboardLanding';
 import FornecedoresLogin from './pages/FornecedoresERP/FornecedoresLogin';
 import FornecedoresModule from './pages/FornecedoresERP/FornecedoresModule';
 import { isAndroidAuto } from './utils/isAndroidAuto';
+import TabletApp from './pages/Tablet/TabletApp';
+import { useDeviceType } from './hooks/useDeviceType';
 
 // Lazy loading backoffice
 const Backoffice = lazy(() => import('./pages/Backoffice/index'));
@@ -382,6 +384,9 @@ function App() {
   const isOficinaArea =
     location.pathname === '/oficina' ||
     location.pathname.startsWith('/oficina/');
+  const isTabletArea =
+    location.pathname === '/tablet' ||
+    location.pathname.startsWith('/tablet/');
   const isColaboradorArea =
     location.pathname === '/colaborador' ||
     location.pathname.startsWith('/colaborador/') ||
@@ -446,8 +451,13 @@ function App() {
       (!isOperationsOnlyRole && (hasAccess(userRole, 'frota', 'ver') || hasAccess(userRole, 'dashboard', 'ver')))
     );
 
-  if (androidAutoMode && !isOficinaArea) {
+  if (androidAutoMode && !isOficinaArea && !isTabletArea) {
     return <DriverMode />;
+  }
+
+  if (isTabletArea) {
+    if (!isAuthenticated) return <Login />;
+    return <TabletApp />;
   }
 
   if (isOficinaArea) {

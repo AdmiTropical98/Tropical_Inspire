@@ -8,6 +8,7 @@ export const isAndroidAuto = () => {
   return typeof window !== 'undefined' &&
     typeof navigator !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
+    window.innerWidth < 768 &&
     window.matchMedia('(pointer: coarse)').matches &&
     navigator.userAgent.includes('Android');
 };
