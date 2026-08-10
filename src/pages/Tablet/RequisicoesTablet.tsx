@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useWorkshop } from '../../../contexts/WorkshopContext';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useWorkshop } from '../../contexts/WorkshopContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { Plus, Check, X, ClipboardCheck, Package } from 'lucide-react';
-import type { ItemRequisicao, Requisicao } from '../../../types';
+import type { ItemRequisicao, Requisicao } from '../../types';
 
 export default function RequisicoesTablet() {
     const { requisicoes, addRequisicao, viaturas, fornecedores, clientes, centrosCustos } = useWorkshop();

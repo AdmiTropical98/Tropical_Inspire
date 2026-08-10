@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useWorkshop } from '../../../contexts/WorkshopContext';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useWorkshop } from '../../contexts/WorkshopContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { Plus, Check, X, History, Fuel } from 'lucide-react';
 
 export default function CombustivelTablet() {
