@@ -21,11 +21,14 @@ export function useDeviceType() {
 
             const minDim = Math.min(window.innerWidth, window.innerHeight);
             
-            if (minDim < 600) {
+            if (minDim < 500) {
+                // Phones have a short side less than 500px (typically 390-430px)
                 setDeviceType('mobile');
-            } else if (minDim >= 600 && minDim <= 1024 && (isTouch || isNative)) {
-                // Tablets typically have a minimum dimension of at least 600px (e.g. iPad is 768px, small Android tablet is 600px)
+            } else if (isTouch || isNative) {
+                // Any touch device with short side >= 500px is considered a tablet
                 setDeviceType('tablet');
+            } else if (window.innerWidth < 768) {
+                setDeviceType('mobile');
             } else {
                 setDeviceType('desktop');
             }
