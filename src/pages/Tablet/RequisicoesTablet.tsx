@@ -288,8 +288,8 @@ export default function RequisicoesTablet() {
                                                         <tr key={item.id}>
                                                             <td className="py-4 text-slate-900">{item.descricao}</td>
                                                             <td className="py-4 text-center">{item.quantidade}</td>
-                                                            <td className="py-4 text-right text-slate-500">{item.valor_unitario ? \`\${item.valor_unitario.toFixed(2)} €\` : '-'}</td>
-                                                            <td className="py-4 text-right text-blue-600 font-bold">{item.valor_total ? \`\${item.valor_total.toFixed(2)} €\` : '-'}</td>
+                                                            <td className="py-4 text-right text-slate-500">{item.valor_unitario ? `${item.valor_unitario.toFixed(2)} €` : '-'}</td>
+                                                            <td className="py-4 text-right text-blue-600 font-bold">{item.valor_total ? `${item.valor_total.toFixed(2)} €` : '-'}</td>
                                                             <td className="py-4 text-right">
                                                                 <button 
                                                                     type="button" 
