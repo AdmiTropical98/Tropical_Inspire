@@ -59,7 +59,13 @@ export function FrotaKPI({
 
       {trend !== undefined && (
         <div className={cn("flex items-center gap-1.5 mt-3 text-sm font-semibold", trendColor)}>
-          <TrendIcon className="w-4 h-4" strokeWidth={3} />
+          {isPositive ? (
+            <TrendingUp className="w-4 h-4" strokeWidth={3} />
+          ) : isNegative ? (
+            <TrendingDown className="w-4 h-4" strokeWidth={3} />
+          ) : (
+            <Minus className="w-4 h-4" strokeWidth={3} />
+          )}
           <span>{Math.abs(trend)}%</span>
           {trendLabel && <span className="text-slate-400 ml-1 font-medium">{trendLabel}</span>}
         </div>
