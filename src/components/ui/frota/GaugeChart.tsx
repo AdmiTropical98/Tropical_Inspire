@@ -9,44 +9,65 @@ interface GaugeChartProps {
 }
 
 export function GaugeChart({ value, max, label, subLabel }: GaugeChartProps) {
-  const percentage = max > 0 ? (value / max) * 100 : 0;
-  const data = [
-    { name: 'Value', value: percentage },
-    { name: 'Empty', value: 100 - percentage },
-  ];
+  const percentage = max > 0 ? Math.min((value / max), 1) : 0;
+  
+  // SVG arc calculation for half circle
+  const radius = 80;
+  const strokeWidth = 16;
+  const cx = 100;
+  const cy = 100;
+  
+  // Calculate arc path for the filled part
+  const startAngle = Math.PI; // Left side
+  const endAngle = Math.PI + (percentage * Math.PI); // Right side based on percentage
+  
+  const getCoordinatesForAngle = (angle: number) => {
+    return {
+      x: cx + radius * Math.cos(angle),
+      y: cy + radius * Math.sin(angle)
+    };
+  };
+
+  const start = getCoordinatesForAngle(startAngle);
+  const end = getCoordinatesForAngle(endAngle);
+  
+  const largeArcFlag = percentage > 1 ? 1 : 0;
+  
+  const filledPath = `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${end.x} ${end.y}`;
 
   return (
-    <div className="relative w-full h-56 flex flex-col items-center justify-center">
-      <div className="w-full h-40">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="100%"
-              startAngle={180}
-              endAngle={0}
-              innerRadius="75%"
-              outerRadius="100%"
-              dataKey="value"
-              stroke="none"
-              cornerRadius={10}
-            >
-              <Cell key="cell-0" fill="#2563eb" />
-              <Cell key="cell-1" fill="#f1f5f9" />
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-      
-      {/* Value Overlay inside the arc */}
-      <div className="absolute top-20 flex flex-col items-center justify-center pointer-events-none">
-        <span className="text-2xl font-black text-slate-900 tracking-tight">{label}</span>
-        <span className="text-sm font-bold text-blue-600 mt-0.5">{subLabel}</span>
+    <div className="relative w-full flex flex-col items-center">
+      <div className="relative w-full max-w-[200px] aspect-[2/1] overflow-hidden flex justify-center">
+        <svg viewBox="0 0 200 100" className="w-full h-full">
+          {/* Background Arc */}
+          <path
+            d={`M ${cx - radius} ${cy} A ${radius} ${radius} 0 0 1 ${cx + radius} ${cy}`}
+            fill="none"
+            stroke="#f1f5f9"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+          />
+          {/* Foreground Arc */}
+          {percentage > 0 && (
+            <path
+              d={filledPath}
+              fill="none"
+              stroke="#2563eb"
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+            />
+          )}
+        </svg>
+        
+        {/* Value Overlay */}
+        <div className="absolute bottom-0 flex flex-col items-center justify-end pb-1 w-full text-center">
+          <span className="text-2xl font-black text-slate-900 tracking-tight">{label}</span>
+          <span className="text-sm font-bold text-blue-600 mt-0.5">{subLabel}</span>
+        </div>
       </div>
       
       {/* Min/Max Labels */}
-      <div className="w-full flex justify-between px-6 mt-2">
+      <div className="w-full max-w-[220px] flex justify-between mt-2">
         <span className="text-xs font-bold text-slate-400">0 L</span>
         <span className="text-xs font-bold text-slate-400">{max.toLocaleString('pt-PT')} L</span>
       </div>

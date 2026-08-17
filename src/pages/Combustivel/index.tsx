@@ -1419,9 +1419,9 @@ export default function Combustivel() {
                     </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
-                                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                                <div className="bg-white rounded-2xl p-6 shadow-sm border-none">
                                     <div className="flex items-start justify-between mb-4">
-                                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nível atual do tanque</h3>
+                                        <h3 className="text-sm font-semibold text-slate-500">Nível atual do tanque</h3>
                                         <div className="p-2 bg-blue-50 text-blue-600 rounded-full">
                                             <Droplets className="w-4 h-4" />
                                         </div>
@@ -1432,9 +1432,9 @@ export default function Combustivel() {
                                     </div>
                                 </div>
 
-                                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                                <div className="bg-white rounded-2xl p-6 shadow-sm border-none">
                                     <div className="flex items-start justify-between mb-4">
-                                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Preço médio €/L</h3>
+                                        <h3 className="text-sm font-semibold text-slate-500">Preço médio €/L</h3>
                                         <div className="p-2 bg-emerald-50 text-emerald-600 rounded-full">
                                             <BarChart3 className="w-4 h-4" />
                                         </div>
@@ -1448,9 +1448,9 @@ export default function Combustivel() {
                                     </div>
                                 </div>
 
-                                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                                <div className="bg-white rounded-2xl p-6 shadow-sm border-none">
                                     <div className="flex items-start justify-between mb-4">
-                                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Consumo hoje</h3>
+                                        <h3 className="text-sm font-semibold text-slate-500">Consumo hoje</h3>
                                         <div className="p-2 bg-purple-50 text-purple-600 rounded-full">
                                             <Fuel className="w-4 h-4" />
                                         </div>
@@ -1461,9 +1461,9 @@ export default function Combustivel() {
                                     </div>
                                 </div>
 
-                                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                                <div className="bg-white rounded-2xl p-6 shadow-sm border-none">
                                     <div className="flex items-start justify-between mb-4">
-                                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Consumo mês</h3>
+                                        <h3 className="text-sm font-semibold text-slate-500">Consumo mês</h3>
                                         <div className="p-2 bg-amber-50 text-amber-600 rounded-full">
                                             <FileText className="w-4 h-4" />
                                         </div>
@@ -1477,9 +1477,9 @@ export default function Combustivel() {
                                     </div>
                                 </div>
 
-                                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                                <div className="bg-white rounded-2xl p-6 shadow-sm border-none">
                                     <div className="flex items-start justify-between mb-4">
-                                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Autonomia estimada</h3>
+                                        <h3 className="text-sm font-semibold text-slate-500">Autonomia estimada</h3>
                                         <div className="p-2 bg-blue-50 text-blue-600 rounded-full">
                                             <Zap className="w-4 h-4" />
                                         </div>
@@ -1494,7 +1494,7 @@ export default function Combustivel() {
                             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                                 <div className="xl:col-span-2 space-y-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                                        <div className="bg-white rounded-2xl p-6 shadow-sm border-none">
                                             <div className="flex items-center justify-between mb-2">
                                                 <h3 className="text-sm font-black text-slate-900 tracking-tight">Visual do Tanque <span className="text-slate-400 font-normal ml-1">ⓘ</span></h3>
                                                 <button className="text-slate-400 hover:text-slate-600">
@@ -1531,7 +1531,7 @@ export default function Combustivel() {
                                             </div>
                                         </div>
 
-                                        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col">
+                                        <div className="bg-white rounded-2xl p-6 shadow-sm border-none flex flex-col">
                                             <div className="flex items-center justify-between mb-4">
                                                 <h3 className="text-sm font-black text-slate-900 tracking-tight">Tendência de Consumo <span className="text-slate-400 font-normal ml-1">ⓘ</span></h3>
                                                 <div className="flex bg-slate-100 p-1 rounded-lg">
@@ -1596,31 +1596,34 @@ export default function Combustivel() {
                                 </div>
 
                                 <div className="space-y-6">
-                                    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                                    <div className="bg-white rounded-2xl p-6 shadow-sm border-none">
                                         <h3 className="text-sm font-black text-slate-900 tracking-tight mb-4">Ações Rápidas</h3>
                                         <div className="space-y-3">
                                             <button onClick={() => setActiveTab('abastecer')} className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl bg-[#2563eb] text-white hover:bg-blue-700 transition-colors shadow-sm group">
                                                 <div className="flex items-center gap-3">
-                                                    <span className="font-bold text-sm">+ Registar Saída</span>
+                                                    <Upload className="w-4 h-4 opacity-75" />
+                                                    <span className="font-bold text-sm">Registar Saída</span>
                                                 </div>
                                                 <span className="text-lg font-light opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all">›</span>
                                             </button>
                                             <button onClick={() => setActiveTab('tanque')} className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl bg-[#10b981] text-white hover:bg-emerald-600 transition-colors shadow-sm group">
                                                 <div className="flex items-center gap-3">
-                                                    <span className="font-bold text-sm">↻ Reabastecer Depósito</span>
+                                                    <Truck className="w-4 h-4 opacity-75" />
+                                                    <span className="font-bold text-sm">Reabastecer Depósito</span>
                                                 </div>
                                                 <span className="text-lg font-light opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all">›</span>
                                             </button>
                                             <button onClick={() => setIsEditingTank(true)} className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl bg-[#f59e0b] text-white hover:bg-amber-600 transition-colors shadow-sm group">
                                                 <div className="flex items-center gap-3">
-                                                    <span className="font-bold text-sm">◎ Corrigir Contador da Bomba</span>
+                                                    <Edit className="w-4 h-4 opacity-75" />
+                                                    <span className="font-bold text-sm">Corrigir Contador da Bomba</span>
                                                 </div>
                                                 <span className="text-lg font-light opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all">›</span>
                                             </button>
                                         </div>
                                     </div>
                                     
-                                    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                                    <div className="bg-white rounded-2xl p-6 shadow-sm border-none">
                                         <div className="flex items-center justify-between mb-6">
                                             <h3 className="text-sm font-black text-slate-900 tracking-tight">Resumo de Custos</h3>
                                             <button className="text-blue-600 text-xs font-bold hover:underline">Ver detalhes</button>
