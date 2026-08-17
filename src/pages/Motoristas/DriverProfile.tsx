@@ -570,6 +570,5 @@ export default function DriverProfile({ motorista: initialMotorista, onClose }: 
                     )}
                 </div>
             </div>
-        </div>
     );
 }
