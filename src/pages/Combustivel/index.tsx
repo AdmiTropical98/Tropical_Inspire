@@ -1419,12 +1419,12 @@ export default function Combustivel() {
                     </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
-                                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
-                                            <Droplets className="w-5 h-5" />
-                                        </div>
+                                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                                    <div className="flex items-start justify-between mb-4">
                                         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nível atual do tanque</h3>
+                                        <div className="p-2 bg-blue-50 text-blue-600 rounded-full">
+                                            <Droplets className="w-4 h-4" />
+                                        </div>
                                     </div>
                                     <div className="flex flex-col gap-1">
                                         <span className="text-3xl font-black text-slate-900">{fuelTank.currentLevel.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")} L</span>
@@ -1432,12 +1432,12 @@ export default function Combustivel() {
                                     </div>
                                 </div>
 
-                                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
-                                            <BarChart3 className="w-5 h-5" />
-                                        </div>
+                                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                                    <div className="flex items-start justify-between mb-4">
                                         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Preço médio €/L</h3>
+                                        <div className="p-2 bg-emerald-50 text-emerald-600 rounded-full">
+                                            <BarChart3 className="w-4 h-4" />
+                                        </div>
                                     </div>
                                     <div className="flex flex-col gap-1">
                                         <span className="text-3xl font-black text-slate-900">{avgPrice.toFixed(3).replace('.', ',')} €</span>
@@ -1448,12 +1448,12 @@ export default function Combustivel() {
                                     </div>
                                 </div>
 
-                                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="p-2.5 bg-purple-50 text-purple-600 rounded-xl">
-                                            <Fuel className="w-5 h-5" />
-                                        </div>
+                                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                                    <div className="flex items-start justify-between mb-4">
                                         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Consumo hoje</h3>
+                                        <div className="p-2 bg-purple-50 text-purple-600 rounded-full">
+                                            <Fuel className="w-4 h-4" />
+                                        </div>
                                     </div>
                                     <div className="flex flex-col gap-1">
                                         <span className="text-3xl font-black text-slate-900">{totalTodayLiters.toFixed(1).replace('.', ',')} L</span>
@@ -1461,12 +1461,12 @@ export default function Combustivel() {
                                     </div>
                                 </div>
 
-                                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
-                                            <FileText className="w-5 h-5" />
-                                        </div>
+                                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                                    <div className="flex items-start justify-between mb-4">
                                         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Consumo mês</h3>
+                                        <div className="p-2 bg-amber-50 text-amber-600 rounded-full">
+                                            <FileText className="w-4 h-4" />
+                                        </div>
                                     </div>
                                     <div className="flex flex-col gap-1">
                                         <span className="text-3xl font-black text-slate-900">{totalMonthLiters.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")} L</span>
@@ -1477,12 +1477,12 @@ export default function Combustivel() {
                                     </div>
                                 </div>
 
-                                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
-                                            <Zap className="w-5 h-5" />
-                                        </div>
+                                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                                    <div className="flex items-start justify-between mb-4">
                                         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Autonomia estimada</h3>
+                                        <div className="p-2 bg-blue-50 text-blue-600 rounded-full">
+                                            <Zap className="w-4 h-4" />
+                                        </div>
                                     </div>
                                     <div className="flex flex-col gap-1">
                                         <span className="text-3xl font-black text-slate-900">{autonomyDays > 0 ? `${(autonomyDays * 100).toFixed(0)} km` : '0 km'}</span>

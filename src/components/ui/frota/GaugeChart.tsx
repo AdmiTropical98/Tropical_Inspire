@@ -16,35 +16,37 @@ export function GaugeChart({ value, max, label, subLabel }: GaugeChartProps) {
   ];
 
   return (
-    <div className="relative w-full h-48 flex items-center justify-center">
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="75%" /* Shift down so the half circle is centered */
-            startAngle={180}
-            endAngle={0}
-            innerRadius="75%"
-            outerRadius="100%"
-            dataKey="value"
-            stroke="none"
-            cornerRadius={10}
-          >
-            <Cell key="cell-0" fill="#2563eb" /> {/* Blue */}
-            <Cell key="cell-1" fill="#f1f5f9" /> {/* Slate 100 */}
-          </Pie>
-        </PieChart>
-      </ResponsiveContainer>
+    <div className="relative w-full h-56 flex flex-col items-center justify-center">
+      <div className="w-full h-40">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="100%"
+              startAngle={180}
+              endAngle={0}
+              innerRadius="75%"
+              outerRadius="100%"
+              dataKey="value"
+              stroke="none"
+              cornerRadius={10}
+            >
+              <Cell key="cell-0" fill="#2563eb" />
+              <Cell key="cell-1" fill="#f1f5f9" />
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
       
-      {/* Value Overlay */}
-      <div className="absolute inset-0 flex flex-col items-center justify-end pb-2">
-        <span className="text-3xl font-black text-slate-900 tracking-tight">{label}</span>
-        <span className="text-sm font-bold text-blue-600 mt-1">{subLabel}</span>
+      {/* Value Overlay inside the arc */}
+      <div className="absolute top-20 flex flex-col items-center justify-center pointer-events-none">
+        <span className="text-2xl font-black text-slate-900 tracking-tight">{label}</span>
+        <span className="text-sm font-bold text-blue-600 mt-0.5">{subLabel}</span>
       </div>
       
       {/* Min/Max Labels */}
-      <div className="absolute bottom-0 w-full flex justify-between px-8">
+      <div className="w-full flex justify-between px-6 mt-2">
         <span className="text-xs font-bold text-slate-400">0 L</span>
         <span className="text-xs font-bold text-slate-400">{max.toLocaleString('pt-PT')} L</span>
       </div>
