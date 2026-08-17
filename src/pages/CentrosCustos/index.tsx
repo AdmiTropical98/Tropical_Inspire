@@ -292,9 +292,9 @@ export default function CentrosCustos() {
         <div className="animate-in fade-in duration-500">
 
             <FrotaPageHeader
-                title="Centros de Custos"
-                subtitle="Análise operacional por unidade · variação automática vs período anterior"
-                icon={Building2}
+                title="Centros de Custo"
+                subtitle="Gestão e distribuição de despesas da frota"
+                icon={<Building2 className="w-6 h-6" />}
                 actions={
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 w-fit shadow-sm">

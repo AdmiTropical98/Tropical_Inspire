@@ -713,8 +713,8 @@ export default function ExploracaoFrota() {
       {/* Banner */}
       <FrotaPageHeader
         title="Exploração da Frota"
-        subtitle="Painel operacional e financeiro alimentado exclusivamente por registos manuais."
-        icon={BarChart3}
+        subtitle="Análise de rentabilidade e desempenho operacional"
+        icon={<BarChart3 className="w-6 h-6" />}
         actions={
           <>
             <button

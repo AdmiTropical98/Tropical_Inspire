@@ -134,8 +134,8 @@ export default function UsersPage() {
         <div className="space-y-6 pb-24">
             <FrotaPageHeader
                 title="Gestão de Utilizadores"
-                subtitle="Gerencie todos os membros da equipa e suas funções."
-                icon={User}
+                subtitle="Controlo de acessos e permissões do sistema"
+                icon={<User className="w-6 h-6" />}
                 actions={
                     <button
                         onClick={() => {
@@ -151,11 +151,11 @@ export default function UsersPage() {
 
             {/* Dashboard Stats */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <FrotaKPI title="Total Usuários" value={allUsers.length} icon={User} color="blue" />
-                <FrotaKPI title="Supervisores" value={supervisors.length} icon={Shield} color="purple" />
-                <FrotaKPI title="Gestores" value={gestores.length} icon={Shield} color="teal" />
-                <FrotaKPI title="Motoristas" value={motoristas.length} icon={Bus} color="emerald" />
-                <FrotaKPI title="Oficina" value={oficinaUsers.length} icon={Wrench} color="amber" />
+                <FrotaKPI title="Total Usuários" value={allUsers.length} icon={<User className="w-4 h-4" />} color="blue" />
+                <FrotaKPI title="Supervisores" value={supervisors.length} icon={<Shield className="w-4 h-4" />} color="purple" />
+                <FrotaKPI title="Gestores" value={gestores.length} icon={<Shield className="w-4 h-4" />} color="teal" />
+                <FrotaKPI title="Motoristas" value={motoristas.length} icon={<Bus className="w-4 h-4" />} color="emerald" />
+                <FrotaKPI title="Oficina" value={oficinaUsers.length} icon={<Wrench className="w-4 h-4" />} color="amber" />
             </div>
 
             {/* Filters */}

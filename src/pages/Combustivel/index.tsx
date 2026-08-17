@@ -1350,7 +1350,7 @@ export default function Combustivel() {
             <FrotaPageHeader
                 title={t('fuel.title')}
                 subtitle={t('fuel.subtitle')}
-                icon={Fuel}
+                icon={<Fuel className="w-6 h-6" />}
             >
                 <div className="combustivel-tabs flex flex-wrap md:flex-nowrap bg-slate-100 p-1.5 rounded-2xl border border-slate-200 backdrop-blur-md shadow-lg overflow-x-auto max-w-full scrollbar-none">
                     {[

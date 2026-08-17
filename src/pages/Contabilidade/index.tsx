@@ -131,10 +131,10 @@ function ContabilidadeContent() {
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* KPI Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <FrotaKPI title="Receita Total" value={formatCurrency(summary.totalRevenue)} icon={Wallet} trendType="good" trend={1} color="emerald" onClick={() => { setLedgerPreset('revenue_only'); setActiveTab('financial_movements'); }} />
-                            <FrotaKPI title="Despesas Totais" value={formatCurrency(summary.totalExpenses)} icon={TrendingDown} trendType="bad" trend={1} color="rose" onClick={() => { setLedgerPreset('this_month_expenses'); setActiveTab('financial_movements'); }} />
-                            <FrotaKPI title="Lucro Líquido" value={formatCurrency(summary.netProfit)} icon={DollarSign} trendType="good" trend={summary.netProfit >= 0 ? 1 : -1} color="indigo" onClick={() => { setLedgerPreset('all'); setActiveTab('financial_movements'); }} />
-                            <FrotaKPI title="Pendentes" value={formatCurrency(summary.pendingPayments)} icon={CreditCard} trendType="neutral" color="amber" onClick={() => { setLedgerPreset('all'); setActiveTab('financial_movements'); }} />
+                            <FrotaKPI title="Receita Total" value={formatCurrency(summary.totalRevenue)} icon={<Wallet className="w-4 h-4" />} trendType="good" trend={1} color="emerald" onClick={() => { setLedgerPreset('revenue_only'); setActiveTab('financial_movements'); }} />
+                            <FrotaKPI title="Despesas Totais" value={formatCurrency(summary.totalExpenses)} icon={<TrendingDown className="w-4 h-4" />} trendType="bad" trend={1} color="rose" onClick={() => { setLedgerPreset('this_month_expenses'); setActiveTab('financial_movements'); }} />
+                            <FrotaKPI title="Lucro Líquido" value={formatCurrency(summary.netProfit)} icon={<DollarSign className="w-4 h-4" />} trendType="good" trend={summary.netProfit >= 0 ? 1 : -1} color="indigo" onClick={() => { setLedgerPreset('all'); setActiveTab('financial_movements'); }} />
+                            <FrotaKPI title="Pendentes" value={formatCurrency(summary.pendingPayments)} icon={<CreditCard className="w-4 h-4" />} trendType="neutral" color="amber" onClick={() => { setLedgerPreset('all'); setActiveTab('financial_movements'); }} />
                         </div>
                         {/* Charts Area */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -210,8 +210,8 @@ function ContabilidadeContent() {
         <div className="min-h-screen bg-[#F5F7FA] text-slate-900 p-6 md:p-8 space-y-8">
             <FrotaPageHeader
                 title="Gestão Financeira"
-                subtitle="Visão clara e operacional das finanças."
-                icon={Wallet}
+                subtitle="Controlo de despesas, receitas e faturação"
+                icon={<Wallet className="w-6 h-6" />}
                 actions={
                     <div className="flex items-center gap-4">
                         <button

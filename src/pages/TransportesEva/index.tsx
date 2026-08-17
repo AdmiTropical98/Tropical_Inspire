@@ -117,7 +117,7 @@ export default function TransportesEva({
         <FrotaPageHeader
           title="Transportes EVA"
           subtitle="Controlo detalhado de utilização, despesas e ocorrências de autocarros contratados."
-          icon={Bus}
+          icon={<Bus className="w-6 h-6" />}
           actions={
             <div className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm relative z-10">
               <Calendar className="w-5 h-5 text-slate-400" />
@@ -141,7 +141,7 @@ export default function TransportesEva({
           title="Despesa Mensal"
           value={`${totalMonth.toFixed(2)}`}
           unit="€"
-          icon={TrendingUp}
+          icon={<TrendingUp className="w-4 h-4" />}
           trend={{ value: new Date(selectedMonth).toLocaleString('pt-PT', { month: 'long', year: 'numeric' }), isPositive: true }}
           color="amber"
         />
@@ -149,14 +149,14 @@ export default function TransportesEva({
           title="Dias Utilizados"
           value={totalTrips}
           unit="dias"
-          icon={Receipt}
+          icon={<Receipt className="w-4 h-4" />}
           trend={{ value: 'Total de utilização', isPositive: true }}
           color="emerald"
         />
         <FrotaKPI
           title="Ocorrências"
           value={filteredTransports.reduce((acc, t) => acc + (t.days?.filter(d => d.hasIssue).length || 0), 0)}
-          icon={AlertTriangle}
+          icon={<AlertTriangle className="w-4 h-4" />}
           trend={{ value: 'Atrasos ou Problemas', isPositive: false }}
           color="rose"
         />
