@@ -8,7 +8,7 @@ import {
   UserCheck, Activity,
   Settings2, UserCog as UserCogIcon, LogOut,
   AlertTriangle, ClipboardCheck, Wallet, Camera,
-  Droplet, CreditCard, Map, Network
+  Droplet, CreditCard, Map, Network, Bell, Download
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -958,11 +958,26 @@ function App() {
 
       <section className="frota-main">
         <header className="frota-topbar">
-          <div className="frota-topbar-left">
-            <h1>{currentSectionLabel}</h1>
+          <div className="flex items-center gap-2 text-blue-600 font-bold cursor-pointer hover:text-blue-700 transition-colors">
+            <span className="text-xl">←</span>
+            <span className="text-sm uppercase tracking-wide">{currentSectionLabel}</span>
           </div>
-          <div className="frota-topbar-right">
-            <UserProfileMenu onNavigate={handleNavigate} showName compact />
+          <div className="flex items-center gap-4">
+            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-50 transition-colors shadow-sm">
+              <Download className="w-4 h-4" />
+              Exportar
+            </button>
+            <div className="relative">
+              <button className="p-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-colors shadow-sm">
+                <Bell className="w-5 h-5" />
+              </button>
+              <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
+                3
+              </span>
+            </div>
+            <div className="pl-4 border-l border-slate-200">
+              <UserProfileMenu onNavigate={handleNavigate} showName compact />
+            </div>
           </div>
         </header>
 

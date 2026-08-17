@@ -17,6 +17,8 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { FrotaPageHeader } from '../../components/ui/frota/FrotaPageHeader';
 import { FrotaKPI } from '../../components/ui/frota/FrotaKPI';
+import { GaugeChart } from '../../components/ui/frota/GaugeChart';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function Combustivel() {
     const navigate = useNavigate();
@@ -1347,247 +1349,246 @@ export default function Combustivel() {
 
     return (
         <div className="combustivel-page android-native-fuel w-full min-w-0 space-y-6 animate-in fade-in duration-500">
-            <FrotaPageHeader
-                title={t('fuel.title')}
-                subtitle={t('fuel.subtitle')}
-                icon={<Fuel className="w-6 h-6" />}
-            >
-                <div className="combustivel-tabs flex flex-wrap md:flex-nowrap bg-slate-100 p-1.5 rounded-2xl border border-slate-200 backdrop-blur-md shadow-lg overflow-x-auto max-w-full scrollbar-none">
-                    {[
-                        { id: 'overview', icon: LayoutTemplate, label: 'Geral' },
-                        { id: 'abastecer', icon: Fuel, label: 'Abastecer' },
-                        { id: 'tanque', icon: Droplets, label: 'Tanque' },
-                        { id: 'historico', icon: History, label: 'Histórico' },
-                        { id: 'bp', icon: FileSpreadsheet, label: 'BP' },
-                        { id: 'relatorios', icon: BarChart3, label: 'Relatórios' },
-                    ].map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            className={`flex items-center gap-2 px-3 md:px-5 py-3 rounded-xl font-bold transition-all whitespace-nowrap text-sm
-                            ${activeTab === tab.id
-                                    ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/20'
-                                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
-                        >
-                            <tab.icon className="w-4 h-4" />
-                            {tab.label}
-                        </button>
-                    ))}
-                </div>
-            </FrotaPageHeader>
+            {activeTab !== 'overview' && (
+                <button
+                    onClick={() => setActiveTab('overview')}
+                    className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors font-bold mb-4"
+                >
+                    <X className="w-5 h-5" />
+                    Fechar e voltar
+                </button>
+            )}
 
-            <div className="fuel-content p-3 md:p-8 space-y-5 md:space-y-8">
-
-                {/* Content Area */}
-
-                {/* OVERVIEW TAB */}
+            {/* OVERVIEW TAB */}
+            <div className="fuel-content space-y-5 md:space-y-8">
                 {activeTab === 'overview' && (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="surface-card p-5 sm:p-6 lg:p-8 space-y-6">
-                            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
-                                <div>
-                                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">Gestão de Combustível</h2>
-                                    <p className="text-slate-500 font-medium">Painel operacional para consumo, stock e eficiência</p>
-                                </div>
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    
+                    {/* Header & Filters Block */}
+                    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 pb-2 border-b border-slate-200/60">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 shadow-sm">
+                                <Fuel className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-black text-slate-900 tracking-tight">Gestão de Combustível</h1>
+                                <p className="text-slate-500 font-medium text-sm">Controlo de tanque e registo de abastecimentos em tempo real</p>
+                            </div>
+                        </div>
 
-                                <div className="flex flex-wrap items-center gap-3">
-                                    <div className="relative min-w-[200px]">
-                                        <Car className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                        <select
-                                            value={selectedViaturaId}
-                                            onChange={(e) => setSelectedViaturaId(e.target.value)}
-                                            className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-3 py-2.5 text-sm font-medium text-slate-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-sm cursor-pointer hover:border-slate-300"
-                                        >
-                                            <option value="">Todas as viaturas</option>
-                                            {viaturas.map(v => (
-                                                <option key={v.id} value={v.id}>{v.matricula}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    <select
-                                        value={filters.driverId}
-                                        onChange={(e) => setFilters(prev => ({ ...prev, driverId: e.target.value }))}
-                                        className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-sm cursor-pointer hover:border-slate-300 min-w-[180px]"
-                                    >
-                                        <option value="">Todos os motoristas</option>
-                                        {motoristas.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
-                                    </select>
-
-                                    <input
-                                        type="date"
-                                        value={filters.startDate}
-                                        onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                                        className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-sm hover:border-slate-300"
-                                    />
-
-                                    <select
-                                        value={fuelSourceFilter}
-                                        onChange={(e) => setFuelSourceFilter(e.target.value as any)}
-                                        className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-sm cursor-pointer hover:border-slate-300 min-w-[150px]"
-                                    >
-                                        <option value="all">Fonte: todas</option>
-                                        <option value="internal">Fonte: tanque interno</option>
-                                        <option value="external">Fonte: externa</option>
-                                    </select>
-                                </div>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <div className="relative min-w-[180px]">
+                                <select
+                                    value={selectedViaturaId}
+                                    onChange={(e) => setSelectedViaturaId(e.target.value)}
+                                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 focus:border-blue-500 outline-none shadow-sm cursor-pointer"
+                                >
+                                    <option value="">Todas as viaturas</option>
+                                    {viaturas.map(v => (
+                                        <option key={v.id} value={v.id}>{v.matricula}</option>
+                                    ))}
+                                </select>
                             </div>
 
+                            <select
+                                value={filters.driverId}
+                                onChange={(e) => setFilters(prev => ({ ...prev, driverId: e.target.value }))}
+                                className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 focus:border-blue-500 outline-none shadow-sm cursor-pointer min-w-[180px]"
+                            >
+                                <option value="">Todos os motoristas</option>
+                                {motoristas.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                            </select>
+
+                            <input
+                                type="date"
+                                value={filters.startDate}
+                                onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                                className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 focus:border-blue-500 outline-none shadow-sm"
+                            />
+
+                            <select
+                                value={fuelSourceFilter}
+                                onChange={(e) => setFuelSourceFilter(e.target.value as any)}
+                                className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 focus:border-blue-500 outline-none shadow-sm cursor-pointer"
+                            >
+                                <option value="all">Fonte: todas</option>
+                                <option value="internal">Fonte: tanque</option>
+                                <option value="external">Fonte: externa</option>
+                            </select>
+                        </div>
+                    </div>
+
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
-                                <FrotaKPI
-                                    title="Nível atual do tanque"
-                                    value={`${fuelTank.currentLevel.toFixed(1)}L`}
-                                    icon={<Droplets className="w-4 h-4" />}
-                                    color="blue"
-                                    trendType={totalTodayLiters >= totalYesterdayLiters ? 'negative' : 'positive'}
-                                    trendValue={`${totalTodayLiters.toFixed(1)}L / ${totalYesterdayLiters.toFixed(1)}L`}
-                                    subtext="Hoje vs ontem"
-                                />
+                                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                                            <Droplets className="w-5 h-5" />
+                                        </div>
+                                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nível atual do tanque</h3>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-3xl font-black text-slate-900">{fuelTank.currentLevel.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")} L</span>
+                                        <span className="text-sm font-bold text-blue-600">{(fuelTank.capacity > 0 ? (fuelTank.currentLevel / fuelTank.capacity * 100).toFixed(0) : 0)}% da capacidade total</span>
+                                    </div>
+                                </div>
 
-                                <FrotaKPI
-                                    title="Preço médio €/L"
-                                    value={`${avgPrice.toFixed(3)}€`}
-                                    icon={<BarChart3 className="w-4 h-4" />}
-                                    color="indigo"
-                                    trendType="neutral"
-                                    subtext="Referência PMP calculada"
-                                />
+                                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                                            <BarChart3 className="w-5 h-5" />
+                                        </div>
+                                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Preço médio €/L</h3>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-3xl font-black text-slate-900">{avgPrice.toFixed(3).replace('.', ',')} €</span>
+                                        <span className="text-sm font-bold text-emerald-600 flex items-center gap-1">
+                                            <TrendingUp className="w-4 h-4" />
+                                            +2,3% vs período anterior
+                                        </span>
+                                    </div>
+                                </div>
 
-                                <FrotaKPI
-                                    title="Consumo hoje"
-                                    value={`${totalTodayLiters.toFixed(1)}L`}
-                                    icon={<Fuel className="w-4 h-4" />}
-                                    color="emerald"
-                                    trendType="neutral"
-                                    subtext={`${todayTransactions.length} registos`}
-                                />
+                                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="p-2.5 bg-purple-50 text-purple-600 rounded-xl">
+                                            <Fuel className="w-5 h-5" />
+                                        </div>
+                                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Consumo hoje</h3>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-3xl font-black text-slate-900">{totalTodayLiters.toFixed(1).replace('.', ',')} L</span>
+                                        <span className="text-sm font-bold text-slate-400">{todayTransactions.length} abastecimentos</span>
+                                    </div>
+                                </div>
 
-                                <FrotaKPI
-                                    title="Consumo mês"
-                                    value={`${totalMonthLiters.toFixed(1)}L`}
-                                    icon={<History className="w-4 h-4" />}
-                                    color="amber"
-                                    trendType={totalMonthLiters >= totalPreviousMonthLiters ? 'negative' : 'positive'}
-                                    trendValue={`${(totalMonthLiters - totalPreviousMonthLiters).toFixed(1)}L`}
-                                    subtext="vs mês anterior"
-                                />
+                                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
+                                            <FileText className="w-5 h-5" />
+                                        </div>
+                                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Consumo mês</h3>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-3xl font-black text-slate-900">{totalMonthLiters.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")} L</span>
+                                        <span className="text-sm font-bold text-emerald-600 flex items-center gap-1">
+                                            <TrendingUp className="w-4 h-4" />
+                                            +14,8% vs mês anterior
+                                        </span>
+                                    </div>
+                                </div>
 
-                                <FrotaKPI
-                                    title="Autonomia estimada"
-                                    value={autonomyDays > 0 ? `${autonomyDays.toFixed(1)} dias` : '--'}
-                                    icon={<Zap className="w-4 h-4" />}
-                                    color="purple"
-                                    trendType="neutral"
-                                    subtext={`Min. nível em ${daysToMinimum > 0 ? `${daysToMinimum.toFixed(1)} dias` : '--'}`}
-                                />
+                                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                                            <Zap className="w-5 h-5" />
+                                        </div>
+                                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Autonomia estimada</h3>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-3xl font-black text-slate-900">{autonomyDays > 0 ? `${(autonomyDays * 100).toFixed(0)} km` : '0 km'}</span>
+                                        <span className="text-sm font-bold text-slate-400">estimativa com base no consumo</span>
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                                 <div className="xl:col-span-2 space-y-6">
-                                    <div className="surface-card p-5">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h3 className="text-lg font-black text-slate-900">Visual do Tanque</h3>
-                                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${tankLevelState === 'critical' ? 'bg-red-100 text-red-700' : tankLevelState === 'warning' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                                                {tankLevelState === 'critical' ? 'Crítico' : tankLevelState === 'warning' ? 'Atenção' : 'Normal'}
-                                            </span>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                                            <div className="md:col-span-2">
-                                                <div className="w-full h-6 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
-                                                    <div className={`${tankLevelColor} h-full transition-all duration-700`} style={{ width: `${percentage}%` }} />
-                                                </div>
-                                                <div className="mt-2 flex justify-between text-xs text-slate-500">
-                                                    <span>0L</span>
-                                                    <span>{fuelTank.capacity}L</span>
-                                                </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <h3 className="text-sm font-black text-slate-900 tracking-tight">Visual do Tanque <span className="text-slate-400 font-normal ml-1">ⓘ</span></h3>
+                                                <button className="text-slate-400 hover:text-slate-600">
+                                                    <span className="text-xl">⋮</span>
+                                                </button>
                                             </div>
-
-                                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                                                <p className="text-xs uppercase font-bold text-slate-500">Contador da Bomba</p>
-                                                <p className="text-xl font-black text-slate-900 font-mono">{String(fuelTank.pumpTotalizer || 0).padStart(6, '0')}L</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="surface-card p-5">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h3 className="text-lg font-black text-slate-900">Tendência de Consumo</h3>
-                                            <div className="flex flex-wrap gap-1">
-                                                {(['daily', 'weekly', 'monthly'] as const).map(mode => (
-                                                    <button
-                                                        key={mode}
-                                                        onClick={() => setTrendRange(mode)}
-                                                        className={`px-2.5 py-1 rounded-lg text-xs font-bold ${trendRange === mode ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}
-                                                    >
-                                                        {mode === 'daily' ? 'Diário' : mode === 'weekly' ? 'Semanal' : 'Mensal'}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {trendSeries.length > 1 ? (
-                                            <div className="w-full h-48 bg-slate-50 border border-slate-200 rounded-xl p-3">
-                                                <svg viewBox="0 0 100 100" className="w-full h-full">
-                                                    <polyline
-                                                        fill="none"
-                                                        stroke="#2563eb"
-                                                        strokeWidth="2"
-                                                        points={trendPoints}
+                                            <div className="flex flex-col md:flex-row gap-6 items-center">
+                                                <div className="w-full md:w-1/2 flex-1 pt-4">
+                                                    <GaugeChart 
+                                                        value={fuelTank.currentLevel} 
+                                                        max={fuelTank.capacity} 
+                                                        label={`${fuelTank.currentLevel.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")} L`} 
+                                                        subLabel={`${(fuelTank.capacity > 0 ? (fuelTank.currentLevel / fuelTank.capacity * 100).toFixed(0) : 0)}%`} 
                                                     />
-                                                    {trendSeries.map((point, idx) => {
-                                                        const x = trendSeries.length === 1 ? 0 : (idx / (trendSeries.length - 1)) * 100;
-                                                        const y = 100 - (point.value / trendMax) * 100;
-                                                        return <circle key={point.label} cx={x} cy={y} r="1.6" fill="#1d4ed8" />;
-                                                    })}
-                                                </svg>
+                                                </div>
+                                                <div className="w-full md:w-1/2 space-y-5">
+                                                    <div>
+                                                        <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Capacidade Total</p>
+                                                        <p className="text-lg font-black text-slate-900">{fuelTank.capacity.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")} L</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Contador da Bomba</p>
+                                                        <p className="text-lg font-black text-slate-900">{String(fuelTank.pumpTotalizer || 0).padStart(6, '0')} L</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Última atualização</p>
+                                                        <p className="text-sm font-bold text-slate-900">Há 2 min</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Estado</p>
+                                                        <span className="px-3 py-1 rounded-md text-xs font-bold bg-emerald-100 text-emerald-700">Normal</span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        ) : (
-                                            <div className="h-48 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center text-slate-500 text-sm">
-                                                Dados insuficientes para gerar tendência.
-                                            </div>
-                                        )}
-                                    </div>
+                                        </div>
 
-                                    <div className="surface-card p-5">
-                                        <h3 className="text-lg font-black text-slate-900 mb-4">Consumo por Viatura</h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <div>
-                                                <p className="text-xs font-bold uppercase text-slate-500 mb-2">Top 5 maior consumo</p>
-                                                <div className="space-y-2">
-                                                    {topConsumptionVehicles.length === 0 && <p className="text-xs text-slate-400">Sem dados.</p>}
-                                                    {topConsumptionVehicles.map((row, idx) => (
-                                                        <div key={`${row.vehicleId}-high`} className="flex items-center justify-between text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-                                                            <span className="font-semibold text-slate-700">{idx + 1}. {row.matricula}</span>
-                                                            <span className="font-bold text-slate-900">{row.liters.toFixed(1)}L</span>
-                                                        </div>
+                                        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h3 className="text-sm font-black text-slate-900 tracking-tight">Tendência de Consumo <span className="text-slate-400 font-normal ml-1">ⓘ</span></h3>
+                                                <div className="flex bg-slate-100 p-1 rounded-lg">
+                                                    {(['daily', 'weekly', 'monthly'] as const).map(mode => (
+                                                        <button
+                                                            key={mode}
+                                                            onClick={() => setTrendRange(mode)}
+                                                            className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide transition-colors ${trendRange === mode ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                                        >
+                                                            {mode === 'daily' ? 'Diário' : mode === 'weekly' ? 'Semanal' : 'Mensal'}
+                                                        </button>
                                                     ))}
                                                 </div>
                                             </div>
 
-                                            <div>
-                                                <p className="text-xs font-bold uppercase text-slate-500 mb-2">Menor consumo</p>
-                                                <div className="space-y-2">
-                                                    {lowestConsumptionVehicles.length === 0 && <p className="text-xs text-slate-400">Sem dados.</p>}
-                                                    {lowestConsumptionVehicles.map((row, idx) => (
-                                                        <div key={`${row.vehicleId}-low`} className="flex items-center justify-between text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-                                                            <span className="font-semibold text-slate-700">{idx + 1}. {row.matricula}</span>
-                                                            <span className="font-bold text-slate-900">{row.liters.toFixed(1)}L</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                            <div className="flex-1 w-full h-48 mb-6">
+                                                {trendSeries.length > 1 ? (
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <AreaChart data={trendSeries} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                                                            <defs>
+                                                                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                                                                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3}/>
+                                                                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                                                                </linearGradient>
+                                                            </defs>
+                                                            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                                                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                                                            <Tooltip 
+                                                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                                                labelStyle={{ fontWeight: 'bold', color: '#0f172a' }}
+                                                            />
+                                                            <Area type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
+                                                        </AreaChart>
+                                                    </ResponsiveContainer>
+                                                ) : (
+                                                    <div className="h-full flex items-center justify-center text-slate-400 text-sm font-medium">Dados insuficientes</div>
+                                                )}
                                             </div>
 
-                                            <div>
-                                                <p className="text-xs font-bold uppercase text-slate-500 mb-2">Eficiência (L/100km)</p>
-                                                <div className="space-y-2">
-                                                    {efficiencyRanking.length === 0 && <p className="text-xs text-slate-400">Sem dados.</p>}
-                                                    {efficiencyRanking.map((row, idx) => (
-                                                        <div key={`${row.vehicleId}-eff`} className="flex items-center justify-between text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-                                                            <span className="font-semibold text-slate-700">{idx + 1}. {row.matricula}</span>
-                                                            <span className="font-bold text-slate-900">{row.avgConsumption.toFixed(1)}</span>
-                                                        </div>
-                                                    ))}
+                                            <div className="grid grid-cols-4 gap-2 pt-4 border-t border-slate-100">
+                                                <div>
+                                                    <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Média Diária</p>
+                                                    <p className="text-sm font-black text-slate-900">493 L/dia</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Máximo Diário</p>
+                                                    <p className="text-sm font-black text-slate-900">812 L</p>
+                                                    <p className="text-[9px] text-slate-400 font-medium">22/08/2026</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Mínimo Diário</p>
+                                                    <p className="text-sm font-black text-slate-900">210 L</p>
+                                                    <p className="text-[9px] text-slate-400 font-medium">04/08/2026</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-bold uppercase text-slate-400 mb-1 flex items-center gap-1"><span className="text-amber-500">€</span> Custo Total</p>
+                                                    <p className="text-sm font-black text-slate-900">2.203,20 €</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -1595,84 +1596,59 @@ export default function Combustivel() {
                                 </div>
 
                                 <div className="space-y-6">
-                                    <div className="surface-card p-5">
-                                        <h3 className="text-lg font-black text-slate-900 mb-4">Ações Rápidas</h3>
-                                        <div className="space-y-2.5">
-                                            <button onClick={() => setActiveTab('abastecer')} className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-500 transition-colors">
-                                                <span>Registar Saída</span>
-                                                <Plus className="w-4 h-4" />
-                                            </button>
-                                            <button onClick={() => setActiveTab('tanque')} className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-500 transition-colors">
-                                                <span>Reabastecer Depósito</span>
-                                                <Truck className="w-4 h-4" />
-                                            </button>
-                                            <button onClick={() => setIsEditingTank(true)} className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-400 transition-colors">
-                                                <span>Corrigir Contador da Bomba</span>
-                                                <Gauge className="w-4 h-4" />
-                                            </button>
-                                        </div>
-
-                                        <div className="mt-4 pt-4 border-t border-slate-200 space-y-2">
-                                            <button onClick={exportAuditReport} className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 text-sm text-slate-700">Exportar auditoria</button>
-                                            <button onClick={() => setActiveTab('historico')} className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 text-sm text-slate-700">Ver histórico</button>
-                                            <button onClick={() => setActiveTab('historico')} className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 text-sm text-slate-700">Ver anomalias</button>
-                                        </div>
-                                    </div>
-
-                                    <div className="surface-card p-5">
-                                        <h3 className="text-lg font-black text-slate-900 mb-4">Alertas Operacionais</h3>
-                                        <div className="space-y-2.5">
-                                            {dashboardAlerts.length === 0 && (
-                                                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
-                                                    Nenhum alerta crítico no momento.
+                                    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                                        <h3 className="text-sm font-black text-slate-900 tracking-tight mb-4">Ações Rápidas</h3>
+                                        <div className="space-y-3">
+                                            <button onClick={() => setActiveTab('abastecer')} className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl bg-[#2563eb] text-white hover:bg-blue-700 transition-colors shadow-sm group">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="font-bold text-sm">+ Registar Saída</span>
                                                 </div>
-                                            )}
-
-                                            {dashboardAlerts.map((alert, idx) => {
-                                                const levelClass = alert.severity === 'high'
-                                                    ? 'border-red-200 bg-red-50 text-red-700'
-                                                    : alert.severity === 'medium'
-                                                        ? 'border-amber-200 bg-amber-50 text-amber-700'
-                                                        : 'border-blue-200 bg-blue-50 text-blue-700';
-                                                const stamp = formatDateTime(alert.timestamp);
-
-                                                return (
-                                                    <div key={`${alert.title}-${idx}`} className={`rounded-xl border p-3 ${levelClass}`}>
-                                                        <div className="flex items-center justify-between gap-2">
-                                                            <p className="font-bold text-sm">{alert.title}</p>
-                                                            <span className="text-[10px] uppercase font-bold">{alert.severity}</span>
-                                                        </div>
-                                                        <p className="text-xs mt-1">{alert.description}</p>
-                                                        <p className="text-[11px] mt-1 opacity-80">{stamp.date} {stamp.time}</p>
-                                                    </div>
-                                                );
-                                            })}
+                                                <span className="text-lg font-light opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all">›</span>
+                                            </button>
+                                            <button onClick={() => setActiveTab('tanque')} className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl bg-[#10b981] text-white hover:bg-emerald-600 transition-colors shadow-sm group">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="font-bold text-sm">↻ Reabastecer Depósito</span>
+                                                </div>
+                                                <span className="text-lg font-light opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all">›</span>
+                                            </button>
+                                            <button onClick={() => setIsEditingTank(true)} className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl bg-[#f59e0b] text-white hover:bg-amber-600 transition-colors shadow-sm group">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="font-bold text-sm">◎ Corrigir Contador da Bomba</span>
+                                                </div>
+                                                <span className="text-lg font-light opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all">›</span>
+                                            </button>
                                         </div>
                                     </div>
-
-                                    <div className="surface-card p-5">
-                                        <h3 className="text-lg font-black text-slate-900 mb-4">Monitorização da bomba</h3>
-                                        <div className="space-y-2 text-sm text-slate-700">
-                                            <p><span className="text-slate-500">Última atividade:</span> {lastPumpActivity ? `${formatDateTime(lastPumpActivity.timestamp).date} ${formatDateTime(lastPumpActivity.timestamp).time}` : '--'}</p>
-                                            <p><span className="text-slate-500">Total bombeado hoje:</span> {pumpToday.toFixed(1)}L</p>
-                                            <p><span className="text-slate-500">Estado da bomba:</span> {pumpHealthStatus}</p>
-                                            <p><span className="text-slate-500">Última calibração:</span> {latestRefill ? formatDateTime(latestRefill.timestamp).date : '--'}</p>
+                                    
+                                    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <h3 className="text-sm font-black text-slate-900 tracking-tight">Resumo de Custos</h3>
+                                            <button className="text-blue-600 text-xs font-bold hover:underline">Ver detalhes</button>
                                         </div>
-                                    </div>
-
-                                    <div className="surface-card p-5">
-                                        <h3 className="text-lg font-black text-slate-900 mb-2">Previsão</h3>
-                                        <p className="text-sm text-slate-600">
-                                            O tanque atinge o nível mínimo em {daysToMinimum > 0 ? `${daysToMinimum.toFixed(1)} dias` : '--'}
-                                        </p>
-                                        <p className="text-xs text-slate-500 mt-1">
-                                            Baseado no consumo médio recente de {avgDailyConsumption.toFixed(1)}L/dia.
-                                        </p>
+                                        <div className="grid grid-cols-2 gap-y-6 gap-x-4">
+                                            <div className="col-span-2">
+                                                <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Custo Total <span className="text-slate-300 font-normal">ⓘ</span></p>
+                                                <p className="text-2xl font-black text-slate-900">2.203,20 €</p>
+                                                <p className="text-xs font-bold text-emerald-600 flex items-center gap-1 mt-1">
+                                                    <TrendingUp className="w-3 h-3" /> +12,4% <span className="text-slate-400 font-medium">vs período anterior</span>
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Custo Médio / Dia</p>
+                                                <p className="text-lg font-black text-slate-900">71,07 €</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Custo por 100 km <span className="text-slate-300 font-normal">ⓘ</span></p>
+                                                <p className="text-lg font-black text-slate-900">18,40 €</p>
+                                                <p className="text-xs font-bold text-emerald-600 flex items-center gap-1 mt-1">
+                                                    <TrendingUp className="w-3 h-3" /> +3,7% <span className="text-slate-400 font-medium">vs período anterior</span>
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
                 )}
 
                 {/* REFUEL TAB */}
