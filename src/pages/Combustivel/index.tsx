@@ -15,7 +15,8 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { excelDateToJSDate } from '../../utils/format';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import PageHeader from '../../components/common/PageHeader';
+import { FrotaPageHeader } from '../../components/ui/frota/FrotaPageHeader';
+import { FrotaKPI } from '../../components/ui/frota/FrotaKPI';
 
 export default function Combustivel() {
     const navigate = useNavigate();
@@ -1346,7 +1347,7 @@ export default function Combustivel() {
 
     return (
         <div className="combustivel-page android-native-fuel w-full min-w-0 space-y-6 animate-in fade-in duration-500">
-            <PageHeader
+            <FrotaPageHeader
                 title={t('fuel.title')}
                 subtitle={t('fuel.subtitle')}
                 icon={Fuel}
@@ -1373,7 +1374,7 @@ export default function Combustivel() {
                         </button>
                     ))}
                 </div>
-            </PageHeader>
+            </FrotaPageHeader>
 
             <div className="fuel-content p-3 md:p-8 space-y-5 md:space-y-8">
 
@@ -1389,13 +1390,13 @@ export default function Combustivel() {
                                     <p className="text-slate-500 font-medium">Painel operacional para consumo, stock e eficiência</p>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
-                                    <div className="relative">
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <div className="relative min-w-[200px]">
                                         <Car className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                         <select
                                             value={selectedViaturaId}
                                             onChange={(e) => setSelectedViaturaId(e.target.value)}
-                                            className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-3 py-3 text-base md:text-sm text-slate-700 focus:border-blue-400 outline-none"
+                                            className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-3 py-2.5 text-sm font-medium text-slate-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-sm cursor-pointer hover:border-slate-300"
                                         >
                                             <option value="">Todas as viaturas</option>
                                             {viaturas.map(v => (
@@ -1407,7 +1408,7 @@ export default function Combustivel() {
                                     <select
                                         value={filters.driverId}
                                         onChange={(e) => setFilters(prev => ({ ...prev, driverId: e.target.value }))}
-                                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-3 text-base md:text-sm text-slate-700 focus:border-blue-400 outline-none"
+                                        className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-sm cursor-pointer hover:border-slate-300 min-w-[180px]"
                                     >
                                         <option value="">Todos os motoristas</option>
                                         {motoristas.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
@@ -1417,13 +1418,13 @@ export default function Combustivel() {
                                         type="date"
                                         value={filters.startDate}
                                         onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-3 text-base md:text-sm text-slate-700 focus:border-blue-400 outline-none"
+                                        className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-sm hover:border-slate-300"
                                     />
 
                                     <select
                                         value={fuelSourceFilter}
                                         onChange={(e) => setFuelSourceFilter(e.target.value as any)}
-                                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-3 text-base md:text-sm text-slate-700 focus:border-blue-400 outline-none"
+                                        className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-sm cursor-pointer hover:border-slate-300 min-w-[150px]"
                                     >
                                         <option value="all">Fonte: todas</option>
                                         <option value="internal">Fonte: tanque interno</option>
@@ -1433,56 +1434,52 @@ export default function Combustivel() {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
-                                <div className="surface-card p-4">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <span className="text-xs uppercase tracking-wider font-bold text-slate-500">Nível atual do tanque</span>
-                                        <Droplets className="w-4 h-4 text-blue-600" />
-                                    </div>
-                                    <p className="text-2xl font-black text-slate-900">{fuelTank.currentLevel.toFixed(1)}L</p>
-                                    <p className="text-xs text-slate-500">{percentage.toFixed(1)}% da capacidade</p>
-                                    <p className={`text-xs mt-2 font-semibold ${totalTodayLiters >= totalYesterdayLiters ? 'text-amber-600' : 'text-emerald-600'}`}>
-                                        {totalTodayLiters >= totalYesterdayLiters ? <TrendingUp className="inline w-3 h-3 mr-1" /> : <TrendingDown className="inline w-3 h-3 mr-1" />}
-                                        Hoje vs ontem: {totalTodayLiters.toFixed(1)}L / {totalYesterdayLiters.toFixed(1)}L
-                                    </p>
-                                </div>
+                                <FrotaKPI
+                                    title="Nível atual do tanque"
+                                    value={`${fuelTank.currentLevel.toFixed(1)}L`}
+                                    icon={<Droplets className="w-4 h-4" />}
+                                    color="blue"
+                                    trendType={totalTodayLiters >= totalYesterdayLiters ? 'negative' : 'positive'}
+                                    trendValue={`${totalTodayLiters.toFixed(1)}L / ${totalYesterdayLiters.toFixed(1)}L`}
+                                    subtext="Hoje vs ontem"
+                                />
 
-                                <div className="surface-card p-4">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <span className="text-xs uppercase tracking-wider font-bold text-slate-500">Preço médio €/L</span>
-                                        <BarChart3 className="w-4 h-4 text-indigo-600" />
-                                    </div>
-                                    <p className="text-2xl font-black text-slate-900">{avgPrice.toFixed(3)}€</p>
-                                    <p className="text-xs text-slate-500">Referência PMP calculada</p>
-                                </div>
+                                <FrotaKPI
+                                    title="Preço médio €/L"
+                                    value={`${avgPrice.toFixed(3)}€`}
+                                    icon={<BarChart3 className="w-4 h-4" />}
+                                    color="indigo"
+                                    trendType="neutral"
+                                    subtext="Referência PMP calculada"
+                                />
 
-                                <div className="surface-card p-4">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <span className="text-xs uppercase tracking-wider font-bold text-slate-500">Consumo hoje</span>
-                                        <Fuel className="w-4 h-4 text-emerald-600" />
-                                    </div>
-                                    <p className="text-2xl font-black text-slate-900">{totalTodayLiters.toFixed(1)}L</p>
-                                    <p className="text-xs text-slate-500">{todayTransactions.length} registos</p>
-                                </div>
+                                <FrotaKPI
+                                    title="Consumo hoje"
+                                    value={`${totalTodayLiters.toFixed(1)}L`}
+                                    icon={<Fuel className="w-4 h-4" />}
+                                    color="emerald"
+                                    trendType="neutral"
+                                    subtext={`${todayTransactions.length} registos`}
+                                />
 
-                                <div className="surface-card p-4">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <span className="text-xs uppercase tracking-wider font-bold text-slate-500">Consumo mês</span>
-                                        <History className="w-4 h-4 text-amber-600" />
-                                    </div>
-                                    <p className="text-2xl font-black text-slate-900">{totalMonthLiters.toFixed(1)}L</p>
-                                    <p className={`text-xs font-semibold ${totalMonthLiters >= totalPreviousMonthLiters ? 'text-amber-600' : 'text-emerald-600'}`}>
-                                        {totalMonthLiters >= totalPreviousMonthLiters ? '+' : ''}{(totalMonthLiters - totalPreviousMonthLiters).toFixed(1)}L vs mês anterior
-                                    </p>
-                                </div>
+                                <FrotaKPI
+                                    title="Consumo mês"
+                                    value={`${totalMonthLiters.toFixed(1)}L`}
+                                    icon={<History className="w-4 h-4" />}
+                                    color="amber"
+                                    trendType={totalMonthLiters >= totalPreviousMonthLiters ? 'negative' : 'positive'}
+                                    trendValue={`${(totalMonthLiters - totalPreviousMonthLiters).toFixed(1)}L`}
+                                    subtext="vs mês anterior"
+                                />
 
-                                <div className="surface-card p-4">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <span className="text-xs uppercase tracking-wider font-bold text-slate-500">Autonomia estimada</span>
-                                        <Zap className="w-4 h-4 text-purple-600" />
-                                    </div>
-                                    <p className="text-2xl font-black text-slate-900">{autonomyDays > 0 ? `${autonomyDays.toFixed(1)} dias` : '--'}</p>
-                                    <p className="text-xs text-slate-500">Min. nível em {daysToMinimum > 0 ? `${daysToMinimum.toFixed(1)} dias` : '--'}</p>
-                                </div>
+                                <FrotaKPI
+                                    title="Autonomia estimada"
+                                    value={autonomyDays > 0 ? `${autonomyDays.toFixed(1)} dias` : '--'}
+                                    icon={<Zap className="w-4 h-4" />}
+                                    color="purple"
+                                    trendType="neutral"
+                                    subtext={`Min. nível em ${daysToMinimum > 0 ? `${daysToMinimum.toFixed(1)} dias` : '--'}`}
+                                />
                             </div>
 
                             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">

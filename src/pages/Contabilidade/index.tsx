@@ -18,6 +18,8 @@ import { supabase } from '../../lib/supabase';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { Fatura } from '../../types';
+import { FrotaPageHeader } from '../../components/ui/frota/FrotaPageHeader';
+import { FrotaKPI } from '../../components/ui/frota/FrotaKPI';
 
 function ContabilidadeContent() {
     // Only get what actually exists in the context
@@ -129,10 +131,10 @@ function ContabilidadeContent() {
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* KPI Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <KPICard title="Receita Total" value={summary.totalRevenue} icon={<Wallet className="w-5 h-5 text-emerald-400" />} color="bg-emerald-500/10 text-emerald-500 border-emerald-500/20" onClick={() => { setLedgerPreset('revenue_only'); setActiveTab('financial_movements'); }} />
-                            <KPICard title="Despesas Totais" value={summary.totalExpenses} icon={<TrendingDown className="w-5 h-5 text-red-400" />} color="bg-red-500/10 text-red-500 border-red-500/20" onClick={() => { setLedgerPreset('this_month_expenses'); setActiveTab('financial_movements'); }} />
-                            <KPICard title="Lucro Líquido" value={summary.netProfit} icon={<DollarSign className="w-5 h-5 text-indigo-400" />} color="bg-indigo-500/10 text-indigo-500 border-indigo-500/20" onClick={() => { setLedgerPreset('all'); setActiveTab('financial_movements'); }} />
-                            <KPICard title="Pendentes" value={summary.pendingPayments} icon={<CreditCard className="w-5 h-5 text-amber-400" />} color="bg-amber-500/10 text-amber-500 border-amber-500/20" onClick={() => { setLedgerPreset('all'); setActiveTab('financial_movements'); }} />
+                            <FrotaKPI title="Receita Total" value={formatCurrency(summary.totalRevenue)} icon={Wallet} trendType="good" trend={1} color="emerald" onClick={() => { setLedgerPreset('revenue_only'); setActiveTab('financial_movements'); }} />
+                            <FrotaKPI title="Despesas Totais" value={formatCurrency(summary.totalExpenses)} icon={TrendingDown} trendType="bad" trend={1} color="rose" onClick={() => { setLedgerPreset('this_month_expenses'); setActiveTab('financial_movements'); }} />
+                            <FrotaKPI title="Lucro Líquido" value={formatCurrency(summary.netProfit)} icon={DollarSign} trendType="good" trend={summary.netProfit >= 0 ? 1 : -1} color="indigo" onClick={() => { setLedgerPreset('all'); setActiveTab('financial_movements'); }} />
+                            <FrotaKPI title="Pendentes" value={formatCurrency(summary.pendingPayments)} icon={CreditCard} trendType="neutral" color="amber" onClick={() => { setLedgerPreset('all'); setActiveTab('financial_movements'); }} />
                         </div>
                         {/* Charts Area */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -206,36 +208,37 @@ function ContabilidadeContent() {
 
     return (
         <div className="min-h-screen bg-[#F5F7FA] text-slate-900 p-6 md:p-8 space-y-8">
-            <div className="flex justify-between items-center flex-wrap gap-4">
-                <div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Gestão Financeira</h1>
-                    <p className="text-slate-600 text-lg">Visão clara e operacional das finanças.</p>
-                </div>
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={generateCostCenterReport}
-                        className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-800 px-4 py-2 rounded-xl font-medium border border-slate-200 transition-all shadow-sm hidden md:flex"
-                    >
-                        <Download className="w-4 h-4" />
-                        Relatório
-                    </button>
+            <FrotaPageHeader
+                title="Gestão Financeira"
+                subtitle="Visão clara e operacional das finanças."
+                icon={Wallet}
+                actions={
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={generateCostCenterReport}
+                            className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-800 px-4 py-2 rounded-xl font-medium border border-slate-200 transition-all shadow-sm hidden md:flex"
+                        >
+                            <Download className="w-4 h-4" />
+                            Relatório
+                        </button>
 
-                    <div className="flex bg-white p-1.5 rounded-xl border border-slate-200 overflow-x-auto shadow-sm">
-                        {[
-                            { id: 'dashboard', label: 'Visão Geral', icon: PieChart },
-                            { id: 'receitas', label: 'Alugueres', icon: ArrowUpRight },
-                            { id: 'supplier_invoices', label: 'Faturas Fornecedor', icon: Receipt },
-                            { id: 'financial_movements', label: 'Movimentos', icon: Wallet },
-                            { id: 'despesas', label: 'Despesas', icon: TrendingDown },
-                            { id: 'fixos', label: 'Fixos', icon: RefreshCcw },
-                        ].map(tab => (
-                            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}`}>
-                                <tab.icon className="w-4 h-4" /> {tab.label}
-                            </button>
-                        ))}
+                        <div className="flex bg-white p-1.5 rounded-xl border border-slate-200 overflow-x-auto shadow-sm">
+                            {[
+                                { id: 'dashboard', label: 'Visão Geral', icon: PieChart },
+                                { id: 'receitas', label: 'Alugueres', icon: ArrowUpRight },
+                                { id: 'supplier_invoices', label: 'Faturas Fornecedor', icon: Receipt },
+                                { id: 'financial_movements', label: 'Movimentos', icon: Wallet },
+                                { id: 'despesas', label: 'Despesas', icon: TrendingDown },
+                                { id: 'fixos', label: 'Fixos', icon: RefreshCcw },
+                            ].map(tab => (
+                                <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}`}>
+                                    <tab.icon className="w-4 h-4" /> {tab.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                </div>
-            </div>
+                }
+            />
             {renderContent()}
         </div>
     );

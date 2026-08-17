@@ -32,8 +32,8 @@ export default function ActivityFeed({ items, title = "Timeline de Atividade" }:
     };
 
     return (
-        <div className="bg-white border border-slate-200 rounded-3xl h-full flex flex-col overflow-hidden shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)]">
-            <div className="p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
+        <div className="h-full flex flex-col overflow-hidden bg-white">
+            <div className="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
                         <Clock className="w-5 h-5" />

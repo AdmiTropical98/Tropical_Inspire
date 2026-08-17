@@ -11,7 +11,8 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import TransportesEva from '../TransportesEva';
-
+import { FrotaPageHeader } from '../../components/ui/frota/FrotaPageHeader';
+import { FrotaKPI } from '../../components/ui/frota/FrotaKPI';
 
 
 const STORAGE_BUCKETS = ['vehicle-documents', 'uploads', 'documents', 'invoices'];
@@ -710,40 +711,31 @@ export default function ExploracaoFrota() {
   return (
     <div className="flex flex-col space-y-6 min-h-screen app-content-bg p-4 sm:p-6 lg:p-8">
       {/* Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-[#0B2239] to-[#1f385c] p-6 rounded-2xl shadow-lg border border-slate-700 text-white relative overflow-hidden">
-        <div className="absolute right-0 top-0 opacity-5 -translate-y-4 translate-x-4 pointer-events-none">
-          <BarChart3 className="w-64 h-64" />
-        </div>
-        <div className="relative">
-          <div className="flex items-center gap-2">
-            <span className="bg-[#d59d31] text-xs font-black px-2 py-0.5 rounded text-[#0B2239] uppercase tracking-wider flex items-center gap-1">
-              <Sparkles className="w-3 h-3" /> Gestão Manual
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black mt-1">Exploração da Frota</h1>
-          <p className="text-slate-300 text-sm mt-1">
-            Painel operacional e financeiro alimentado exclusivamente por registos manuais.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 relative z-20 shrink-0">
-          <button
-            type="button"
-            onClick={() => { resetForm(); setModalOpen(true); }}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#d59d31] hover:bg-[#c28c27] text-white rounded-xl shadow-md transition-all font-bold text-xs active:scale-95"
-          >
-            <Plus className="w-4 h-4" /> Novo Gasto
-          </button>
-          <button
-            type="button"
-            onClick={loadAllData}
-            disabled={loadingData}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800/80 hover:bg-slate-800 text-white rounded-xl border border-slate-700/80 transition-all font-semibold text-xs active:scale-95 disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loadingData ? 'animate-spin' : ''}`} />
-            Sincronizar
-          </button>
-        </div>
-      </div>
+      <FrotaPageHeader
+        title="Exploração da Frota"
+        subtitle="Painel operacional e financeiro alimentado exclusivamente por registos manuais."
+        icon={BarChart3}
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => { resetForm(); setModalOpen(true); }}
+              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-all font-bold text-xs active:scale-95"
+            >
+              <Plus className="w-4 h-4" /> Novo Gasto
+            </button>
+            <button
+              type="button"
+              onClick={loadAllData}
+              disabled={loadingData}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl shadow-md transition-all font-semibold text-xs active:scale-95 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loadingData ? 'animate-spin' : ''}`} />
+              Sincronizar
+            </button>
+          </>
+        }
+      />
 
       {/* FILTROS GLOBAIS */}
       <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">

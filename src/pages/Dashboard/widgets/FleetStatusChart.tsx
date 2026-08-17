@@ -26,7 +26,7 @@ export default function FleetStatusChart({ total, available, maintenance, active
     let accumulatedOffset = 0;
 
     return (
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 h-full flex flex-col relative overflow-hidden shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)]">
+        <div className="h-full flex flex-col relative overflow-hidden bg-white p-5 sm:p-6">
             <h3 className="text-slate-900 font-bold text-lg mb-6 flex items-center gap-2">
                 <Bus className="w-5 h-5 text-blue-500" />
                 Estado da Frota

@@ -17,7 +17,8 @@ import * as XLSX from 'xlsx';
 import { parseNumber } from '../../utils/number';
 import ImportPreviewModal, { type ImportRow } from '../../components/ImportPreviewModal';
 
-import PageHeader from '../../components/common/PageHeader';
+import { FrotaPageHeader } from '../../components/ui/frota/FrotaPageHeader';
+import { FrotaCard } from '../../components/ui/frota/FrotaCard';
 
 export default function ViaVerde() {
     const { viaturas, motoristas, centrosCustos } = useWorkshop();
@@ -732,12 +733,15 @@ export default function ViaVerde() {
         doc.save(`ViaVerde_Relatorio_Mensal_CC_${reportMonth}.pdf`);
     };
 
+// Add missing imports for FrotaUI components at the top
+// (I will do a separate replace for imports to avoid breaking the file)
+
     return (
-        <div className="animate-in fade-in duration-500">
-            <PageHeader
+        <div className="w-full min-w-0 flex flex-col space-y-6 animate-in fade-in duration-500">
+            <FrotaPageHeader
                 title="Via Verde & Portagens"
                 subtitle="Gestão inteligente de passagens e custos de portagem"
-                icon={Ticket}
+                icon={<Ticket className="w-6 h-6" />}
                 actions={
                     <div className="flex gap-3 relative z-10">
                         {selectedIds.size > 0 && (
@@ -758,7 +762,7 @@ export default function ViaVerde() {
                         />
                         <button
                             onClick={handleDownloadTemplate}
-                            className="flex items-center gap-2 bg-slate-100 hover:bg-slate-700/80 text-slate-300 px-5 py-3 rounded-xl font-medium transition-all border border-slate-200 hover:border-slate-300 shadow-lg"
+                            className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 px-5 py-3 rounded-xl font-medium transition-all border border-slate-200 hover:border-slate-300 shadow-sm"
                         >
                             <TrendingUp className="w-4 h-4 rotate-180" />
                             <span className="hidden sm:inline">Template</span>
@@ -766,10 +770,10 @@ export default function ViaVerde() {
                         <button
                             onClick={() => fileInputRef.current?.click()}
                             disabled={importing}
-                            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white px-5 py-3 rounded-xl font-medium transition-all shadow-[0_4px_20px_rgba(37,99,235,0.2)] hover:shadow-[0_4px_25px_rgba(37,99,235,0.4)] disabled:opacity-50 hover:-translate-y-0.5"
+                            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-5 py-3 rounded-xl font-medium transition-all shadow-sm disabled:opacity-50"
                         >
                             {importing ? (
-                                <span className="animate-spin w-5 h-5 border-2 border-white/30 border-t-white rounded-full"></span>
+                                <span className="animate-spin w-5 h-5 border-2 border-slate-300 border-t-slate-600 rounded-full"></span>
                             ) : (
                                 <Truck className="w-5 h-5" />
                             )}
@@ -777,7 +781,7 @@ export default function ViaVerde() {
                         </button>
                         <button
                             onClick={() => setShowModal(true)}
-                            className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-5 py-3 rounded-xl font-medium transition-all shadow-[0_4px_20px_rgba(16,185,129,0.2)] hover:shadow-[0_4px_25px_rgba(16,185,129,0.4)] active:scale-95 hover:-translate-y-0.5"
+                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-medium transition-all shadow-sm"
                         >
                             <Plus className="w-5 h-5" />
                             <span className="hidden sm:inline">Novo Registo</span>
@@ -785,21 +789,22 @@ export default function ViaVerde() {
                     </div>
                 }
             >
-                <div className="flex flex-col md:flex-row gap-4 w-full max-w-2xl">
+                <div className="flex flex-col md:flex-row gap-4 w-full max-w-2xl bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
                     <div className="relative flex-1 group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-500 transition-colors h-5 w-5" />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 h-5 w-5" />
                         <input
                             type="text"
                             placeholder="Pesquisar por trajeto ou viatura..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-white/90 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-slate-900 transition-all"
+                            className="w-full pl-12 pr-4 py-3 bg-transparent outline-none text-slate-900"
                         />
                     </div>
+                    <div className="w-[1px] bg-slate-200 mx-2 my-2 hidden md:block"></div>
                     <select
                         value={filterVehicle}
                         onChange={(e) => setFilterVehicle(e.target.value)}
-                        className="px-4 py-3 bg-white/90 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-slate-900 transition-all"
+                        className="px-4 py-3 bg-transparent outline-none text-slate-900 cursor-pointer min-w-[200px]"
                     >
                         <option value="all">Todas as Viaturas</option>
                         {viaturas.map(v => (
@@ -807,9 +812,9 @@ export default function ViaVerde() {
                         ))}
                     </select>
                 </div>
-            </PageHeader>
+            </FrotaPageHeader>
 
-            <div className="p-4 md:p-8 space-y-8">
+            <div className="p-4 md:p-8 space-y-6">
 
                 {/* Debug Error Display */}
                 {lastError && (
@@ -831,61 +836,40 @@ export default function ViaVerde() {
                     isSubmitting={submitting}
                 />
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-                    <div className="group bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm p-6 rounded-2xl border border-white/5 hover:border-emerald-500/30 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:-translate-y-1 relative overflow-visible">
-                        <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <DollarSign className="w-24 h-24 text-emerald-500 rotate-12" />
-                        </div>
-                        <div className="flex justify-between items-start relative z-10">
+                {/* Stats Cards using FrotaKPI */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm flex flex-col justify-between">
+                        <div className="flex justify-between items-start">
                             <div>
-                                <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">Custo Total</p>
-                                <h3 className="text-3xl font-bold text-slate-900 mt-1 group-hover:text-emerald-400 transition-colors">{totalCost.toFixed(2)} <span className="text-lg text-slate-500">€</span></h3>
-                                <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-medium text-emerald-400">
-                                    <TrendingUp className="w-3 h-3" />
-                                    <span>Vista Atual</span>
-                                </div>
+                                <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Custo Total</p>
+                                <h3 className="text-3xl font-black text-slate-900 mt-1">{totalCost.toFixed(2)} <span className="text-lg text-slate-500">€</span></h3>
                             </div>
-                            <div className="p-3 bg-emerald-500/10 rounded-xl group-hover:bg-emerald-500/20 transition-colors border border-emerald-500/20">
-                                <DollarSign className="w-6 h-6 text-emerald-500" />
+                            <div className="p-3 bg-emerald-50 rounded-xl">
+                                <DollarSign className="w-6 h-6 text-emerald-600" />
                             </div>
                         </div>
                     </div>
 
-                    <div className="group bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm p-6 rounded-2xl border border-white/5 hover:border-blue-500/30 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:-translate-y-1 relative overflow-visible">
-                        <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <MapPin className="w-24 h-24 text-blue-500 rotate-12" />
-                        </div>
-                        <div className="flex justify-between items-start relative z-10">
+                    <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm flex flex-col justify-between">
+                        <div className="flex justify-between items-start">
                             <div>
-                                <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">Distância Total</p>
-                                <h3 className="text-3xl font-bold text-slate-900 mt-1 group-hover:text-blue-400 transition-colors">{totalDistance.toFixed(1)} <span className="text-lg text-slate-500">km</span></h3>
-                                <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-medium text-blue-400">
-                                    <Truck className="w-3 h-3" />
-                                    <span>Km Percorridos</span>
-                                </div>
+                                <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Distância Total</p>
+                                <h3 className="text-3xl font-black text-slate-900 mt-1">{totalDistance.toFixed(1)} <span className="text-lg text-slate-500">km</span></h3>
                             </div>
-                            <div className="p-3 bg-blue-500/10 rounded-xl group-hover:bg-blue-500/20 transition-colors border border-blue-500/20">
-                                <MapPin className="w-6 h-6 text-blue-500" />
+                            <div className="p-3 bg-blue-50 rounded-xl">
+                                <Truck className="w-6 h-6 text-blue-600" />
                             </div>
                         </div>
                     </div>
 
-                    <div className="group bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm p-6 rounded-2xl border border-white/5 hover:border-purple-500/30 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:-translate-y-1 relative overflow-visible">
-                        <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <TrendingUp className="w-24 h-24 text-purple-500 rotate-12" />
-                        </div>
-                        <div className="flex justify-between items-start relative z-10">
+                    <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm flex flex-col justify-between">
+                        <div className="flex justify-between items-start">
                             <div>
-                                <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">Passagens</p>
-                                <h3 className="text-3xl font-bold text-slate-900 mt-1 group-hover:text-purple-400 transition-colors">{filteredTolls.length}</h3>
-                                <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-xs font-medium text-purple-400">
-                                    <Ticket className="w-3 h-3" />
-                                    <span>Registos</span>
-                                </div>
+                                <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Passagens</p>
+                                <h3 className="text-3xl font-black text-slate-900 mt-1">{filteredTolls.length}</h3>
                             </div>
-                            <div className="p-3 bg-purple-500/10 rounded-xl group-hover:bg-purple-500/20 transition-colors border border-purple-500/20">
-                                <TrendingUp className="w-6 h-6 text-purple-500" />
+                            <div className="p-3 bg-purple-50 rounded-xl">
+                                <Ticket className="w-6 h-6 text-purple-600" />
                             </div>
                         </div>
                     </div>

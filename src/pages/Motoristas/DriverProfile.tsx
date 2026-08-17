@@ -129,34 +129,28 @@ export default function DriverProfile({ motorista: initialMotorista, onClose }: 
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex justify-end">
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative w-full max-w-2xl bg-white/90 border-l border-slate-200 shadow-2xl h-full flex flex-col animate-in slide-in-from-right duration-300">
-
-                {/* Header with Photo */}
-                <div className="p-6 border-b border-slate-200 bg-gradient-to-br from-slate-950 to-slate-900">
-                    <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-4">
-                            <div className="w-20 h-20 rounded-full bg-slate-100 border-2 border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
-                                {motorista.foto ? (
-                                    <img src={motorista.foto} alt={motorista.nome} className="w-full h-full object-cover" />
-                                ) : (
-                                    <span className="text-blue-400 font-bold text-3xl">{motorista.nome.charAt(0)}</span>
-                                )}
-                            </div>
-                            <div>
-                                <h2 className="text-2xl font-bold text-slate-900 mb-1">{motorista.nome}</h2>
-                                <div className="flex items-center gap-4 text-sm text-slate-400">
-                                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> {tipoUtilizador.charAt(0).toUpperCase() + tipoUtilizador.slice(1)} Ativo</span>
-                                    <span>|</span>
-                                    <span>{motorista.contacto}</span>
-                                </div>
+        <div className="flex flex-col h-full bg-slate-50">
+            {/* Header with Photo */}
+            <div className="p-6 border-b border-slate-200 bg-white">
+                <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-4">
+                        <div className="w-20 h-20 rounded-full bg-slate-100 border-2 border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
+                            {motorista.foto ? (
+                                <img src={motorista.foto} alt={motorista.nome} className="w-full h-full object-cover" />
+                            ) : (
+                                <span className="text-blue-400 font-bold text-3xl">{motorista.nome.charAt(0)}</span>
+                            )}
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-900 mb-1">{motorista.nome}</h2>
+                            <div className="flex items-center gap-4 text-sm text-slate-500">
+                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> {tipoUtilizador.charAt(0).toUpperCase() + tipoUtilizador.slice(1)} Ativo</span>
+                                <span>|</span>
+                                <span>{motorista.contacto}</span>
                             </div>
                         </div>
-                        <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-900 transition-colors">
-                            <X className="w-6 h-6" />
-                        </button>
                     </div>
+                </div>
 
                     {/* Quick Stats */}
                     <div className="grid grid-cols-3 gap-3 mt-4">

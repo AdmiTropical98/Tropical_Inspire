@@ -6,6 +6,8 @@ import { useWorkshop } from '../../contexts/WorkshopContext';
 import type { Cliente } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import { supabase } from '../../lib/supabase';
+import { FrotaDrawer } from '../../components/ui/frota/FrotaDrawer';
+import ClientProfile from './ClientProfile';
 
 interface ClientMonthlyExpense {
     month: string;
@@ -38,6 +40,7 @@ export default function Clientes() {
     const [showModal, setShowModal] = useState(false);
     const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
     const [selectedClientId, setSelectedClientId] = useState('');
+    const [selectedDrawerClientId, setSelectedDrawerClientId] = useState<string | null>(null);
     const [dashboardLoading, setDashboardLoading] = useState(false);
     const [totalExpenses, setTotalExpenses] = useState(0);
     const [monthlyExpenses, setMonthlyExpenses] = useState<ClientMonthlyExpense[]>([]);
@@ -367,12 +370,12 @@ export default function Clientes() {
                         </div>
 
                         <div className="mt-4 pt-4 border-t border-slate-200/60">
-                            <Link
-                                to={`/clientes/${cliente.id}`}
-                                className="inline-flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-300 hover:bg-blue-500/20"
+                            <button
+                                onClick={() => setSelectedDrawerClientId(cliente.id)}
+                                className="inline-flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-500/20 transition-colors"
                             >
                                 Ver perfil financeiro
-                            </Link>
+                            </button>
                         </div>
                     </div>
                 ))}
@@ -472,6 +475,16 @@ export default function Clientes() {
                     </div>
                 </div>
             )}
+
+            <FrotaDrawer
+                isOpen={!!selectedDrawerClientId}
+                onClose={() => setSelectedDrawerClientId(null)}
+                size="full"
+            >
+                {selectedDrawerClientId && (
+                    <ClientProfile id={selectedDrawerClientId} isDrawer={true} />
+                )}
+            </FrotaDrawer>
         </div>
     );
 }

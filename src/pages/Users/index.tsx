@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { User, CheckCircle2, XCircle, Edit, Trash2, Shield, Wrench, Bus, Search, Filter } from 'lucide-react';
 import UserFormModal from './modals/UserFormModal';
+import { FrotaPageHeader } from '../../components/ui/frota/FrotaPageHeader';
+import { FrotaKPI } from '../../components/ui/frota/FrotaKPI';
 
 export default function UsersPage() {
     const {
@@ -130,79 +132,30 @@ export default function UsersPage() {
 
     return (
         <div className="space-y-6 pb-24">
-            {/* Dashboard Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-200/50 rounded-2xl p-4 flex items-center justify-between shadow-lg">
-                    <div>
-                        <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Total Usuários</p>
-                        <p className="text-2xl font-bold text-slate-900 mt-1">{allUsers.length}</p>
-                    </div>
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                        <User className="w-5 h-5 text-blue-400" />
-                    </div>
-                </div>
-
-                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-200/50 rounded-2xl p-4 flex items-center justify-between shadow-lg">
-                    <div>
-                        <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Supervisores</p>
-                        <p className="text-2xl font-bold text-slate-900 mt-1">{supervisors.length}</p>
-                    </div>
-                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
-                        <Shield className="w-5 h-5 text-purple-400" />
-                    </div>
-                </div>
-
-                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-200/50 rounded-2xl p-4 flex items-center justify-between shadow-lg">
-                    <div>
-                        <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Gestores</p>
-                        <p className="text-2xl font-bold text-slate-900 mt-1">{gestores.length}</p>
-                    </div>
-                    <div className="w-10 h-10 rounded-xl bg-teal-500/10 flex items-center justify-center border border-teal-500/20">
-                        <Shield className="w-5 h-5 text-teal-400" />
-                    </div>
-                </div>
-
-                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-200/50 rounded-2xl p-4 flex items-center justify-between shadow-lg">
-                    <div>
-                        <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Motoristas</p>
-                        <p className="text-2xl font-bold text-slate-900 mt-1">{motoristas.length}</p>
-                    </div>
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-                        <Bus className="w-5 h-5 text-emerald-400" />
-                    </div>
-                </div>
-
-                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-200/50 rounded-2xl p-4 flex items-center justify-between shadow-lg">
-                    <div>
-                        <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Oficina</p>
-                        <p className="text-2xl font-bold text-slate-900 mt-1">{oficinaUsers.length}</p>
-                    </div>
-                    <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
-                        <Wrench className="w-5 h-5 text-orange-400" />
-                    </div>
-                </div>
-            </div>
-
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                        Gestão de Usuários
-                    </h1>
-                    <p className="text-slate-400 text-sm">Gerencie todos os membros da equipa e suas funções.</p>
-                </div>
-
-                <div className="flex items-center gap-2">
+            <FrotaPageHeader
+                title="Gestão de Utilizadores"
+                subtitle="Gerencie todos os membros da equipa e suas funções."
+                icon={User}
+                actions={
                     <button
                         onClick={() => {
                             setSelectedUser(null);
                             setIsModalOpen(true);
                         }}
-                        className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors text-sm font-semibold"
+                        className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm font-semibold shadow-sm"
                     >
                         Novo Utilizador
                     </button>
-                </div>
+                }
+            />
 
+            {/* Dashboard Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <FrotaKPI title="Total Usuários" value={allUsers.length} icon={User} color="blue" />
+                <FrotaKPI title="Supervisores" value={supervisors.length} icon={Shield} color="purple" />
+                <FrotaKPI title="Gestores" value={gestores.length} icon={Shield} color="teal" />
+                <FrotaKPI title="Motoristas" value={motoristas.length} icon={Bus} color="emerald" />
+                <FrotaKPI title="Oficina" value={oficinaUsers.length} icon={Wrench} color="amber" />
             </div>
 
             {/* Filters */}

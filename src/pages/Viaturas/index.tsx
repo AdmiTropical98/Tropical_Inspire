@@ -12,6 +12,8 @@ import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { VehicleInsurancePolicy, Viatura } from '../../types';
 import { supabase } from '../../lib/supabase';
+import { FrotaDrawer } from '../../components/ui/frota/FrotaDrawer';
+import VehicleProfile from './VehicleProfile';
 
 type FleetFinancialDashboard = {
     total_fleet_cost: number;
@@ -63,6 +65,7 @@ export default function Viaturas() {
 
     // Navigation
     const [activeTab, setActiveTab] = useState<'overview' | 'list' | 'create'>('overview');
+    const [selectedDrawerViaturaId, setSelectedDrawerViaturaId] = useState<string | null>(null);
 
     const [filter, setFilter] = useState('');
     const [insuranceExportStatus, setInsuranceExportStatus] = useState<InsuranceExportStatus>('active');
@@ -674,7 +677,7 @@ export default function Viaturas() {
                                         {stats.maintenance > 0 ? (
                                             <div className="space-y-3">
                                                 {viaturas.filter(v => getVehicleStatus(v) === 'maintenance').map(v => (
-                                                    <div key={v.id} className="flex items-center justify-between p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl hover:bg-amber-500/10 transition-colors cursor-pointer" onClick={() => navigate(`/vehicles/${v.id}`)}>
+                                                    <div key={v.id} className="flex items-center justify-between p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl hover:bg-amber-500/10 transition-colors cursor-pointer" onClick={() => setSelectedDrawerViaturaId(v.id)}>
                                                         <div className="flex items-center gap-4">
                                                             <div className="p-2 bg-amber-500/20 rounded-lg text-amber-500">
                                                                 <Car className="w-5 h-5" />
@@ -755,7 +758,7 @@ export default function Viaturas() {
                                         return (
                                             <div
                                                 key={viatura.id}
-                                                onClick={() => navigate(`/vehicles/${viatura.id}`)}
+                                                onClick={() => setSelectedDrawerViaturaId(viatura.id)}
                                                 className="bg-white/90 border border-slate-200/70 rounded-2xl p-5 hover:border-blue-300 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group relative overflow-visible"
                                             >
                                                 <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
@@ -905,6 +908,16 @@ export default function Viaturas() {
                     </div>
                 </div>
             </div>
+
+            <FrotaDrawer
+                isOpen={!!selectedDrawerViaturaId}
+                onClose={() => setSelectedDrawerViaturaId(null)}
+                size="full"
+            >
+                {selectedDrawerViaturaId && (
+                    <VehicleProfile id={selectedDrawerViaturaId} isDrawer={true} />
+                )}
+            </FrotaDrawer>
         </div>
     );
 }

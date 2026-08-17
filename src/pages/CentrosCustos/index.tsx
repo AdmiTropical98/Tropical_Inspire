@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import PageHeader from '../../components/common/PageHeader';
+import { FrotaPageHeader } from '../../components/ui/frota/FrotaPageHeader';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useFinancial } from '../../contexts/FinancialContext';
 import {
@@ -291,33 +291,31 @@ export default function CentrosCustos() {
     return (
         <div className="animate-in fade-in duration-500">
 
-            <PageHeader
+            <FrotaPageHeader
                 title="Centros de Custos"
                 subtitle="Análise operacional por unidade · variação automática vs período anterior"
                 icon={Building2}
                 actions={
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => { setEditingId(null); setNome(''); setLocalizacao(''); setShowForm(true); }} className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20">
-                            <Plus className="w-5 h-5" /> Novo Centro
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 w-fit shadow-sm">
+                            <Filter className="w-3.5 h-3.5 text-slate-500 ml-1.5" />
+                            {PERIODS.map(p => (
+                                <button key={p.id} onClick={() => setPeriod(p.id)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${period === p.id ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}>
+                                    {p.label}
+                                </button>
+                            ))}
+                        </div>
+                        <button onClick={() => { setEditingId(null); setNome(''); setLocalizacao(''); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-md text-sm">
+                            <Plus className="w-4 h-4" /> Novo Centro
                         </button>
                         <button onClick={handleRepairData} disabled={isRepairing} title="Corrigir Centros"
-                            className="p-3 bg-slate-100 hover:bg-slate-700 text-slate-400 hover:text-slate-900 rounded-xl transition-all border border-slate-200 disabled:opacity-50">
-                            <Wrench className={`w-5 h-5 ${isRepairing ? 'animate-spin' : ''}`} />
+                            className="p-2 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 rounded-xl transition-all border border-slate-200 disabled:opacity-50 shadow-sm">
+                            <Wrench className={`w-4 h-4 ${isRepairing ? 'animate-spin' : ''}`} />
                         </button>
                     </div>
                 }
-            >
-                <div className="flex items-center gap-1 bg-white/90 border border-slate-200 rounded-xl p-1 w-fit mt-4">
-                    <Filter className="w-3.5 h-3.5 text-slate-500 ml-1.5" />
-                    {PERIODS.map(p => (
-                        <button key={p.id} onClick={() => setPeriod(p.id)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${period === p.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-slate-900 hover:bg-white/5'}`}>
-                            {p.label}
-                        </button>
-                    ))}
-                </div>
-            </PageHeader>
-
+            />
             <div className="p-4 md:p-8 space-y-8">
 
                 {/* ── GLOBAL KPIs ── */}

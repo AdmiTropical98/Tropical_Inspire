@@ -56,9 +56,15 @@ interface VehicleProfileSummaryRow {
     current_km: number;
 }
 
-export default function VehicleProfile() {
+interface VehicleProfileProps {
+    id?: string;
+    isDrawer?: boolean;
+}
+
+export default function VehicleProfile({ id, isDrawer }: VehicleProfileProps) {
     const navigate = useNavigate();
-    const { viaturaId } = useParams();
+    const params = useParams();
+    const viaturaId = id || params.viaturaId;
     const { viaturas, requisicoes, fuelTransactions, motoristas } = useWorkshop();
     const [maintenanceRecords, setMaintenanceRecords] = useState<Manutencao[]>([]);
     const [summarySql, setSummarySql] = useState<VehicleProfileSummaryRow | null>(null);
@@ -483,14 +489,16 @@ export default function VehicleProfile() {
     return (
         <div className="space-y-6">
             {/* Back + header */}
-            <div className="flex items-center justify-between">
-                <button
-                    onClick={() => navigate('/viaturas')}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-white/90 border border-slate-200 text-slate-500 hover:text-slate-900 rounded-lg transition-colors"
-                >
-                    <ArrowLeft className="w-4 h-4" /> Voltar à Frota
-                </button>
-            </div>
+            {!isDrawer && (
+                <div className="flex items-center justify-between">
+                    <button
+                        onClick={() => navigate('/viaturas')}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-white/90 border border-slate-200 text-slate-500 hover:text-slate-900 rounded-lg transition-colors"
+                    >
+                        <ArrowLeft className="w-4 h-4" /> Voltar à Frota
+                    </button>
+                </div>
+            )}
 
             {/* Vehicle card */}
             <div className="bg-white/90 border border-slate-200 rounded-2xl p-6">

@@ -3,7 +3,8 @@ import { Bus, Plus, Calendar, Euro, TrendingUp, Receipt, AlertTriangle, CheckCir
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
 import type { EvaTransport, EvaDailyUsage } from '../../types';
-
+import { FrotaPageHeader } from '../../components/ui/frota/FrotaPageHeader';
+import { FrotaKPI } from '../../components/ui/frota/FrotaKPI';
 export default function TransportesEva({
   isTab = false,
   selectedMonthProp,
@@ -113,104 +114,52 @@ export default function TransportesEva({
     <div className={isTab ? "flex flex-col space-y-6 pt-4" : "flex flex-col space-y-6 min-h-screen app-content-bg p-4 sm:p-6 lg:p-8"}>
       {/* Top Banner */}
       {!isTab && (
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-[#0B2239] to-[#1f385c] p-6 rounded-2xl shadow-lg border border-slate-700 text-white relative overflow-hidden">
-          <div className="absolute right-0 top-0 opacity-5 -translate-y-4 translate-x-4">
-            <Bus className="w-64 h-64" />
-          </div>
-          <div className="relative">
-            <div className="flex items-center gap-2">
-              <span className="bg-[#d59d31] text-xs font-black px-2 py-0.5 rounded text-[#0B2239] uppercase tracking-wider flex items-center gap-1">
-                Controlo EVA
-              </span>
+        <FrotaPageHeader
+          title="Transportes EVA"
+          subtitle="Controlo detalhado de utilização, despesas e ocorrências de autocarros contratados."
+          icon={Bus}
+          actions={
+            <div className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm relative z-10">
+              <Calendar className="w-5 h-5 text-slate-400" />
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mês Selecionado</span>
+                <input
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="bg-transparent border-none p-0 text-slate-900 focus:ring-0 font-bold text-xs outline-none w-28 h-5"
+                />
+              </div>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black mt-1">Transportes EVA</h1>
-            <p className="text-slate-300 text-sm mt-1">
-              Controlo detalhado de utilização, despesas e ocorrências de autocarros contratados.
-            </p>
-          </div>
-
-          {/* Month Selector inside banner */}
-          <div className="flex items-center gap-3 bg-slate-800/80 p-2.5 rounded-xl border border-slate-700/80 shadow-sm backdrop-blur-sm relative z-10">
-            <Calendar className="w-5 h-5 text-slate-400" />
-            <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mês Selecionado</span>
-              <input
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="bg-transparent border-none p-0 text-white focus:ring-0 font-bold text-xs outline-none w-28 h-5"
-              />
-            </div>
-          </div>
-        </div>
+          }
+        />
       )}
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0">
-        {/* Monthly Total */}
-        <div className="group relative bg-white border border-slate-100 rounded-2xl p-6 shadow-sm overflow-hidden transition-all hover:shadow-md">
-          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
-            <Euro className="w-32 h-32 text-[#d59d31]" />
-          </div>
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2.5 bg-amber-500/10 rounded-xl text-[#d59d31] border border-amber-500/20 shadow-sm">
-                <TrendingUp className="w-5 h-5" />
-              </div>
-              <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider">Despesa Mensal</h3>
-            </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-black text-slate-900 tracking-tight">{totalMonth.toFixed(2)}</span>
-              <span className="text-lg font-bold text-[#d59d31]">€</span>
-            </div>
-            <div className="mt-2 flex items-center gap-2 text-xs font-medium text-slate-500 bg-slate-50 w-fit px-2 py-0.5 rounded-lg border border-slate-200/50">
-              <span>{new Date(selectedMonth).toLocaleString('pt-PT', { month: 'long', year: 'numeric' })}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Total Days */}
-        <div className="group relative bg-white border border-slate-100 rounded-2xl p-6 shadow-sm overflow-hidden transition-all hover:shadow-md">
-          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
-            <Calendar className="w-32 h-32 text-emerald-500" />
-          </div>
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-500 border border-emerald-500/20 shadow-sm">
-                <Receipt className="w-5 h-5" />
-              </div>
-              <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider">Dias Utilizados</h3>
-            </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-black text-slate-900 tracking-tight">{totalTrips}</span>
-              <span className="text-lg font-bold text-emerald-500">dias</span>
-            </div>
-            <div className="mt-2 flex items-center gap-2 text-xs font-medium text-slate-500 bg-slate-50 w-fit px-2 py-0.5 rounded-lg border border-slate-200/50">
-              <span>Total de utilização</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Incidents */}
-        <div className="group relative bg-white border border-slate-100 rounded-2xl p-6 shadow-sm overflow-hidden transition-all hover:shadow-md">
-          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
-            <AlertTriangle className="w-32 h-32 text-rose-500" />
-          </div>
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2.5 bg-rose-500/10 rounded-xl text-rose-500 border border-rose-500/20 shadow-sm">
-                <AlertTriangle className="w-5 h-5" />
-              </div>
-              <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider">Ocorrências</h3>
-            </div>
-            <div className="text-3xl font-black text-slate-900 tracking-tight">
-              {filteredTransports.reduce((acc, t) => acc + (t.days?.filter(d => d.hasIssue).length || 0), 0)}
-            </div>
-            <div className="mt-2 flex items-center gap-2 text-xs font-medium text-slate-500 bg-slate-50 w-fit px-2 py-0.5 rounded-lg border border-slate-200/50">
-              <span>Atrasos ou Problemas</span>
-            </div>
-          </div>
-        </div>
+        <FrotaKPI
+          title="Despesa Mensal"
+          value={`${totalMonth.toFixed(2)}`}
+          unit="€"
+          icon={TrendingUp}
+          trend={{ value: new Date(selectedMonth).toLocaleString('pt-PT', { month: 'long', year: 'numeric' }), isPositive: true }}
+          color="amber"
+        />
+        <FrotaKPI
+          title="Dias Utilizados"
+          value={totalTrips}
+          unit="dias"
+          icon={Receipt}
+          trend={{ value: 'Total de utilização', isPositive: true }}
+          color="emerald"
+        />
+        <FrotaKPI
+          title="Ocorrências"
+          value={filteredTransports.reduce((acc, t) => acc + (t.days?.filter(d => d.hasIssue).length || 0), 0)}
+          icon={AlertTriangle}
+          trend={{ value: 'Atrasos ou Problemas', isPositive: false }}
+          color="rose"
+        />
       </div>
 
       <div className="flex-1 flex flex-col lg:flex-row gap-8 min-h-0">
