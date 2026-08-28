@@ -699,9 +699,67 @@ export default function Requisicoes() {
     const handleGridPaste = (e: React.ClipboardEvent) => {
         const text = e.clipboardData.getData('text/plain');
         if (!text.trim()) return;
+        e.preventDefault();
+
+        // ── Detetar se é mensagem de texto corrido (WhatsApp / SMS) ──────────────
+        // Uma mensagem estruturada tem tabulações ou ponto-e-vírgula como delimitadores.
+        // Se não tiver, tratamos como mensagem livre.
+        const hasStructuredDelimiter = text.includes('\t') || /;/.test(text);
+
+        if (!hasStructuredDelimiter) {
+            // Parser de mensagem livre (WhatsApp / chat)
+            // Exemplos suportados:
+            //   "18UX63 FIAAL. Filtros de ar e óleo. Requisição R26/0158"
+            //   "18UX63 - Filtros, pastilhas. Req 26/0158"
+
+            // 1) Nº de requisição: "Requisição R26/0158", "Req 26/0158", ou apenas "R26/0158" / "26/0158"
+            const reqMatch =
+                text.match(/[Rr]equisi[çc][aã]o\s+(R?\d+\/\d+)/i) ||
+                text.match(/[Rr]eq\.?\s+(R?\d+\/\d+)/i) ||
+                text.match(/\b(R\d+\/\d+)\b/) ||
+                text.match(/\b(\d{2,}\/\d{3,})\b/);
+            const numero = reqMatch ? reqMatch[1].replace(/^R/i, '') : '';
+
+            // 2) Matrícula: padrão português XX-XX-XX ou sem hífens (ex. 18UX63, AB1234)
+            const plateMatch = text.match(/\b([A-Z]{2}\d{2}[A-Z]{2}|\d{2}[A-Z]{2}\d{2}|\d{2}\d{2}[A-Z]{2}|[A-Z]{2}\d{4}|[A-Z0-9]{5,8})\b/);
+            const viatura = plateMatch ? plateMatch[1] : '';
+
+            // 3) Descrição: remover matrícula e nº de requisição do texto, limpar pontuação extra
+            let descricao = text
+                .replace(/[Rr]equisi[çc][aã]o\s+R?\d+\/\d+/gi, '')
+                .replace(/[Rr]eq\.?\s+R?\d+\/\d+/gi, '')
+                .replace(/\bR\d+\/\d+\b/g, '')
+                .replace(/\b\d{2,}\/\d{3,}\b/g, '')
+                .replace(viatura ? new RegExp(`\\b${viatura}\\b`, 'gi') : /(?!x)x/, '')
+                .replace(/\s{2,}/g, ' ')
+                .replace(/^[\s.\-,]+|[\s.\-,]+$/g, '')
+                .trim();
+
+            const newRow: EditableBulkRow = {
+                id: crypto.randomUUID(),
+                numero,
+                data: new Date().toLocaleDateString('pt-PT'),
+                viatura,
+                departamento: '',
+                descricao,
+                quantidade: '1',
+                valor: '',
+                observacoes: text.trim(), // mensagem original nas observações
+                errors: [],
+                warnings: [],
+                status: 'idle' as const
+            };
+
+            setBulkGridRows(prev => {
+                const base = prev.filter(r => r.descricao.trim() || r.numero.trim());
+                return [...base, newRow];
+            });
+            return;
+        }
+
+        // ── Lógica original: texto estruturado (Excel / CSV) ─────────────────────
         const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
         if (lines.length === 0) return;
-        e.preventDefault();
 
         const newRows: EditableBulkRow[] = lines.map(line => {
             const delimiter = line.includes('\t') ? '\t' : line.includes(';') ? ';' : '|';
@@ -2539,7 +2597,8 @@ export default function Requisicoes() {
                                     {/* Tip bar */}
                                     <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-50 border border-blue-100 text-blue-700 text-xs font-medium">
                                         <AlertCircle className="w-4 h-4 shrink-0" />
-                                        <span>Copie linhas do Excel e faça <kbd className="px-1.5 py-0.5 bg-white border border-blue-200 rounded font-mono text-[11px]">Ctrl+V</kbd> na tabela. Colunas: Nº Req | Data | Departamento | Descrição | Valor | Observações</span>
+                                        <span>Copie linhas do Excel e faça <kbd className="px-1.5 py-0.5 bg-white border border-blue-200 rounded font-mono text-[11px]">Ctrl+V</kbd> na tabela. Colunas: Nº Req | Data | Departamento | Descrição | Valor | Observações<br />
+                                        <span className="text-green-700 font-semibold">💬 Também pode colar mensagens do WhatsApp — a matrícula, nº de requisição e descrição são detetados automaticamente.</span></span>
                                     </div>
 
                                     {/* Excel-like grid */}
