@@ -4,6 +4,7 @@ import {
     AtSign,
     Bell,
     Car,
+    ClipboardList,
     FileText,
     MessageSquare,
     Paperclip,
@@ -97,6 +98,37 @@ const roleIcon = (role: string) => {
 const normalizePlate = (plate?: string | null) => (plate || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 
 const nowIso = () => new Date().toISOString();
+
+/**
+ * Deteta números de requisição numa mensagem de texto.
+ * Suporta:
+ *   "Requisição R26/0158"
+ *   "Requisicao R26/0158"
+ *   "requisição R26/0158"
+ *   Apenas o código solto: "R26/0158"
+ * Retorna um array com os códigos encontrados, e.g. ["R26/0158"]
+ */
+const parseRequisicoes = (text: string): string[] => {
+    const seen = new Set<string>();
+    const results: string[] = [];
+
+    // Padrão com prefixo "Requisição / Requisicao"
+    const withPrefix = /[Rr]equisi[çc][aã]o\s+(R\d+\/\d+)/gi;
+    let match;
+    while ((match = withPrefix.exec(text)) !== null) {
+        const code = match[1].toUpperCase();
+        if (!seen.has(code)) { seen.add(code); results.push(code); }
+    }
+
+    // Padrão solto — código que ainda não foi apanhado
+    const standalone = /\b(R\d+\/\d+)\b/gi;
+    while ((match = standalone.exec(text)) !== null) {
+        const code = match[1].toUpperCase();
+        if (!seen.has(code)) { seen.add(code); results.push(code); }
+    }
+
+    return results;
+};
 
 export default function ChatPage() {
     const { currentUser, userRole } = useAuth();
@@ -625,6 +657,9 @@ export default function ChatPage() {
         const text = draft.trim();
         const createdAt = nowIso();
 
+        // Detetar automaticamente requisições mencionadas na mensagem
+        const requisicoesDetetadas = parseRequisicoes(text);
+
         const payload: Record<string, any> = {
             conversation_id: selectedConversationId,
             user_id: myId || null,
@@ -640,7 +675,9 @@ export default function ChatPage() {
             type: 'operacional',
             metadata: {
                 mentions: selectedMentions,
-                attachment_name: attachment?.name || null
+                attachment_name: attachment?.name || null,
+                // Requisições detetadas automaticamente no texto
+                requisicoes: requisicoesDetetadas.length > 0 ? requisicoesDetetadas : undefined
             },
             created_at: createdAt
         };
@@ -824,6 +861,12 @@ export default function ChatPage() {
                                     const mine = m.user_id === myId;
                                     const text = m.message || m.content || '';
                                     const isImage = (m.attachment_mime || '').startsWith('image/');
+
+                                    // Requisições: lidas do metadata (guardadas no envio) ou detetadas ao vivo
+                                    const requisicoes: string[] =
+                                        (m.metadata?.requisicoes as string[] | undefined) ||
+                                        parseRequisicoes(text);
+
                                     return (
                                         <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                                             <div className={`max-w-[85%] rounded-2xl p-3 border ${mine
@@ -834,6 +877,22 @@ export default function ChatPage() {
                                                 }`}>
                                                 <div className="text-[10px] opacity-80 mb-1 font-semibold">{senderName(m)}</div>
                                                 {text && <p className="text-sm whitespace-pre-wrap break-words">{text}</p>}
+
+                                                {/* Badges de requisições detetadas automaticamente */}
+                                                {requisicoes.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1 mt-2">
+                                                        {requisicoes.map((req) => (
+                                                            <span
+                                                                key={req}
+                                                                title={`Requisição ${req}`}
+                                                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-600/80 border border-emerald-400/60 text-white cursor-default"
+                                                            >
+                                                                <ClipboardList className="w-3 h-3" />
+                                                                {req}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
 
                                                 {m.attachment_url && (
                                                     <div className="mt-2">
