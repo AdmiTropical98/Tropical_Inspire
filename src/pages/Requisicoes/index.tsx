@@ -2234,7 +2234,7 @@ export default function Requisicoes() {
                                         <div className="absolute -top-20 -right-20 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-colors pointer-events-none"></div>
                                         <div className={`absolute left-0 top-0 h-full w-1.5 ${req.status === 'concluida' ? 'bg-emerald-500/70' : 'bg-amber-500/70'}`} />
 
-                                        <div className="flex flex-col lg:flex-row gap-6 relative z-10">
+                                        <div className="flex flex-col gap-5 relative z-10">
                                             {/* Left Info */}
                                             <div className="flex-1 min-w-0 space-y-4">
                                                 <div className="flex flex-wrap items-center justify-between gap-4">

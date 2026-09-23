@@ -15,12 +15,9 @@ import type {
     InvoiceImportExtractedData,
 } from '../types';
 import { supabase } from '../lib/supabase';
-import { Html5Qrcode } from 'html5-qrcode';
 import StatusBadge from './common/StatusBadge';
 import InvoiceFinancialSummary from './InvoiceFinancialSummary';
 import ImageCropper from './common/ImageCropper';
-import QRCodeScanner from './common/QRCodeScanner';
-import { parseAtcudQrCode, type AtcudData } from '../utils/qrCodeParser';
 import { formatCurrency } from '../utils/format';
 import {
     createInvoiceImportFromPdf,
@@ -66,15 +63,15 @@ export default function InvoiceForm({
     onCancel
 }: InvoiceFormProps) {
     const allowedUnits = ALLOWED_INVOICE_UNITS;
-    const normalizeInvoiceUnit = (value: string): InvoiceUnit | '' => {
+    const normalizeInvoiceUnit = (value: string): InvoiceUnit => {
         const token = (value || '').trim().toUpperCase();
-        if (!token) return '';
-        if (token === 'HOR') return 'H';
-        if (token === 'HRS' || token === 'HR' || token === 'HOF') return 'H';
-        if (token === 'LT' || token === 'LTS') return 'L';
-        if (token === 'CAIXA' || token === 'CAIXAS') return 'CX';
-        if (token === 'UND' || token === 'UNID' || token === 'UNIDADE' || token === 'UNIDADES' || token === 'UNI') return 'UN';
-        return allowedUnits.includes(token as InvoiceUnit) ? (token as InvoiceUnit) : '';
+        if (!token) return 'UN';
+        if (token === 'HOR' || token === 'HOF' || token === 'HO') return 'HOR';
+        if (token === 'H' || token === 'HRS' || token === 'HR') return 'H';
+        if (token === 'LT' || token === 'LTS' || token === 'LITRO' || token === 'LITROS' || token === 'L') return 'L';
+        if (token === 'CAIXA' || token === 'CAIXAS' || token === 'CX' || token === 'CXS') return 'CX';
+        if (token === 'UND' || token === 'UNID' || token === 'UNIDADE' || token === 'UNIDADES' || token === 'UNI' || token === 'UN') return 'UN';
+        return allowedUnits.includes(token as InvoiceUnit) ? (token as InvoiceUnit) : 'UN';
     };
 
     const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
@@ -197,7 +194,6 @@ export default function InvoiceForm({
     const [captureStep, setCaptureStep] = useState<'chooser' | 'preview' | 'uploading' | 'form'>(() => (
         !invoice ? 'chooser' : 'form'
     ));
-    const [showQrScanner, setShowQrScanner] = useState(false);
     const [showImageCropper, setShowImageCropper] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [uploadPhaseLabel, setUploadPhaseLabel] = useState('');
@@ -311,45 +307,6 @@ export default function InvoiceForm({
         stagePreviewImage(dataUrl, `fatura-${Date.now()}.${extension}`);
     };
 
-    const handleScanQrCode = () => {
-        setShowQrScanner(true);
-    };
-
-    const handleQrScanComplete = (decodedText: string) => {
-        const atcudData = parseAtcudQrCode(decodedText);
-        
-        if (atcudData) {
-            setFormData(prev => ({
-                ...prev,
-                number: atcudData.numero_fatura || prev.number,
-                date: atcudData.data_fatura || prev.date,
-                total_w_tax: atcudData.total_com_impostos !== undefined ? atcudData.total_com_impostos : prev.total_w_tax,
-                tax_amount: atcudData.total_impostos !== undefined ? atcudData.total_impostos : prev.tax_amount,
-            }));
-            
-            const newFilledFields = new Set<string>();
-            if (atcudData.numero_fatura) newFilledFields.add('number');
-            if (atcudData.data_fatura) newFilledFields.add('date');
-            if (atcudData.total_com_impostos !== undefined) newFilledFields.add('total_w_tax');
-            if (atcudData.total_impostos !== undefined) newFilledFields.add('tax_amount');
-
-            if (atcudData.nif_emissor) {
-                const supplier = suppliers.find(s => String(s.nif) === atcudData.nif_emissor);
-                if (supplier) {
-                    setFormData(prev => ({ ...prev, supplier_id: supplier.id }));
-                    newFilledFields.add('supplier_id');
-                }
-            }
-            
-            setAiFilledFields(prev => new Set([...prev, ...newFilledFields]));
-            setCaptureStep('form');
-            setTimeout(() => alert('QR Code lido com sucesso! Totais e cabeçalho preenchidos.'), 300);
-        } else {
-            alert('QR Code lido, mas não parece ser um formato ATCUD válido de fatura portuguesa.');
-        }
-        
-        setShowQrScanner(false);
-    };
 
     const handleTakePhoto = async () => {
         try {
@@ -408,16 +365,19 @@ export default function InvoiceForm({
     const scoreExtractedPayload = (payload?: InvoiceImportExtractedData | null): number => {
         if (!payload) return -1;
 
-        const validLines = (payload.lines || [])
+        const sourceLines = (payload?.lines?.length ? payload.lines : payload?.products) || [];
+        const validLines = sourceLines
             .map((line) => {
                 const description = String(line.description || '').trim();
                 const unidade_medida = normalizeInvoiceUnit(String(line.unidade_medida || ''));
                 const qty = Math.max(0, Number(line.qty) || 0);
                 const unit_price = Math.max(0, Number(line.unit_price) || 0);
                 const vat_percent = parseRate(Number(line.vat_percent) || 0);
-                const net = round2(qty * unit_price);
+                const discount = Math.max(0, Number((line as any).discount_percentage ?? (line as any).discount_percent ?? 0) || 0);
+                const gross = round2(qty * unit_price);
+                const net = round2(gross * (1 - discount / 100));
                 const vat = round2(net * (vat_percent / 100));
-                return { description, unidade_medida, qty, unit_price, vat_percent, net, vat };
+                return { description, unidade_medida, qty, unit_price, discount, vat_percent, net, vat };
             })
             .filter((line) => {
                 if (!line.description) return false;
@@ -450,7 +410,9 @@ export default function InvoiceForm({
         const primary = localScore > serverScore ? localExtract : serverExtract;
         const secondary = localScore > serverScore ? serverExtract : localExtract;
 
-        const mergedLines = [...(primary.lines || [])];
+        const primaryLines = primary.lines?.length ? primary.lines : (primary.products || []);
+        const secondaryLines = secondary.lines?.length ? secondary.lines : (secondary.products || []);
+        const mergedLines = [...primaryLines];
         const seen = new Set(
             mergedLines.map((line) => [
                 String(line.description || '').trim().toLowerCase().replace(/\s+/g, ' '),
@@ -460,7 +422,7 @@ export default function InvoiceForm({
             ].join('|'))
         );
 
-        for (const line of secondary.lines || []) {
+        for (const line of secondaryLines) {
             const key = [
                 String(line.description || '').trim().toLowerCase().replace(/\s+/g, ' '),
                 normalizeInvoiceUnit(String(line.unidade_medida || '')) || '',
@@ -478,31 +440,75 @@ export default function InvoiceForm({
             supplier: primary.supplier || secondary.supplier,
             invoice_number: primary.invoice_number || secondary.invoice_number,
             date: primary.date || secondary.date,
+            invoice_date: primary.invoice_date || secondary.invoice_date || primary.date || secondary.date,
             total: Number(primary.total || 0) > 0 ? primary.total : secondary.total,
+            total_amount: Number(primary.total_amount || 0) > 0 ? primary.total_amount : secondary.total_amount,
             vat_total: Number(primary.vat_total || 0) > 0 ? primary.vat_total : secondary.vat_total,
+            vat_amount: Number(primary.vat_amount || 0) > 0 ? primary.vat_amount : secondary.vat_amount,
+            net_amount: Number(primary.net_amount || 0) > 0 ? primary.net_amount : secondary.net_amount,
+            due_date: primary.due_date || secondary.due_date,
             lines: mergedLines,
+            products: mergedLines.map((line: any) => ({
+                description: line.description,
+                qty: Number(line.qty ?? line.quantity ?? 0),
+                unit_price: Number(line.unit_price ?? 0),
+                vat_percent: Number(line.vat_percent ?? line.iva_rate ?? 23) as 0 | 6 | 13 | 23,
+                discount_percentage: Number(line.discount_percentage ?? 0),
+                net_value: Number(line.net_value ?? 0),
+                vat_value: Number(line.vat_value ?? line.iva_value ?? 0),
+                unidade_medida: normalizeInvoiceUnit(line.unidade_medida || 'UN'),
+            })),
         };
     };
 
     const applyImportedData = (payload: any) => {
-        const payloadLines = payload.products || payload.lines || [];
+        const payloadLines = Array.isArray(payload?.lines) && payload.lines.length
+            ? payload.lines
+            : (Array.isArray(payload?.products) ? payload.products : []);
+
         const importedLines: SupplierInvoiceLine[] = payloadLines
-            .map((line) => {
-                const quantity = Math.max(0, Number(line.qty) || 0) || 1;
-                const inferredLineTotal = Math.max(0, Number((line as any).total_value || (line as any).total || (line as any).net_value || 0));
-                const baseUnitPrice = Math.max(0, Number(line.unit_price) || 0);
-                const unitPrice = round2(baseUnitPrice > 0 ? baseUnitPrice : (inferredLineTotal > 0 ? inferredLineTotal / quantity : 0));
-                const vatPercent = parseRate(Number(line.vat_percent) || 0);
-                const netValue = round2(quantity * unitPrice);
-                const ivaValue = round2(netValue * (vatPercent / 100));
+            .map((line: any) => {
+                const rawQty = Number(line.qty ?? line.quantity);
+                const quantity = Number.isFinite(rawQty) && rawQty > 0 ? rawQty : (Number(line.qty ?? line.quantity) || 0);
+
+                const baseUnitPrice = Number(line.unit_price ?? line.price ?? 0);
+                const explicitNet = line.net_value !== undefined && line.net_value !== null ? Number(line.net_value) : undefined;
+
+                const discountRaw = Number(
+                    line.discount_percentage ??
+                    line.discount_percent ??
+                    line.discount ??
+                    0
+                );
+                const discountPercentage = Number.isFinite(discountRaw) ? Math.max(0, round2(discountRaw)) : 0;
+
+                const vatPercent = parseRate(Number(line.vat_percent ?? line.iva_rate ?? 23));
+
+                const grossValue = round2(quantity * baseUnitPrice);
+                const calculatedNetValue = round2(grossValue * (1 - discountPercentage / 100));
+                const netValue = explicitNet !== undefined && explicitNet > 0
+                    ? round2(explicitNet)
+                    : (calculatedNetValue > 0 ? calculatedNetValue : grossValue);
+
+                const unitPrice = round2(
+                    baseUnitPrice > 0
+                        ? baseUnitPrice
+                        : (quantity > 0 ? netValue / quantity : 0)
+                );
+
+                const importedIva = Number(line.vat_value ?? line.iva_value);
+                const ivaValue = Number.isFinite(importedIva) && importedIva > 0
+                    ? round2(importedIva)
+                    : round2(netValue * (vatPercent / 100));
+
                 const totalValue = round2(netValue + ivaValue);
 
                 return {
-                    description: line.description || '',
-                    unidade_medida: normalizeInvoiceUnit(line.unidade_medida || 'UN') || 'UN',
+                    description: String(line.description || '').trim(),
+                    unidade_medida: normalizeInvoiceUnit(line.unidade_medida || line.unit || 'UN'),
                     quantity,
                     unit_price: unitPrice,
-                    discount_percentage: 0,
+                    discount_percentage: discountPercentage,
                     net_value: netValue,
                     iva_rate: vatPercent,
                     iva_value: ivaValue,
@@ -514,38 +520,42 @@ export default function InvoiceForm({
                 if (!description) return false;
                 if (nonItemTextRegex.test(description)) return false;
                 if (pageMarkerRegex.test(description)) return false;
-                if (!allowedUnits.includes(line.unidade_medida as InvoiceUnit)) return false;
-                return line.quantity > 0 || line.unit_price > 0;
+                return line.quantity > 0 && line.unit_price > 0;
             });
 
         const hasImportedLines = importedLines.length > 0;
         const fallbackLine: SupplierInvoiceLine[] = hasImportedLines ? importedLines : [emptyLine()];
-        const normalizedSupplierName = normalizeName(payload.supplier || '');
+        const normalizedSupplierName = normalizeName(payload.supplier || payload.supplier_name || '');
 
         let matchedSupplier = (payload.supplier_vat || payload.supplier_nif)
             ? suppliers.find(s => s.nif === payload.supplier_vat || s.nif === payload.supplier_nif || s.nif?.replace(/\s+/g, '') === (payload.supplier_vat || payload.supplier_nif)?.replace(/\s+/g, ''))
             : undefined;
-            
+
         if (!matchedSupplier && normalizedSupplierName) {
             matchedSupplier = suppliers.find((supplier) => normalizeName(supplier.nome) === normalizedSupplierName)
                 || suppliers.find((supplier) => normalizeName(supplier.nome).includes(normalizedSupplierName))
                 || suppliers.find((supplier) => normalizedSupplierName.includes(normalizeName(supplier.nome)));
         }
 
+        const extractedIssueDate = payload.invoice_date || payload.date || payload.issue_date || '';
+        const extractedDueDate = payload.due_date || payload.dueDate || payload.payment_due_date || '';
+
         if (payload.mode === 'mobile-summary') {
             setFormData((prev) => ({
                 ...prev,
                 supplier_id: prev.supplier_id || matchedSupplier?.id || '',
                 invoice_number: payload.invoice_number || prev.invoice_number,
-                issue_date: payload.date || prev.issue_date,
+                issue_date: extractedIssueDate || prev.issue_date,
+                due_date: extractedDueDate || prev.due_date,
                 notes: payload.expense_description || prev.notes,
                 expense_category: payload.expense_category || prev.expense_category,
             }));
-            
+
             setAiFilledFields(new Set([
                 'supplier_id',
                 'invoice_number',
                 'issue_date',
+                ...(extractedDueDate ? ['due_date'] : []),
                 'notes',
                 'expense_category'
             ]));
@@ -556,19 +566,27 @@ export default function InvoiceForm({
             ...prev,
             supplier_id: prev.supplier_id || matchedSupplier?.id || '',
             invoice_number: payload.invoice_number || prev.invoice_number,
-            issue_date: payload.invoice_date || payload.date || prev.issue_date,
+            issue_date: extractedIssueDate || prev.issue_date,
+            due_date: extractedDueDate || prev.due_date,
             notes: payload.expense_description || prev.notes,
             expense_category: payload.suggested_category || prev.expense_category,
             lines: hasImportedLines ? fallbackLine : prev.lines,
         }));
 
         if (hasImportedLines) {
-            setManualIvaOverrides(fallbackLine.map(() => null));
+            setManualIvaOverrides(fallbackLine.map((line) => {
+                const autoIva = calculateLine(line).ivaValue;
+                return hasMeaningfulDifference(autoIva, line.iva_value || 0)
+                    ? String(line.iva_value || 0)
+                    : null;
+            }));
         }
+
         setAiFilledFields(new Set([
-            'supplier_id',
-            'invoice_number',
-            'issue_date',
+            ...(matchedSupplier ? ['supplier_id'] : []),
+            ...(payload.invoice_number ? ['invoice_number'] : []),
+            ...(extractedIssueDate ? ['issue_date'] : []),
+            ...(extractedDueDate ? ['due_date'] : []),
             ...(hasImportedLines ? fallbackLine.map((_, index) => `line-${index}`) : []),
         ]));
     };
@@ -983,7 +1001,7 @@ export default function InvoiceForm({
         await onFileUpload(file);
     };
 
-    const onFileUpload = async (file?: File | null, options?: { mobileFlow?: boolean, jsonForDb?: any }) => {
+    const onFileUpload = async (file?: File | null, options?: { mobileFlow?: boolean }) => {
         if (!file) return;
 
         setHasUserRequestedOcr(true);
@@ -991,98 +1009,60 @@ export default function InvoiceForm({
         setUploadSuccessMessage('');
         setUploadProgress(12);
         setUploadPhaseLabel('A preparar documento...');
+
         if (options?.mobileFlow) setCaptureStep('uploading');
+
         try {
-            setImportStatusMessage('A ler documento e extrair QR/OCR...');
-            setUploadProgress(15);
-            setUploadPhaseLabel('A extrair QR Code...');
-            
-            let extractedQrData: AtcudData | null = null;
-            if (file.type === 'application/pdf') {
-                try {
-                    const canvas = document.createElement('canvas');
-                    const pdfjsLib = (window as any).pdfjsLib;
-                    if (pdfjsLib && 'BarcodeDetector' in window) {
-                        const arrayBuffer = await file.arrayBuffer();
-                        const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer), disableWorker: true }).promise;
-                        const page = await pdf.getPage(1);
-                        const viewport = page.getViewport({ scale: 2.0 });
-                        const context = canvas.getContext('2d');
-                        if (context) {
-                            canvas.width = viewport.width;
-                            canvas.height = viewport.height;
-                            await page.render({ canvasContext: context, viewport }).promise;
-                            
-                            const blob = await new Promise<Blob | null>(r => canvas.toBlob(r, 'image/jpeg', 0.9));
-                            if (blob) {
-                                const previewSource = URL.createObjectURL(blob);
-                                const imgElement = document.createElement('img');
-                                imgElement.src = previewSource;
-                                await new Promise(r => { imgElement.onload = r; imgElement.onerror = r; });
-                                // @ts-ignore
-                                const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
-                                const barcodes = await detector.detect(imgElement);
-                                if (barcodes.length > 0) {
-                                    for (const barcode of barcodes) {
-                                        const parsed = parseAtcudQrCode(barcode.rawValue);
-                                        if (parsed) {
-                                            extractedQrData = parsed;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } catch(e) {
-                    console.error('Local rasterize for QR scan failed', e);
-                }
-            }
+            setImportStatusMessage('A ler documento e extrair dados da fatura...');
+            setUploadProgress(20);
+            setUploadPhaseLabel('A extrair texto e dados da fatura...');
 
-            const jsonForDb = { ...options?.jsonForDb, ...(extractedQrData ? {
-                invoice_number: extractedQrData.documentNumber,
-                date: extractedQrData.documentDate,
-                total: extractedQrData.totalAmount,
-                vat_total: extractedQrData.taxAmount,
-                net_total: extractedQrData.taxBase,
-                supplier_nif: extractedQrData.nif
-            } : {}) };
-
-            setUploadProgress(28);
-            setUploadPhaseLabel('A enviar documento...');
             const createdImport = await createInvoiceImportFromPdf(
-                file, 
-                jsonForDb, 
+                file,
+                undefined,
                 options?.mobileFlow ? 'mobile-summary' : 'full'
             );
             setActiveImport(createdImport);
 
-            setUploadProgress(48);
+            setUploadProgress(45);
             setUploadPhaseLabel('Documento associado à requisição.');
-            const previewUrl = await getInvoiceImportPreviewUrl(createdImport.file_path);
 
+            const previewUrl = await getInvoiceImportPreviewUrl(createdImport.file_path);
             setFormData(prev => ({ ...prev, pdf_url: previewUrl || prev.pdf_url }));
 
-            setUploadProgress(65);
-            setUploadPhaseLabel('A executar leitura do QR Code...');
+            setUploadProgress(62);
+            setUploadPhaseLabel('A aguardar leitura automática...');
             const completedImport = await pollImportUntilDone(createdImport.id);
 
             if (completedImport.status === 'failed') {
-                setImportStatusMessage(`Documento carregado, mas a extração automática falhou${completedImport.error ? `: ${completedImport.error}` : '.'}`);
+                // Mesmo que o parser remoto falhe, tentamos sempre a leitura local do PDF.
+                try {
+                    const localExtract = await parseInvoicePdfLocally(file);
+                    applyImportedData(localExtract);
+                    setUploadProgress(100);
+                    setUploadPhaseLabel('Leitura local concluída.');
+                    setUploadSuccessMessage('Documento carregado e lido localmente.');
+                    setImportStatusMessage('A leitura automática do servidor falhou, mas os dados foram extraídos localmente. Revise antes de guardar.');
+                } catch (localError) {
+                    console.error('Local PDF parse also failed:', localError);
+                    setImportStatusMessage(`Documento carregado, mas a extração automática falhou${completedImport.error ? `: ${completedImport.error}` : '.'}`);
+                }
                 return;
             }
 
             if (completedImport.status === 'ready' && completedImport.extracted_json) {
-                setUploadProgress(82);
-                setUploadPhaseLabel('A executar OCR automático...');
+                setUploadProgress(78);
+                setUploadPhaseLabel('A validar dados da fatura...');
+
                 let bestExtract = completedImport.extracted_json;
                 let usedLocalEnhancement = false;
 
+                // A leitura local do PDF é sempre executada porque este tipo de fatura
+                // contém texto/tabela estruturados e permite recuperar quantidades,
+                // preços, descontos e vencimento com maior precisão.
                 try {
                     const localExtract = await parseInvoicePdfLocally(file);
-                    const localLines = localExtract?.lines?.length || 0;
-
-                    if (localLines > 0) {
+                    if ((localExtract?.lines?.length || localExtract?.products?.length || 0) > 0) {
                         bestExtract = mergeExtractedPayloads(completedImport.extracted_json, localExtract);
                         usedLocalEnhancement = true;
                     }
@@ -1092,33 +1072,34 @@ export default function InvoiceForm({
 
                 applyImportedData(bestExtract);
                 setUploadProgress(100);
-                setUploadPhaseLabel('Fatura associada com sucesso.');
-                setUploadSuccessMessage('Fotografia carregada e associada à requisição com sucesso.');
+                setUploadPhaseLabel('Fatura lida com sucesso.');
+                setUploadSuccessMessage('Fatura carregada e associada à requisição com sucesso.');
                 setImportStatusMessage(
                     usedLocalEnhancement
-                        ? 'Dados extraídos e melhorados localmente. Revise e confirme antes de guardar.'
+                        ? 'Dados do PDF validados e melhorados localmente. Revise e confirme antes de guardar.'
                         : 'Dados extraídos. Revise e confirme antes de guardar.'
                 );
             }
         } catch (error) {
             console.error('Error uploading file:', error);
+
             try {
                 const localExtract = await parseInvoicePdfLocally(file);
                 applyImportedData(localExtract);
                 setUploadProgress(100);
                 setUploadPhaseLabel('Leitura local concluída.');
-                setUploadSuccessMessage('Fotografia carregada e extraída localmente com sucesso.');
+                setUploadSuccessMessage('Documento carregado e extraído localmente com sucesso.');
                 setImportStatusMessage(
-                    `OCR indisponível no servidor. Extração local aplicada (data: ${localExtract.date || 'n/a'}, lines: ${localExtract.lines?.length || 0}). Revise os dados antes de guardar.`
+                    `Leitura local aplicada. Revise os dados antes de guardar (data: ${localExtract.date || 'n/a'}, linhas: ${localExtract.lines?.length || localExtract.products?.length || 0}).`
                 );
             } catch (localError) {
                 console.error('Local PDF parse also failed:', localError);
                 const errorMessage = error instanceof Error ? error.message : (typeof error === 'string' ? error : 'Erro desconhecido');
                 setImportStatusMessage(`Falha no processamento: ${errorMessage}`);
                 alert(`Erro ao processar documento da fatura: ${errorMessage}`);
-                
+
                 if (options?.mobileFlow) {
-                    setCaptureStep('preview'); // Return to preview if it fails completely
+                    setCaptureStep('preview');
                 }
             }
         } finally {
@@ -1131,100 +1112,13 @@ export default function InvoiceForm({
 
         try {
             setCaptureStep('uploading');
-            setUploadPhaseLabel('A processar imagens...');
-            
+            setUploading(true);
+            setUploadProgress(10);
+            setUploadPhaseLabel('A preparar imagens...');
+
             let preparedFile: File;
-            let extractedQrData: AtcudData | null = null;
+
             if (pendingImages.length === 1) {
-                try {
-                    setUploading(true);
-                    setUploadProgress(10);
-                    setUploadPhaseLabel('A iniciar upload...');
-
-                    let previewSource: string | undefined;
-                    let extractedQrData: AtcudData | null = null;
-                    let rasterizedPdfImage: File | null = null;
-
-                    if (pendingImages[0].file.type.startsWith('image/')) {
-                        previewSource = await readFileAsDataUrl(pendingImages[0].file);
-                        if (previewSource && 'BarcodeDetector' in window) {
-                            try {
-                                const imgElement = document.createElement('img');
-                                imgElement.src = previewSource;
-                                await new Promise(r => { imgElement.onload = r; imgElement.onerror = r; });
-                                // @ts-ignore
-                                const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
-                                const barcodes = await detector.detect(imgElement);
-                                if (barcodes.length > 0) {
-                                    for (const barcode of barcodes) {
-                                        const parsed = parseAtcudQrCode(barcode.rawValue);
-                                        if (parsed) {
-                                            extractedQrData = parsed;
-                                            break;
-                                        }
-                                    }
-                                }
-                            } catch (e) {
-                                console.warn('BarcodeDetector failed or not fully supported', e);
-                            }
-                        }
-                    } else if (pendingImages[0].file.type === 'application/pdf') {
-                        try {
-                            const canvas = document.createElement('canvas');
-                            const pdfjsLib = (window as any).pdfjsLib;
-                            if (pdfjsLib) {
-                                const arrayBuffer = await pendingImages[0].file.arrayBuffer();
-                                const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer), disableWorker: true }).promise;
-                                const page = await pdf.getPage(1);
-                                const viewport = page.getViewport({ scale: 2.0 });
-                                const context = canvas.getContext('2d');
-                                if (context) {
-                                    canvas.width = viewport.width;
-                                    canvas.height = viewport.height;
-                                    await page.render({ canvasContext: context, viewport }).promise;
-                                    
-                                    const blob = await new Promise<Blob | null>(r => canvas.toBlob(r, 'image/jpeg', 0.9));
-                                    if (blob) {
-                                        rasterizedPdfImage = new File([blob], pendingImages[0].file.name.replace(/\.[^/.]+$/, "") + '.jpeg', { type: 'image/jpeg' });
-                                        previewSource = URL.createObjectURL(blob);
-                                        
-                                        if ('BarcodeDetector' in window) {
-                                            try {
-                                                const imgElement = document.createElement('img');
-                                                imgElement.src = previewSource;
-                                                await new Promise(r => { imgElement.onload = r; imgElement.onerror = r; });
-                                                // @ts-ignore
-                                                const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
-                                                const barcodes = await detector.detect(imgElement);
-                                                if (barcodes.length > 0) {
-                                                    for (const barcode of barcodes) {
-                                                        const parsed = parseAtcudQrCode(barcode.rawValue);
-                                                        if (parsed) {
-                                                            extractedQrData = parsed;
-                                                            break;
-                                                        }
-                                                    }
-                                                }
-                                            } catch (e) {
-                                                console.warn('BarcodeDetector failed on rasterized PDF', e);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        } catch(e) {
-                            console.error('Local rasterize for QR scan failed', e);
-                        }
-                    }
-
-                    if (!extractedQrData) {
-                        const html5QrCode = new Html5Qrcode("qr-reader-hidden");
-                        const scanResult = await html5QrCode.scanFile(pendingImages[0].file, true);
-                        extractedQrData = parseAtcudQrCode(scanResult);
-                    }
-                } catch (e) {
-                    console.warn("QR code local scan failed", e);
-                }
                 const compressedDataUrl = await compressImage(pendingImages[0].src, 1600, 0.85);
                 const baseName = pendingImages[0].name.replace(/\.[^/.]+$/, "");
                 preparedFile = await dataUrlToFile(compressedDataUrl, `${baseName}.jpeg`);
@@ -1236,15 +1130,18 @@ export default function InvoiceForm({
 
                 for (let i = 0; i < pendingImages.length; i++) {
                     if (i > 0) pdf.addPage();
+
                     const compressedDataUrl = await compressImage(pendingImages[i].src, 1600, 0.85);
-                    
                     const img = new Image();
                     img.src = compressedDataUrl;
-                    await new Promise(resolve => img.onload = resolve);
-                    
+                    await new Promise<void>((resolve, reject) => {
+                        img.onload = () => resolve();
+                        img.onerror = () => reject(new Error('Não foi possível preparar a imagem.'));
+                    });
+
                     const imgRatio = img.width / img.height;
                     const pdfRatio = pdfWidth / pdfHeight;
-                    
+
                     let finalWidth = pdfWidth;
                     let finalHeight = pdfHeight;
                     let x = 0;
@@ -1260,25 +1157,18 @@ export default function InvoiceForm({
 
                     pdf.addImage(compressedDataUrl, 'JPEG', x, y, finalWidth, finalHeight);
                 }
-                
+
                 const blob = pdf.output('blob');
                 preparedFile = new File([blob], `fatura-mobile-${Date.now()}.pdf`, { type: 'application/pdf' });
             }
 
-            const jsonForDb = extractedQrData ? {
-                supplier_name: extractedQrData.nif_emissor,
-                invoice_number: extractedQrData.numero_fatura,
-                date: extractedQrData.data_fatura,
-                total: extractedQrData.total_com_impostos || 0,
-                vat_total: extractedQrData.total_impostos || 0,
-                lines: []
-            } : undefined;
-
-            await onFileUpload(preparedFile, { mobileFlow: true, jsonForDb });
+            await onFileUpload(preparedFile, { mobileFlow: true });
         } catch (error) {
             console.error('Error confirming mobile invoice image:', error);
             alert('Não foi possível preparar as fotografias para upload.');
             setCaptureStep('preview');
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -1359,7 +1249,7 @@ export default function InvoiceForm({
                                 <p className="text-xs font-bold uppercase tracking-[0.28em] text-blue-400">Adicionar Fatura</p>
                                 <h3 className="mt-3 text-3xl font-black tracking-tight text-white">Captura rápida</h3>
                                 <p className="mt-4 text-base leading-7 text-slate-300">
-                                    Capture a fatura para extração automática via QR Code e OCR.
+                                    Capture a fatura para extração automática de dados e OCR.
                                 </p>
                             </div>
                             <div className="space-y-4 mt-8 w-full">
@@ -1388,17 +1278,10 @@ export default function InvoiceForm({
                             <div className="mb-10">
                                 <h3 className="text-3xl font-black text-slate-800 tracking-tight">Adicionar Documento</h3>
                                 <p className="mt-3 text-lg text-slate-500 max-w-lg mx-auto">
-                                    Anexe o documento da fatura para preenchimento automático inteligente via QR Code e OCR.
+                                    Anexe o documento da fatura para preenchimento automático inteligente.
                                 </p>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl mx-auto">
-                                <button type="button" onClick={handleScanQrCode} className="group flex flex-col items-center justify-center p-8 rounded-[28px] border-2 border-dashed border-blue-200 bg-blue-50/50 hover:bg-blue-50 hover:border-blue-400 transition-all">
-                                    <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                        <ScanSearch className="h-8 w-8 text-blue-600" />
-                                    </div>
-                                    <h4 className="text-lg font-bold text-slate-800">Ler QR Code</h4>
-                                    <p className="text-sm text-slate-500 mt-2 text-center">Abrir interface para leitura rápida</p>
-                                </button>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl mx-auto">
 
                                 <button type="button" onClick={() => pdfInputRef.current?.click()} className="group flex flex-col items-center justify-center p-8 rounded-[28px] border-2 border-dashed border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 hover:border-emerald-400 transition-all">
                                     <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
@@ -1616,91 +1499,93 @@ export default function InvoiceForm({
                         </button>
                     </div>
 
-                    <div className="space-y-2">
-                        <div className="grid grid-cols-14 gap-2 text-xs text-slate-400 font-semibold uppercase tracking-wider px-1">
-                            <span className="col-span-4">Descrição (artigo/serviço)</span>
-                            <span className="col-span-1">Qtd</span>
-                            <span className="col-span-1">Unid.</span>
-                            <span className="col-span-2">Preço Unit. (€)</span>
-                            <span className="col-span-1">Desc %</span>
-                            <span className="col-span-2">IVA %</span>
-                            <span className="col-span-1">IVA (€) manual</span>
-                            <span className="col-span-1">Total Linha</span>
-                            <span className="col-span-1 text-right">Ação</span>
-                        </div>
-
-                        {calculatedLines.map((line, index) => (
-                            <div key={index} className="grid grid-cols-14 gap-2">
-                                <input
-                                    type="text"
-                                    value={formData.lines[index]?.description || ''}
-                                    onChange={(e) => updateLine(index, 'description', e.target.value)}
-                                    placeholder="Ex.: Serviço de manutenção do veículo"
-                                    className={`col-span-4 bg-white border rounded-lg px-3 py-2 text-slate-800 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none ${aiFilledFields.has(`line-${index}`) ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200'}`}
-                                />
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={formData.lines[index]?.quantity ?? 0}
-                                    onChange={(e) => updateLine(index, 'quantity', e.target.value)}
-                                    className="col-span-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 text-sm text-center focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
-                                />
-                                <select
-                                    value={formData.lines[index]?.unidade_medida || 'UN'}
-                                    onChange={(e) => updateLine(index, 'unidade_medida', e.target.value)}
-                                    className="col-span-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
-                                >
-                                    {allowedUnits.map((unit) => (
-                                        <option key={unit} value={unit}>{unit}</option>
-                                    ))}
-                                </select>
-                                <input
-                                    type="text"
-                                    value={formData.lines[index]?.unit_price ?? 0}
-                                    onChange={(e) => updateLine(index, 'unit_price', e.target.value)}
-                                    className="col-span-2 bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 text-sm text-right focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
-                                />
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={formData.lines[index]?.discount_percentage ?? 0}
-                                    onChange={(e) => updateLine(index, 'discount_percentage', e.target.value)}
-                                    className="col-span-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 text-sm text-center focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
-                                />
-                                <select
-                                    value={formData.lines[index]?.iva_rate ?? 23}
-                                    onChange={(e) => updateLine(index, 'iva_rate', e.target.value)}
-                                    className="col-span-2 bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
-                                >
-                                    <option value={23}>23%</option>
-                                    <option value={13}>13%</option>
-                                    <option value={6}>6%</option>
-                                    <option value={0}>0%</option>
-                                </select>
-                                <input
-                                    type="text"
-                                    value={manualIvaOverrides[index] ?? line.iva_value}
-                                    onChange={(e) => updateManualIva(index, e.target.value)}
-                                    className="col-span-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 text-sm text-right focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
-                                    title="Pode ajustar manualmente o IVA desta linha"
-                                />
-                                <input
-                                    type="text"
-                                    value={line.total_value}
-                                    readOnly
-                                    className="col-span-1 bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-slate-500 text-sm text-right cursor-not-allowed"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => removeLine(index)}
-                                    className="col-span-1 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                    title="Remover linha"
-                                >
-                                    <X className="w-4 h-4 mx-auto" />
-                                </button>
+                    <div className="overflow-x-auto pb-2">
+                        <div className="min-w-[940px] space-y-2">
+                            <div className="grid grid-cols-[minmax(240px,1fr)_64px_76px_104px_72px_88px_96px_104px_36px] gap-2 text-xs text-slate-400 font-semibold uppercase tracking-wider px-1">
+                                <span>Descrição (artigo/serviço)</span>
+                                <span className="text-center">Qtd</span>
+                                <span className="text-center">Unid.</span>
+                                <span className="text-right">Preço Unit. (€)</span>
+                                <span className="text-center">Desc %</span>
+                                <span className="text-center">IVA %</span>
+                                <span className="text-right">IVA (€)</span>
+                                <span className="text-right">Total Linha</span>
+                                <span className="text-center">Ação</span>
                             </div>
-                        ))}
+
+                            {calculatedLines.map((line, index) => (
+                                <div key={index} className="grid grid-cols-[minmax(240px,1fr)_64px_76px_104px_72px_88px_96px_104px_36px] gap-2 items-center">
+                                    <input
+                                        type="text"
+                                        value={formData.lines[index]?.description || ''}
+                                        onChange={(e) => updateLine(index, 'description', e.target.value)}
+                                        placeholder="Ex.: Serviço de manutenção do veículo"
+                                        className={`w-full bg-white border rounded-lg px-3 py-2 text-slate-800 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none ${aiFilledFields.has(`line-${index}`) ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200'}`}
+                                    />
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={formData.lines[index]?.quantity ?? 0}
+                                        onChange={(e) => updateLine(index, 'quantity', e.target.value)}
+                                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-2 text-slate-800 text-sm text-center focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+                                    />
+                                    <select
+                                        value={formData.lines[index]?.unidade_medida || 'UN'}
+                                        onChange={(e) => updateLine(index, 'unidade_medida', e.target.value)}
+                                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-2 text-slate-800 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+                                    >
+                                        {allowedUnits.map((unit) => (
+                                            <option key={unit} value={unit}>{unit}</option>
+                                        ))}
+                                    </select>
+                                    <input
+                                        type="text"
+                                        value={formData.lines[index]?.unit_price ?? 0}
+                                        onChange={(e) => updateLine(index, 'unit_price', e.target.value)}
+                                        className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-slate-800 text-sm text-right focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+                                    />
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={formData.lines[index]?.discount_percentage ?? 0}
+                                        onChange={(e) => updateLine(index, 'discount_percentage', e.target.value)}
+                                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-2 text-slate-800 text-sm text-center focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+                                    />
+                                    <select
+                                        value={formData.lines[index]?.iva_rate ?? 23}
+                                        onChange={(e) => updateLine(index, 'iva_rate', e.target.value)}
+                                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-2 text-slate-800 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+                                    >
+                                        <option value={23}>23%</option>
+                                        <option value={13}>13%</option>
+                                        <option value={6}>6%</option>
+                                        <option value={0}>0%</option>
+                                    </select>
+                                    <input
+                                        type="text"
+                                        value={manualIvaOverrides[index] ?? line.iva_value}
+                                        onChange={(e) => updateManualIva(index, e.target.value)}
+                                        className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-slate-800 text-sm text-right focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+                                        title="Pode ajustar manualmente o IVA desta linha"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={Number(line.total_value || 0).toFixed(2)}
+                                        readOnly
+                                        className="w-full bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-2 text-slate-600 font-medium text-sm text-right cursor-not-allowed"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => removeLine(index)}
+                                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors flex items-center justify-center"
+                                        title="Remover linha"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
 
@@ -1936,13 +1821,6 @@ export default function InvoiceForm({
                     imageSrc={pendingImages[croppingIndex].src}
                     onCancel={() => setShowImageCropper(false)}
                     onCropComplete={submitPreparedImage}
-                />
-            )}
-
-            {showQrScanner && (
-                <QRCodeScanner
-                    onScan={handleQrScanComplete}
-                    onCancel={() => setShowQrScanner(false)}
                 />
             )}
         </div>

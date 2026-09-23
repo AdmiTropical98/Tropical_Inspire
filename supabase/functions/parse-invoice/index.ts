@@ -8,7 +8,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const callGeminiStructurer = async (ocrText, qrData, learningRules, fileName, fileUrl) => {
+const callGeminiStructurer = async (ocrText, learningRules, fileName, fileUrl) => {
   const apiKey = Deno.env.get('GEMINI_API_KEY');
   if (!apiKey) throw new Error('GEMINI_API_KEY is not configured');
 
@@ -16,28 +16,33 @@ const callGeminiStructurer = async (ocrText, qrData, learningRules, fileName, fi
     ? `\nHere are some user-defined learning rules for specific suppliers. If the invoice matches these keywords/NIF, prefer these categories and descriptions:\n${JSON.stringify(learningRules, null, 2)}`
     : '';
 
-  const prompt = `You are a strict JSON data extraction assistant for Portuguese invoices (pt-PT).
-Your task is to take the provided document/image, filename, and QR code data, and organize it into a strict JSON structure.
-DO NOT invent financial values. If you are unsure, output null.
+  const prompt = `You are a strict JSON data extraction assistant for Portuguese supplier invoices (pt-PT).
+Your task is to take the provided document/image and text, and organize it into a strict JSON structure.
+DO NOT invent financial values. Extract exactly what is printed on the invoice.
 
 Output JSON Format Requirements:
 {
-  "invoice_number": "String or null",
-  "supplier": "String or null",
-  "supplier_vat": "String or null",
-  "invoice_date": "YYYY-MM-DD or null",
-  "net_amount": Number or null,
-  "vat_amount": Number or null,
-  "total_amount": Number or null,
-  "expense_description": "Short descriptive summary (e.g. 'Abastecimento de combustível', 'Portagens', 'Subscrição GPS')",
-  "suggested_category": "Short category (e.g. 'Combustível', 'Manutenção', 'Portagens')",
+  "invoice_number": "String or null (e.g. 'FTA 458126/381')",
+  "supplier": "String or null (Supplier Name)",
+  "supplier_vat": "String or null (Portuguese NIF/NIPC)",
+  "invoice_date": "YYYY-MM-DD or null (Issue Date)",
+  "due_date": "YYYY-MM-DD or null (Payment Due Date / Data de Vencimento)",
+  "net_amount": Number or null (Total Base Tributável / Total Líquido sem IVA)",
+  "vat_amount": Number or null (Total IVA)",
+  "total_amount": Number or null (Total Final do Documento)",
+  "expense_description": "Short descriptive summary",
+  "suggested_category": "Short category",
   "vehicle_registrations": ["XX-XX-XX", ...],
   "products": [
     {
-      "description": "String",
-      "qty": Number,
-      "unit_price": Number,
-      "vat_percent": Number (0, 6, 13, 23)
+      "description": "String (Product or service description)",
+      "qty": Number (Exact quantity, e.g. 1, 2, 10),
+      "unidade_medida": "String (e.g. 'UN', 'HOR', 'H', 'L', 'CX')",
+      "unit_price": Number (Unit price before discount),
+      "discount_percentage": Number (Discount percentage, e.g. 0, 5, 15),
+      "net_value": Number (Net total for the line after discount),
+      "vat_percent": Number (0, 6, 13, 23),
+      "vat_value": Number or null (VAT amount for this line)
     }
   ],
   "confidence_scores": {
@@ -49,13 +54,13 @@ Output JSON Format Requirements:
 
 Important Rules:
 1. ONLY return valid JSON without any markdown formatting.
-2. In 'products', include ONLY billable items. Do NOT include Totals, IBANs, or payment details.
-3. If QR Code data is provided, trust it above everything else for totals and NIF.
+2. In 'products', include ALL billable items from the invoice table grid. Do NOT include Totals, IBANs, or payment details.
+3. Preserve exact quantities (e.g. 2, 10), units (UN, HOR, H), unit prices, discounts (15%, 5%), and net line values as printed in the invoice.
 4. Confidence scores should reflect your certainty. If the document is blurry or you can't clearly find the invoice number, set its score below 80.${rulesText}`;
 
   const parts = [
     { text: prompt },
-    { text: `FileName: ${fileName}\nQR Data: ${JSON.stringify(qrData)}\n\nRaw OCR Text (if available):\n${ocrText || 'Nenhum OCR fornecido'}` }
+    { text: `FileName: ${fileName}\n\nRaw Extracted Text (if available):\n${ocrText || 'Nenhum texto fornecido'}` }
   ];
 
   if (fileUrl) {
@@ -111,7 +116,7 @@ serve(async (req) => {
   try {
     currentStep = '[1] Request recebida';
     console.log(currentStep);
-    const { fileUrl, importId: incomingImportId, ocrText: providedOcrText, qrData = {}, fileName = '' } = await req.json();
+    const { fileUrl, importId: incomingImportId, ocrText: providedOcrText, fileName = '' } = await req.json();
     importId = incomingImportId;
 
     if (!fileUrl && !providedOcrText) {
@@ -126,22 +131,12 @@ serve(async (req) => {
     currentStep = '[2] PDF convertido / Ficheiro analisado';
     console.log(currentStep, { fileUrl, fileName, hasProvidedOcr: !!providedOcrText });
 
-    currentStep = '[3] OCR iniciado';
+    currentStep = '[3] Texto analisado';
     console.log(currentStep);
     let ocrText = providedOcrText || '';
     
-    currentStep = '[4] OCR concluído';
+    currentStep = '[4] Texto pronto';
     console.log(currentStep, 'Texto completo extraído:\n' + ocrText);
-
-    currentStep = '[5] QR iniciado';
-    console.log(currentStep);
-    if (qrData && Object.keys(qrData).length > 0) {
-        currentStep = '[6] QR concluído';
-        console.log(currentStep, 'Conteúdo bruto do QR Code:', JSON.stringify(qrData, null, 2));
-    } else {
-        currentStep = '[6] QR concluído';
-        console.log(currentStep, 'QR Code não encontrado');
-    }
 
     let learningRules = [];
     try {
@@ -151,26 +146,43 @@ serve(async (req) => {
       console.error('Failed to fetch learning rules', e);
     }
 
-    currentStep = '[7] Prompt enviado à IA (Gemini)';
+    currentStep = '[5] Prompt enviado à IA (Gemini)';
     console.log(currentStep);
-    const aiResult = await callGeminiStructurer(ocrText, qrData, learningRules, fileName, fileUrl);
+    const aiResult = await callGeminiStructurer(ocrText, learningRules, fileName, fileUrl);
     console.log('Prompt Enviado:\n', aiResult.prompt);
 
-    currentStep = '[8] Resposta recebida (Gemini)';
+    currentStep = '[6] Resposta recebida (Gemini)';
     console.log(currentStep);
     console.log('Resposta Completa da IA:\n', aiResult.text);
 
-    currentStep = '[9] JSON validado';
+    currentStep = '[7] JSON validado';
     console.log(currentStep);
     const structuredJson = JSON.parse(aiResult.text);
 
     if (structuredJson.products && Array.isArray(structuredJson.products)) {
-        structuredJson.products = structuredJson.products.map((p) => ({
-            ...p,
-            qty: Number(p.qty) || 1,
-            unit_price: Number(p.unit_price) || 0,
-            vat_percent: [0, 6, 13, 23].includes(Number(p.vat_percent)) ? Number(p.vat_percent) : 23
-        }));
+        structuredJson.products = structuredJson.products.map((p) => {
+            const rawQty = Number(p.qty);
+            const qty = Number.isFinite(rawQty) && rawQty > 0 ? rawQty : (p.qty !== undefined ? Number(p.qty) || 1 : 1);
+            const unitPrice = Number(p.unit_price) || 0;
+            const discountPercentage = Number(p.discount_percentage) || 0;
+            const calculatedNet = Number((qty * unitPrice * (1 - discountPercentage / 100)).toFixed(2));
+            const netValue = p.net_value !== undefined && p.net_value !== null ? Number(p.net_value) : calculatedNet;
+            const vatPercent = [0, 6, 13, 23].includes(Number(p.vat_percent)) ? Number(p.vat_percent) : 23;
+            const vatValue = p.vat_value !== undefined && p.vat_value !== null ? Number(p.vat_value) : Number((netValue * (vatPercent / 100)).toFixed(2));
+            const rawUnit = String(p.unidade_medida || 'UN').trim().toUpperCase();
+            const unidade_medida = ['HOR', 'H', 'L', 'CX', 'UN'].includes(rawUnit) ? rawUnit : (rawUnit.startsWith('HOR') ? 'HOR' : (rawUnit.startsWith('L') ? 'L' : 'UN'));
+
+            return {
+                description: String(p.description || '').trim(),
+                qty,
+                unidade_medida,
+                unit_price: unitPrice,
+                discount_percentage: discountPercentage,
+                net_value: netValue,
+                vat_percent: vatPercent,
+                vat_value: vatValue
+            };
+        });
     }
 
     if (!structuredJson.invoice_number) {

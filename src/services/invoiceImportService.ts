@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 import type { InvoiceImport, InvoiceImportStatus, InvoiceUnit } from '../types';
 import * as pdfjsLib from 'pdfjs-dist';
-import type { InvoiceImportExtractedData } from '../types';
+import type { InvoiceImportExtractedData, InvoiceImportExtractedProduct } from '../types';
 
 const INVOICE_IMPORT_BUCKET = 'invoices';
 const FALLBACK_IMPORT_BUCKET = 'documents';
@@ -40,7 +40,9 @@ const getMissingColumn = (error: any): string | null => {
 
 const resolveImportStoragePath = (row: any): string => row?.file_path || row?.storage_path || '';
 
-const toNumber = (value: string): number => {
+const toNumber = (value: string | number): number => {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+    if (!value || typeof value !== 'string') return 0;
     const normalized = value
         .replace(/\s/g, '')
         .replace(/€/g, '')
@@ -52,17 +54,30 @@ const toNumber = (value: string): number => {
 };
 
 const toIsoDate = (value: string): string => {
-    const trimmed = value.trim();
-    if (!trimmed) return new Date().toISOString().split('T')[0];
+    const trimmed = (value || '').trim();
+    if (!trimmed) return '';
 
     if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
 
-    const match = trimmed.match(/(\d{2})[\/.-](\d{2})[\/.-](\d{4})/);
-    if (match) return `${match[3]}-${match[2]}-${match[1]}`;
+    const dmy = trimmed.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/);
+    if (dmy) {
+        const d = dmy[1].padStart(2, '0');
+        const m = dmy[2].padStart(2, '0');
+        const y = dmy[3];
+        return `${y}-${m}-${d}`;
+    }
+
+    const ymd = trimmed.match(/^(\d{4})[\/.-](\d{1,2})[\/.-](\d{1,2})/);
+    if (ymd) {
+        const y = ymd[1];
+        const m = ymd[2].padStart(2, '0');
+        const d = ymd[3].padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
 
     const parsed = new Date(trimmed);
     if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0];
-    return new Date().toISOString().split('T')[0];
+    return '';
 };
 
 const findLabeledDate = (lines: string[], labelRegexes: RegExp[]): string => {
@@ -70,8 +85,19 @@ const findLabeledDate = (lines: string[], labelRegexes: RegExp[]): string => {
         const line = lines[index];
         if (!labelRegexes.some((regex) => regex.test(line))) continue;
 
-        const dateMatch = line.match(/(\d{4}-\d{2}-\d{2}|\d{2}[\/.-]\d{2}[\/.-]\d{4})/);
-        if (dateMatch?.[1]) return toIsoDate(dateMatch[1]);
+        const candidates = [
+            line,
+            lines[index + 1] || '',
+            lines[index + 2] || '',
+        ];
+
+        for (const candidate of candidates) {
+            const dateMatch = candidate.match(/(\d{4}-\d{2}-\d{2}|\d{1,2}[\/.-]\d{1,2}[\/.-]\d{4}|\d{4}[\/.-]\d{1,2}[\/.-]\d{1,2})/);
+            if (dateMatch?.[1]) {
+                const iso = toIsoDate(dateMatch[1]);
+                if (iso) return iso;
+            }
+        }
     }
 
     return '';
@@ -80,16 +106,19 @@ const findLabeledDate = (lines: string[], labelRegexes: RegExp[]): string => {
 const findOrderLineDate = (lines: string[]): string => {
     for (const line of lines) {
         if (!/ordof|o\.r\.|or\/?of/i.test(line)) continue;
-        const dateMatch = line.match(/(\d{2}[\/.-]\d{2}[\/.-]\d{4}|\d{4}-\d{2}-\d{2})/i);
-        if (dateMatch?.[1]) return toIsoDate(dateMatch[1]);
+        const dateMatch = line.match(/(\d{1,2}[\/.-]\d{1,2}[\/.-]\d{4}|\d{4}-\d{2}-\d{2})/i);
+        if (dateMatch?.[1]) {
+            const iso = toIsoDate(dateMatch[1]);
+            if (iso) return iso;
+        }
     }
 
     return '';
 };
 
 const findOrderDateInCompactText = (compact: string): string => {
-    const match = compact.match(/ordof\s*\/?\s*[a-z0-9\/-]+\s+(\d{2}[\/.\-]\d{2}[\/.\-]\d{4}|\d{4}-\d{2}-\d{2})/i)
-        || compact.match(/o\.r\.\s*\/?\s*[a-z0-9\/-]+\s+(\d{2}[\/.\-]\d{2}[\/.\-]\d{4}|\d{4}-\d{2}-\d{2})/i);
+    const match = compact.match(/ordof\s*\/?\s*[a-z0-9\/-]+\s+(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4}|\d{4}-\d{2}-\d{2})/i)
+        || compact.match(/o\.r\.\s*\/?\s*[a-z0-9\/-]+\s+(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4}|\d{4}-\d{2}-\d{2})/i);
 
     return match?.[1] ? toIsoDate(match[1]) : '';
 };
@@ -111,30 +140,79 @@ interface PositionalRow {
     items: PositionalItem[];
 }
 
-const extractPdfLines = async (file: File): Promise<string[]> => {
+const extractPdfRowsByGeometry = async (file: File): Promise<PositionalRow[]> => {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer), disableWorker: true } as any).promise;
+    const allRows: PositionalRow[] = [];
 
-    const lines: string[] = [];
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
         const page = await pdf.getPage(pageNumber);
         const content = await page.getTextContent();
 
-        let currentLine = '';
-        for (const item of content.items as any[]) {
-            const chunk = String(item?.str || '').trim();
-            if (chunk) currentLine = `${currentLine} ${chunk}`.trim();
+        const entries: (PositionalItem & { y: number })[] = [];
+        (content.items as any[]).forEach((item) => {
+            const str = String(item?.str || '').trim();
+            if (!str) return;
 
-            if (item?.hasEOL && currentLine) {
-                lines.push(currentLine);
-                currentLine = '';
+            const x = Number(item?.transform?.[4] || 0);
+            const y = Number(item?.transform?.[5] || 0);
+            const w = Number(item?.width || 0);
+
+            // Split on 2+ spaces OR space between number and unit/price
+            const parts = str.split(/(\s{2,})|(?<=\d)\s+(?=[A-Z])|(?<=[A-Z])\s+(?=\d)|(?<=\d)\s+(?=\d)/i);
+            if (parts.length > 1) {
+                let currentOffset = 0;
+                parts.forEach((part) => {
+                    if (part === undefined) return;
+                    if (!part || /^\s+$/.test(part)) {
+                        currentOffset += part?.length || 0;
+                        return;
+                    }
+                    const partStr = part.trim();
+                    if (partStr) {
+                        const partX = x + (currentOffset / str.length) * w;
+                        entries.push({ text: partStr, x: partX, y, w: (partStr.length / str.length) * w });
+                    }
+                    currentOffset += part.length;
+                });
+            } else {
+                entries.push({ text: str, x, y, w });
+            }
+        });
+
+        const groups: Map<number, PositionalItem[]> = new Map();
+        for (const entry of entries) {
+            let foundY: number | null = null;
+            for (const y of groups.keys()) {
+                if (Math.abs(y - entry.y) <= 5.5) {
+                    foundY = y;
+                    break;
+                }
+            }
+
+            if (foundY !== null) {
+                groups.get(foundY)!.push({ text: entry.text, x: entry.x, w: entry.w });
+            } else {
+                groups.set(entry.y, [{ text: entry.text, x: entry.x, w: entry.w }]);
             }
         }
 
-        if (currentLine) lines.push(currentLine);
+        const sortedGroups = Array.from(groups.entries())
+            .sort((a, b) => b[0] - a[0])
+            .map(([y, items]) => ({
+                y,
+                items: items.sort((a, b) => a.x - b.x),
+            }));
+
+        allRows.push(...sortedGroups);
     }
 
-    return lines.map((line) => line.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    return allRows;
+};
+
+const extractPdfLines = async (file: File): Promise<string[]> => {
+    const rows = await extractPdfRowsByGeometry(file);
+    return rows.map((row) => row.items.map((item) => item.text).join(' ')).filter(Boolean);
 };
 
 const rasterizeFirstPageOfPdf = async (file: File): Promise<File> => {
@@ -167,78 +245,6 @@ const rasterizeFirstPageOfPdf = async (file: File): Promise<File> => {
     });
 };
 
-const extractPdfRowsByGeometry = async (file: File): Promise<PositionalRow[]> => {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer), disableWorker: true } as any).promise;
-    const allRows: PositionalRow[] = [];
-
-    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
-        const page = await pdf.getPage(pageNumber);
-        const content = await page.getTextContent();
-
-        const entries: (PositionalItem & { y: number })[] = [];
-        (content.items as any[]).forEach((item) => {
-            const str = String(item?.str || '').trim();
-            if (!str) return;
-
-            const x = Number(item?.transform?.[4] || 0);
-            const y = Number(item?.transform?.[5] || 0);
-            const w = Number(item?.width || 0);
-
-            // Aggressive Splitter: Split on 2+ spaces OR space between number and unit/price
-            // This handles "53,50 HOR 41,50" or "80,00 23,00 0,00"
-            const parts = str.split(/(\s{2,})|(?<=\d)\s+(?=[A-Z])|(?<=[A-Z])\s+(?=\d)|(?<=\d)\s+(?=\d)/i);
-            if (parts.length > 1) {
-                let currentOffset = 0;
-                parts.forEach((part) => {
-                    if (part === undefined) return;
-                    if (!part || /^\s+$/.test(part)) {
-                        currentOffset += part?.length || 0;
-                        return;
-                    }
-                    const partStr = part.trim();
-                    if (partStr) {
-                        const partX = x + (currentOffset / str.length) * w;
-                        entries.push({ text: partStr, x: partX, y, w: (partStr.length / str.length) * w });
-                    }
-                    currentOffset += part.length;
-                });
-            } else {
-                entries.push({ text: str, x, y, w });
-            }
-        });
-
-        const groups: Map<number, PositionalItem[]> = new Map();
-        for (const entry of entries) {
-            let foundY: number | null = null;
-            for (const y of groups.keys()) {
-                // Increased tolerance to 5.5 to group slightly offset blocks
-                if (Math.abs(y - entry.y) <= 5.5) {
-                    foundY = y;
-                    break;
-                }
-            }
-
-            if (foundY !== null) {
-                groups.get(foundY)!.push({ text: entry.text, x: entry.x, w: entry.w });
-            } else {
-                groups.set(entry.y, [{ text: entry.text, x: entry.x, w: entry.w }]);
-            }
-        }
-
-        const sortedGroups = Array.from(groups.entries())
-            .sort((a, b) => b[0] - a[0])
-            .map(([y, items]) => ({
-                y,
-                items: items.sort((a, b) => a.x - b.x),
-            }));
-
-        allRows.push(...sortedGroups);
-    }
-
-    return allRows;
-};
-
 const findLabeledAmount = (lines: string[], labelRegexes: RegExp[]): number => {
     for (let index = lines.length - 1; index >= 0; index -= 1) {
         const line = lines[index];
@@ -256,8 +262,7 @@ const findLabeledAmount = (lines: string[], labelRegexes: RegExp[]): number => {
 
 const extractAmountAfterLabelInCompact = (compact: string, labelRegexes: RegExp[]): number => {
     for (const regex of labelRegexes) {
-        // Correctly escaped numeric pattern for currency values
-        const match = compact.match(new RegExp(`${regex.source}[^\\d]{0,20}(\\d{1,3}(?:[.\\s]\\d{3})*(?:,\\d{2})|\\d+(?:[.,]\\d{2}))`, 'i'));
+        const match = compact.match(new RegExp(`${regex.source}[^\\d]{0,20}(\\d{1,3}(?:[.\\s]\\d{3})*(?:,\\d{2})|\\d+(?:[.,]\d{2}))`, 'i'));
         if (match?.[1]) {
             const value = toNumber(match[1]);
             if (value > 0) return value;
@@ -266,7 +271,7 @@ const extractAmountAfterLabelInCompact = (compact: string, labelRegexes: RegExp[
     return 0;
 };
 
-const extractSummaryTotalsFromCompact = (compact: string): { net: number; vat: number; total: number } => {
+const extractSummaryTotalsFromCompact = (compact: string): { net: number; vat: number; total: number; discounts?: number } => {
     const get = (regexes: RegExp[]): number => {
         for (const regex of regexes) {
             const match = compact.match(regex);
@@ -281,6 +286,8 @@ const extractSummaryTotalsFromCompact = (compact: string): { net: number; vat: n
     const net = get([
         /total\s+il[ií]quido\s*[:\-]?\s*(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|\d+(?:[.,]\d{2}))/i,
         /il[ií]quido\s*[:\-]?\s*(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|\d+(?:[.,]\d{2}))/i,
+        /base\s+tribut[aá]vel\s*[:\-]?\s*(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|\d+(?:[.,]\d{2}))/i,
+        /total\s+l[ií]quido\s*[:\-]?\s*(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|\d+(?:[.,]\d{2}))/i,
     ]);
 
     const vat = get([
@@ -289,6 +296,8 @@ const extractSummaryTotalsFromCompact = (compact: string): { net: number; vat: n
     ]);
 
     const total = get([
+        /total\s+a\s+pagar\s*[:\-]?\s*(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|\d+(?:[.,]\d{2}))/i,
+        /total\s+documento\s*[:\-]?\s*(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|\d+(?:[.,]\d{2}))/i,
         /\btotal\b\s*[:\-]?\s*(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|\d+(?:[.,]\d{2}))/i,
     ]);
 
@@ -297,13 +306,13 @@ const extractSummaryTotalsFromCompact = (compact: string): { net: number; vat: n
 
 const extractInvoiceNumber = (lines: string[], compact: string, fallbackName: string): string => {
     for (const line of lines) {
-        if (!/fatura|factura|invoice/i.test(line)) continue;
+        if (!/fatura|factura|invoice|fta|ft\s/i.test(line)) continue;
 
-        const prefixed = line.match(/\b([A-Z]{1,5}(?:\s+[A-Z]{1,5})?\s*\d{3,}(?:\/\s*\d+)?)\b/i);
+        const prefixed = line.match(/\b(FTA\s*\d{3,}(?:\/\s*\d+)?|\bFT\s+[A-Z0-9\/-]+|\b[A-Z]{1,5}\s+\d{3,}(?:\/\s*\d+)?)\b/i);
         if (prefixed?.[1]) return prefixed[1].replace(/\s+/g, ' ').trim().toUpperCase();
 
         const trailing = line.match(/fatura\s*[:#\-]?\s*([A-Z0-9\/-]{3,40})/i);
-        if (trailing?.[1] && /[A-Z]/i.test(trailing[1])) {
+        if (trailing?.[1] && /[A-Z0-9]/i.test(trailing[1])) {
             return trailing[1].replace(/\s+/g, ' ').trim().toUpperCase();
         }
     }
@@ -316,13 +325,13 @@ const extractInvoiceNumber = (lines: string[], compact: string, fallbackName: st
 };
 
 const inferVatPercentFromTotals = (total: number, vatTotal: number): 0 | 6 | 13 | 23 => {
-    if (total <= 0 || vatTotal <= 0 || vatTotal >= total) return 0;
+    if (total <= 0 || vatTotal <= 0 || vatTotal >= total) return 23;
 
     const net = total - vatTotal;
     const inferred = (vatTotal / net) * 100;
     const candidates: Array<0 | 6 | 13 | 23> = [6, 13, 23, 0];
 
-    let best: 0 | 6 | 13 | 23 = 0;
+    let best: 0 | 6 | 13 | 23 = 23;
     let bestDiff = Number.POSITIVE_INFINITY;
 
     for (const candidate of candidates) {
@@ -333,7 +342,7 @@ const inferVatPercentFromTotals = (total: number, vatTotal: number): 0 | 6 | 13 
         }
     }
 
-    return bestDiff <= 2 ? best : 0;
+    return bestDiff <= 2 ? best : 23;
 };
 
 type ParsedInvoiceLine = {
@@ -341,19 +350,20 @@ type ParsedInvoiceLine = {
     unidade_medida: InvoiceUnit;
     qty: number;
     unit_price: number;
+    discount_percentage?: number;
+    net_value?: number;
     vat_percent: 0 | 6 | 13 | 23;
     vat_value?: number;
 };
 
-
 const NUMBER_TOKEN_SOURCE = '(?:\\d{1,3}(?:[.\\s]\\d{3})*(?:,\\d+)?|\\d+(?:[.,]\\d+)?)';
 const NUMBER_TOKEN_REGEX = new RegExp(`^${NUMBER_TOKEN_SOURCE}$`);
 const NON_ITEM_LINE_REGEX = /(iban|swift|bic|nib|entidade|refer[êe]ncia|multibanco|pagamento|dados\s+banc[aá]rios|transfer[êe]ncia|vencimento|total\s+a\s+pagar|subtotal|resumo\s+do\s+iva|resumos?|a\s+transportar|original|duplicado|triplicado|segunda\s*via|valor\s*il[ií]quido|totais(?:\s+servi[çc]os\s+internos)?|transporte|continua|eticadata|software|observa[çc][oõ]es|condi[çc][oõ]es|página|descri[çc][aã]o\s+de\s+trabalhos)/i;
-const TABLE_START_REGEX = /arm\s+opera[çc][aã]o\/?pe[çc]a\s+descri[çc][aã]o\s+qtd\.?\s*un/i;
+const TABLE_START_REGEX = /(?:arm\s+opera[çc][aã]o\/?pe[çc]a\s+descri[çc][aã]o\s+qtd\.?\s*un|(?:artigo|c[oó]digo|pe[çc]a|ref\.?|designa[çc][aã]o|descri[çc][aã]o|servi[çc]o).*?(?:qtd|quant|quantidade).*?(?:pr\.?\s*un|pre[çc]o|p\.?\s*unit|valor)|(?:descri[çc][aã]o|designa[çc][aã]o).*?(?:qtd|quant|unidade|unid|un).*?(?:pre[çc]o|pr\.?\s*unit|p\.?\s*unit)|(?:qtd|quant).*?(?:un|unid).*?(?:pre[çc]o|pr\.?\s*unit|p\.?\s*unit))/i;
 const TABLE_END_REGEX = /resumo\s+do\s+iva|total\s+i?l[ií]quido|total\s+documento|totais(?:\s+servi[çc]os\s+internos)?|descri[çc][aã]o\s+de\s+trabalhos/i;
 const TABLE_CONTINUE_MARKER_REGEX = /a\s+transportar|totais(?:\s+servi[çc]os\s+internos)?|transporte|continua|v\.?\s*liquido|liquido|v\.?\s*mercadoria|mercadoria/i;
 const SECTION_MARKER_REGEX = /^\s*(duplicado|triplicado|segunda\s*via)\b/i;
-const UNIT_ANCHOR_REGEX = /^(UN|UND|UNID|UNIDADE|UNIDADES|UNI|HOR|H|HR|HRS|HORA|HORAS|L|LT|LTS|LITRO|LITROS|CX|CAIXA|CAIXAS|MT|MTS|METRO|METROS)$/i;
+const UNIT_ANCHOR_REGEX = /^(UN|UND|UNID|UNIDADE|UNIDADES|UNI|HOR|H|HR|HRS|HORA|HORAS|L|LT|LTS|LITRO|LITROS|CX|CAIXA|CAIXAS|MT|MTS|METRO|METROS|PC|PCS|PEÇA|PAR|KIT)$/i;
 
 const normalizeTokenForMatch = (token: string): string => token
     .replace(/[|;]/g, ' ')
@@ -367,30 +377,27 @@ const isAnchorUnitToken = (token: string): boolean => UNIT_ANCHOR_REGEX.test(nor
 
 const findFirstUnitAnchorIndex = (tokens: string[]): number => tokens.findIndex((token) => isAnchorUnitToken(token));
 
-const normalizeAnchorUnitToInvoiceUnit = (token: string): InvoiceUnit | '' => {
+const normalizeAnchorUnitToInvoiceUnit = (token: string): InvoiceUnit => {
     const normalized = normalizeTokenForMatch(token).toUpperCase();
-    if (!normalized) return '';
-
-    if (['MT', 'MTS', 'METRO', 'METROS'].includes(normalized)) return 'UN';
-    return normalizeUnitToken(normalized);
-};
-const normalizeUnitToken = (token?: string): InvoiceUnit | '' => {
-    const value = (token || '').trim().toUpperCase();
-    if (!value) return '';
-
-    if (['UN', 'UND', 'UNID', 'UNIDADE', 'UNIDADES', 'UNI'].includes(value)) return 'UN';
-    if (['H', 'HR', 'HRS', 'HORA', 'HORAS', 'HOF', 'HOR', 'HO'].includes(value)) return 'H';
-    if (['L', 'LT', 'LTS', 'LITRO', 'LITROS'].includes(value)) return 'L';
-    if (['CX', 'CAIXA', 'CAIXAS'].includes(value)) return 'CX';
-    if (/m[aã]o\s*obra|mao\s*(de\s*)?obra|labor|serralharia|mecanica|mec[aâ]nica/i.test(value)) return 'H';
-
-    // Strict restriction: only return valid units or empty
-    return '';
+    if (!normalized) return 'UN';
+    if (['HOR', 'HOF', 'HO'].includes(normalized)) return 'HOR';
+    if (['H', 'HR', 'HRS', 'HORA', 'HORAS'].includes(normalized)) return 'H';
+    if (['L', 'LT', 'LTS', 'LITRO', 'LITROS'].includes(normalized)) return 'L';
+    if (['CX', 'CAIXA', 'CAIXAS'].includes(normalized)) return 'CX';
+    if (['UN', 'UND', 'UNID', 'UNIDADE', 'UNIDADES', 'UNI', 'PC', 'PCS', 'PEÇA', 'PAR', 'KIT', 'MT', 'MTS', 'METRO', 'METROS'].includes(normalized)) return 'UN';
+    return 'UN';
 };
 
 const getScopedTableLines = (rows: PositionalRow[]): PositionalRow[] => {
     const startIndex = rows.findIndex((row) => TABLE_START_REGEX.test(row.items.map(i => i.text).join(' ')));
-    if (startIndex < 0) return [];
+    if (startIndex < 0) {
+        // Return all rows that look like item rows (having unit anchor or numeric clusters)
+        return rows.filter((row) => {
+            const rowText = row.items.map(i => i.text).join(' ');
+            if (NON_ITEM_LINE_REGEX.test(rowText)) return false;
+            return row.items.some(i => isAnchorUnitToken(i.text));
+        });
+    }
 
     const scoped: PositionalRow[] = [];
     for (let index = startIndex + 1; index < rows.length; index += 1) {
@@ -414,31 +421,28 @@ const getScopedTableLines = (rows: PositionalRow[]): PositionalRow[] => {
 
 const dedupeAndReconcileLines = (
     lines: ParsedInvoiceLine[],
-    total: number,
-    vatTotal: number,
+    _total: number,
+    _vatTotal: number,
     _fallbackVatPercent: 0 | 6 | 13 | 23
 ): ParsedInvoiceLine[] => {
     if (!lines.length) return [];
 
     const seen = new Set<string>();
-    const deduped = lines.filter((line) => {
+    return lines.filter((line) => {
         const key = [
             line.description.toLowerCase().replace(/\s+/g, ' ').trim(),
             line.unidade_medida,
             line.qty.toFixed(2),
             line.unit_price.toFixed(2),
+            Number(line.discount_percentage || 0).toFixed(2),
+            Number(line.net_value || 0).toFixed(2),
             line.vat_percent,
-            Number(line.vat_value || 0).toFixed(2),
         ].join('|');
 
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
     });
-
-    const targetNet = total > 0 ? Number((total - vatTotal).toFixed(2)) : 0;
-    if (targetNet <= 0) return deduped;
-    return deduped;
 };
 
 const extractDetailedLines = (
@@ -450,7 +454,6 @@ const extractDetailedLines = (
 ): ParsedInvoiceLine[] => {
     const scopedRows = getScopedTableLines(positionalRows);
     if (!scopedRows.length) {
-        // Fallback to text based parsing if geometry fails
         return extractDetailedLinesLegacy(fallbackLines, total, vatTotal, fallbackVatPercent);
     }
 
@@ -473,7 +476,7 @@ const extractDetailedLines = (
 
         if (unitIndex > 0) {
             qtyToken = tokenTexts[unitIndex - 1];
-            unitToken = normalizeAnchorUnitToInvoiceUnit(tokenTexts[unitIndex]) || 'UN';
+            unitToken = normalizeAnchorUnitToInvoiceUnit(tokenTexts[unitIndex]);
             numbersAfterUnit = tokenTexts.slice(unitIndex + 1).filter(isNumericToken).map(toNumber);
             descriptionTokens = tokenTexts.slice(0, unitIndex - 1);
         } else {
@@ -491,45 +494,70 @@ const extractDetailedLines = (
 
         const qty = qtyToken && isNumericToken(qtyToken) ? toNumber(qtyToken) : 0;
         const unitPrice = numbersAfterUnit[0] || 0;
-            if (qty > 0 && unitToken && unitPrice > 0) {
-                const rowDescription = descriptionTokens.join(' ').replace(/\s+/g, ' ').trim();
-                const fullDescription = [...pendingDescriptionBuffer, rowDescription].join(' ').replace(/\s+/g, ' ').trim();
-                pendingDescriptionBuffer = [];
 
-                let vatPercent = fallbackVatPercent;
-                for (let index = numbersAfterUnit.length - 1; index >= 1; index -= 1) {
-                    const candidateVat = clampVat(numbersAfterUnit[index]);
-                    if (candidateVat > 0) {
-                        vatPercent = candidateVat;
-                        break;
-                    }
-                }
+        if (qty > 0 && unitPrice > 0) {
+            const rowDescription = descriptionTokens.join(' ').replace(/\s+/g, ' ').trim();
+            const fullDescription = [...pendingDescriptionBuffer, rowDescription].join(' ').replace(/\s+/g, ' ').trim();
+            pendingDescriptionBuffer = [];
 
-                const subtotalCandidate = numbersAfterUnit.length >= 3 ? numbersAfterUnit[numbersAfterUnit.length - 2] : 0;
-                const subtotal = subtotalCandidate > 0 ? subtotalCandidate : Number((qty * unitPrice).toFixed(2));
-
-                if (fullDescription && !NON_ITEM_LINE_REGEX.test(fullDescription)) {
-                    currentLine = {
-                        description: fullDescription,
-                        unidade_medida: unitToken,
-                        qty,
-                        unit_price: unitPrice,
-                        vat_percent: vatPercent,
-                        vat_value: Number((subtotal * (vatPercent / 100)).toFixed(2))
-                    };
-                    parsed.push(currentLine);
-                    continue;
+            let vatPercent = fallbackVatPercent;
+            for (let index = numbersAfterUnit.length - 1; index >= 1; index -= 1) {
+                const candidateVat = clampVat(numbersAfterUnit[index]);
+                if (candidateVat > 0) {
+                    vatPercent = candidateVat;
+                    break;
                 }
             }
 
-        // Buffer/Continuation logic:
-        // 1. If we have a current item, check if this line is purely text (no numeric clusters)
-        // 2. If it is purely numeric noise (like totals/iva row), discard
-        // 3. Otherwise, if it's mostly text, either continue description or add to pre-buffer
+            const grossSubtotal = Number((qty * unitPrice).toFixed(2));
+            let discountPercentage = 0;
+            let netValue = grossSubtotal;
+
+            if (numbersAfterUnit.length >= 5) {
+                // Typical: [unit_price, %desc, desc_val, net_value, %iva]
+                discountPercentage = numbersAfterUnit[1];
+                netValue = numbersAfterUnit[3];
+            } else if (numbersAfterUnit.length === 4) {
+                // Typical: [unit_price, %desc, net_value, %iva]
+                discountPercentage = numbersAfterUnit[1];
+                netValue = numbersAfterUnit[2];
+            } else if (numbersAfterUnit.length === 3) {
+                // Typical: [unit_price, net_value, %iva]
+                netValue = numbersAfterUnit[1];
+                if (grossSubtotal > 0 && netValue < grossSubtotal) {
+                    discountPercentage = Number((((grossSubtotal - netValue) / grossSubtotal) * 100).toFixed(2));
+                }
+            } else if (numbersAfterUnit.length === 2) {
+                // Typical: [unit_price, net_value] or [unit_price, %iva]
+                if (clampVat(numbersAfterUnit[1]) > 0 && numbersAfterUnit[1] !== grossSubtotal) {
+                    vatPercent = clampVat(numbersAfterUnit[1]);
+                    netValue = grossSubtotal;
+                } else {
+                    netValue = numbersAfterUnit[1];
+                }
+            }
+
+            if (netValue <= 0) netValue = grossSubtotal;
+
+            if (fullDescription && !NON_ITEM_LINE_REGEX.test(fullDescription)) {
+                currentLine = {
+                    description: fullDescription,
+                    unidade_medida: unitToken,
+                    qty,
+                    unit_price: unitPrice,
+                    discount_percentage: discountPercentage,
+                    net_value: netValue,
+                    vat_percent: vatPercent,
+                    vat_value: Number((netValue * (vatPercent / 100)).toFixed(2))
+                };
+                parsed.push(currentLine);
+                continue;
+            }
+        }
+
         const numberTokens = tokenTexts.filter((token) => isNumericToken(token));
         const textTokens = tokenTexts.filter((token) => !isNumericToken(token));
 
-        // Majority Numeric Filter: if more numbers than text tokens, it's likely a footer/total line we missed
         if (numberTokens.length >= textTokens.length && numberTokens.length > 1) continue;
 
         const extraText = textTokens.join(' ').replace(/\s+/g, ' ').trim();
@@ -568,17 +596,36 @@ const extractDetailedLinesLegacy = (
 
         const qty = toNumber(qtyToken);
         const unitMeasure = normalizeAnchorUnitToInvoiceUnit(tokens[unitIndex]);
-        const unitPriceToken = tokens.slice(unitIndex + 1).find((token) => isNumericToken(token));
-        const unitPrice = unitPriceToken ? toNumber(unitPriceToken) : 0;
+        const numericTail = tokens.slice(unitIndex + 1).filter((token) => isNumericToken(token)).map(toNumber);
+        const unitPrice = numericTail[0] || 0;
+        const grossValue = Number((qty * unitPrice).toFixed(2));
+
+        let discountPercentage = 0;
+        let netValue = grossValue;
+
+        if (numericTail.length >= 5) {
+            discountPercentage = numericTail[1];
+            netValue = numericTail[3];
+        } else if (numericTail.length === 4) {
+            discountPercentage = numericTail[1];
+            netValue = numericTail[2];
+        } else if (numericTail.length >= 3) {
+            netValue = numericTail[numericTail.length - 2];
+            if (grossValue > 0 && netValue < grossValue) {
+                discountPercentage = Number((((grossValue - netValue) / grossValue) * 100).toFixed(2));
+            }
+        }
+
         const description = tokens.slice(0, unitIndex - 1).join(' ').replace(/\s+/g, ' ').trim();
 
         if (description && qty > 0 && unitMeasure && unitPrice > 0) {
-            const netValue = Number((qty * unitPrice).toFixed(2));
             parsed.push({
                 description,
                 unidade_medida: unitMeasure,
                 qty,
                 unit_price: unitPrice,
+                discount_percentage: discountPercentage,
+                net_value: netValue,
                 vat_percent: fallbackVatPercent,
                 vat_value: Number((netValue * (fallbackVatPercent / 100)).toFixed(2)),
             });
@@ -601,6 +648,12 @@ export async function parseInvoicePdfLocally(file: File): Promise<InvoiceImportE
     const compact = lines.join(' ');
 
     const supplierMatch = compact.match(/(?:Fornecedor|Supplier)\s*[:\-]\s*([^\n\r]{2,120})/i);
+
+    const supplierFromContribuinteLine = lines
+        .slice(0, 20)
+        .map((line) => line.match(/^(.+?)\s+\d{9}\s+Contribuinte\s*:/i)?.[1]?.trim() || '')
+        .find(Boolean) || '';
+
     const headerSupplierLine = lines
         .slice(0, 12)
         .find((line) => /[A-ZÁÀÃÂÉÈÊÍÌÎÓÒÔÕÚÙÛÇ]{4,}/.test(line) && !/NIF|N\.?\s*Contribuinte|Matr[ií]cula|Data/i.test(line));
@@ -609,20 +662,40 @@ export async function parseInvoicePdfLocally(file: File): Promise<InvoiceImportE
     const invoiceNumber = extractInvoiceNumber(lines, compact, file.name.replace(/\.pdf$/i, ''));
 
     const issueDate =
-        findLabeledDate(lines, [/data\s*doc/i, /data\s*emiss[aã]o/i, /invoice\s*date/i, /issue\s*date/i])
+        findLabeledDate(lines, [/data\s*doc/i, /data\s*emiss[aã]o/i, /invoice\s*date/i, /issue\s*date/i, /data\s*fatura/i])
         || findOrderDateInCompactText(compact)
-        || findOrderLineDate(lines);
-    const fallbackDateMatch = compact.match(/(\d{4}-\d{2}-\d{2}|\d{2}[\/.-]\d{2}[\/.-]\d{4})/);
+        || findOrderLineDate(lines)
+        || (() => {
+            for (const line of lines) {
+                if (!/\bdata\b/i.test(line) || /venc/i.test(line)) continue;
+                const m = line.match(/(\d{4}-\d{2}-\d{2}|\d{1,2}[\/.-]\d{1,2}[\/.-]\d{4})/);
+                if (m?.[1]) {
+                    const iso = toIsoDate(m[1]);
+                    if (iso) return iso;
+                }
+            }
+            return '';
+        })();
+
+    const dueDate = findLabeledDate(lines, [
+        /data\s*venc/i,
+        /due\s*date/i,
+        /vencimento/i,
+        /data\s*limite/i
+    ]);
+
+    const fallbackDateMatch = compact.match(/(\d{4}-\d{2}-\d{2}|\d{1,2}[\/.-]\d{1,2}[\/.-]\d{4})/);
 
     const summaryTotals = extractSummaryTotalsFromCompact(compact);
 
-    const totalFromCompact = extractAmountAfterLabelInCompact(compact, [/total\s*:/i, /total\s*a\s*pagar/i, /total\s*final/i, /valor\s*total/i]);
+    const totalFromCompact = extractAmountAfterLabelInCompact(compact, [/total\s*:/i, /total\s*a\s*pagar/i, /total\s*final/i, /valor\s*total/i, /total\s*documento/i]);
     const vatFromCompact = extractAmountAfterLabelInCompact(compact, [/total\s*iva/i, /iva\s*total/i, /\biva\b/i]);
 
     const total = summaryTotals.total || totalFromCompact || findLabeledAmount(lines, [
         /total\s*a\s*pagar/i,
         /total\s*final/i,
         /valor\s*total/i,
+        /total\s*documento/i,
         /^\s*total\b/i,
     ]);
 
@@ -644,23 +717,34 @@ export async function parseInvoicePdfLocally(file: File): Promise<InvoiceImportE
         vatPercent
     );
 
+    const mappedProducts: InvoiceImportExtractedProduct[] = extractedLines.map(line => ({
+        description: line.description,
+        qty: line.qty,
+        unidade_medida: line.unidade_medida,
+        unit_price: line.unit_price,
+        discount_percentage: line.discount_percentage || 0,
+        net_value: line.net_value || Number((line.qty * line.unit_price * (1 - (line.discount_percentage || 0) / 100)).toFixed(2)),
+        vat_percent: line.vat_percent as 0 | 6 | 13 | 23,
+        vat_value: line.vat_value || 0
+    }));
+
     return {
-        supplier: supplierMatch?.[1]?.trim() || supplierFromHeader,
+        supplier: supplierMatch?.[1]?.trim() || supplierFromContribuinteLine || supplierFromHeader,
         invoice_number: invoiceNumber,
         invoice_date: issueDate || toIsoDate(fallbackDateMatch?.[1] || ''),
+        date: issueDate || toIsoDate(fallbackDateMatch?.[1] || ''),
+        due_date: dueDate || '',
         total_amount: total,
+        total: total,
         vat_amount: vatTotal,
-        net_amount: Math.max(0, total - vatTotal),
+        vat_total: vatTotal,
+        net_amount: netFromSummary > 0 ? netFromSummary : Math.max(0, total - vatTotal),
         supplier_vat: null,
         expense_description: null,
         suggested_category: null,
         vehicle_registrations: [],
-        products: extractedLines.map(line => ({
-            description: line.description,
-            qty: line.qty,
-            unit_price: line.unit_price,
-            vat_percent: line.vat_percent as 0 | 6 | 13 | 23
-        })),
+        lines: mappedProducts,
+        products: mappedProducts,
     };
 }
 
@@ -753,23 +837,17 @@ const updateImportRowWithFallback = async (importId: string, data: Record<string
     throw new Error('Unable to update invoice import');
 };
 
-const invokeInvoiceParser = async (importId: string, signedUrl: string, mode: 'full' | 'mobile-summary' = 'full', fileName: string, extractedData?: any, ocrText?: string): Promise<string | null> => {
+const invokeInvoiceParser = async (importId: string, signedUrl: string, mode: 'full' | 'mobile-summary' = 'full', fileName: string, ocrText?: string): Promise<string | null> => {
     const parseResult = await supabase.functions.invoke('parse-invoice', {
         body: {
             importId,
             fileUrl: signedUrl,
             mode,
             fileName,
-            qrData: extractedData,
             ocrText
         },
     });
 
-    console.log('--- Resposta da Edge Function (parse-invoice) ---');
-    console.log('Dados:', parseResult.data);
-    console.log('Erro Supabase:', parseResult.error);
-
-    // Se a Edge Function devolver 200 mas com erro no payload JSON
     if (parseResult.data && parseResult.data.error) {
         const errObj = parseResult.data;
         return `OCR unavailable: [${errObj.step}] ${errObj.error}`;
@@ -790,7 +868,6 @@ const invokeInvoiceParser = async (importId: string, signedUrl: string, mode: 'f
     const parseErrorMessage = String((parseResult.error as any)?.message || parseResult.error || 'parse-invoice failed');
     const fallbackErrorMessage = String((fallbackResult.error as any)?.message || fallbackResult.error || 'process-invoice-import failed');
     
-    // If parseResult contains structured error data, let's extract it
     let detailedError = parseErrorMessage;
     try {
         if (parseResult.error instanceof Error) detailedError = parseResult.error.message;
@@ -802,9 +879,6 @@ const invokeInvoiceParser = async (importId: string, signedUrl: string, mode: 'f
 };
 
 export async function createInvoiceImportFromPdf(file: File, extractedData?: any, mode: 'full' | 'mobile-summary' = 'full'): Promise<InvoiceImport> {
-    console.log('\n--- ETAPA 1: O ficheiro foi recebido? ---');
-    console.log(`Nome do ficheiro: ${file.name}\nTipo do ficheiro: ${file.type}\nTamanho: ${file.size} bytes`);
-    
     const fileExt = file.name.split('.').pop() || 'pdf';
     const fileName = `${Date.now()}-${randomToken()}.${fileExt}`;
     const storagePath = `raw/${fileName}`;
@@ -840,7 +914,7 @@ export async function createInvoiceImportFromPdf(file: File, extractedData?: any
         }
     }
 
-    const parserError = await invokeInvoiceParser(importRow.id, ocrUrl, mode, file.name, extractedData, localOcrText);
+    const parserError = await invokeInvoiceParser(importRow.id, ocrUrl, mode, file.name, localOcrText);
 
     if (parserError) {
         try {
@@ -897,7 +971,7 @@ export async function reparseInvoiceImport(importId: string, filePath: string) {
     });
 
     const fileName = filePath.split('/').pop() || '';
-    const parserError = await invokeInvoiceParser(importId, signedUrl, 'full', fileName, null);
+    const parserError = await invokeInvoiceParser(importId, signedUrl, 'full', fileName);
     if (parserError) {
         try {
             await updateImportRowWithFallback(importId, {
@@ -922,6 +996,7 @@ export async function getInvoiceImportPreviewUrl(filePath: string): Promise<stri
 
     return null;
 }
+
 export async function getPendingInvoiceImports(): Promise<InvoiceImport[]> {
     const { data, error } = await supabase
         .from('invoice_imports')

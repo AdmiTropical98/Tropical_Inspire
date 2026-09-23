@@ -205,11 +205,11 @@ export default function RequisitionInvoiceSection({
             </div>
 
             <div className="p-5 md:p-6 space-y-5">
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {summaryFields.map((field) => (
                         <div key={field.label} className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
                             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{field.label}</p>
-                            <p className="mt-1.5 truncate text-sm font-semibold text-slate-900">{field.value}</p>
+                            <p className="mt-1.5 text-sm font-semibold text-slate-900 break-words">{field.value}</p>
                         </div>
                     ))}
                 </div>
