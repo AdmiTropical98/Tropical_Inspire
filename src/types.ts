@@ -699,7 +699,7 @@ export interface SupplierInvoice {
     lines?: SupplierInvoiceLine[];
 }
 
-export const ALLOWED_INVOICE_UNITS = ['UN', 'H', 'L', 'CX'] as const;
+export const ALLOWED_INVOICE_UNITS = ['UN', 'HOR', 'H', 'L', 'CX'] as const;
 export type InvoiceUnit = typeof ALLOWED_INVOICE_UNITS[number];
 
 export interface SupplierInvoiceLine {
@@ -723,8 +723,12 @@ export type InvoiceImportStatus = 'processing' | 'ready' | 'failed' | 'confirmed
 export interface InvoiceImportExtractedProduct {
     description: string;
     qty: number;
+    unidade_medida?: InvoiceUnit;
     unit_price: number;
+    discount_percentage?: number;
+    net_value?: number;
     vat_percent: 0 | 6 | 13 | 23;
+    vat_value?: number;
 }
 
 export interface InvoiceImportExtractedData {
@@ -732,6 +736,7 @@ export interface InvoiceImportExtractedData {
     supplier: string | null;
     supplier_vat: string | null;
     invoice_date: string | null;
+    due_date?: string | null;
     net_amount: number | null;
     vat_amount: number | null;
     total_amount: number | null;
@@ -739,6 +744,10 @@ export interface InvoiceImportExtractedData {
     suggested_category: string | null;
     vehicle_registrations: string[];
     products: InvoiceImportExtractedProduct[];
+    lines?: InvoiceImportExtractedProduct[];
+    date?: string | null;
+    total?: number | null;
+    vat_total?: number | null;
 }
 
 export interface InvoiceImport {

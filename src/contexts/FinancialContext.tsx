@@ -714,7 +714,9 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             }
         }
 
-        await syncRequisitionFinancialStatus(invoiceData.requisition_id);
+        if (invoiceData.requisition_id) {
+    await syncRequisitionFinancialStatus(invoiceData.requisition_id);
+}
         await refreshData();
         return createdInvoice.id as string;
     };

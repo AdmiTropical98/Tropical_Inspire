@@ -156,7 +156,7 @@ export default function SupplierProfile({ id, isDrawer }: SupplierProfileProps) 
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white/90 p-5">
-        <h2 className="mb-4 text-sm font-bold uppercase text-slate-300">Despesas por mês</h2>
+        <h2 className="mb-4 text-sm font-bold uppercase text-slate-700">Despesas por mês</h2>
         <div className="h-72">
           {monthlyData.length === 0 ? (
             <div className="flex h-full items-center justify-center text-slate-500">Sem dados para gráfico.</div>
@@ -178,11 +178,11 @@ export default function SupplierProfile({ id, isDrawer }: SupplierProfileProps) 
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white/90 p-5">
-        <h2 className="mb-4 text-sm font-bold uppercase text-slate-300">Histórico financeiro</h2>
+        <h2 className="mb-4 text-sm font-bold uppercase text-slate-700">Histórico financeiro</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 text-left text-slate-400">
+              <tr className="border-b border-slate-200 text-left text-slate-500">
                 <th className="py-2 pr-3">Número</th>
                 <th className="py-2 pr-3">Data</th>
                 <th className="py-2 pr-3">Cliente</th>
@@ -193,7 +193,7 @@ export default function SupplierProfile({ id, isDrawer }: SupplierProfileProps) 
             </thead>
             <tbody>
               {history.map((row) => (
-                <tr key={row.id} className="border-b border-slate-200/60 text-slate-200">
+                <tr key={row.id} className="border-b border-slate-200/60 text-slate-700 hover:bg-slate-50">
                   <td className="py-2 pr-3 font-mono">{row.numero}</td>
                   <td className="py-2 pr-3">{new Date(row.data).toLocaleDateString('pt-PT')}</td>
                   <td className="py-2 pr-3">{row.cliente?.nome || '-'}</td>
@@ -210,8 +210,8 @@ export default function SupplierProfile({ id, isDrawer }: SupplierProfileProps) 
         </div>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white/90 p-4 text-sm text-slate-300">
-        <p className="mb-2 font-semibold text-slate-200">Dados do fornecedor</p>
+      <section className="rounded-xl border border-slate-200 bg-white/90 p-4 text-sm text-slate-700">
+        <p className="mb-2 font-semibold text-slate-800">Dados do fornecedor</p>
         <div className="flex items-center gap-2"><User className="h-4 w-4 text-slate-400" /> {supplier.email || 'Sem email'} • {supplier.contacto || 'Sem contacto'}</div>
       </section>
     </div>
