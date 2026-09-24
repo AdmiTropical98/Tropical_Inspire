@@ -82,22 +82,52 @@ Important Rules:
     }
   }
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      contents: [{ role: 'user', parts }],
-      generationConfig: {
-        responseMimeType: 'application/json'
-      }
-    }),
-  });
+  // Gemini pode devolver 503/UNAVAILABLE temporariamente quando há elevada procura.
+  // Fazemos retry com exponential backoff antes de devolver o erro ao utilizador.
+  const maxAttempts = 5;
+  let response: Response | null = null;
+  let lastErrorText = '';
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Gemini API error (${response.status}): ${text.slice(0, 500)}`);
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts }],
+        generationConfig: {
+          responseMimeType: 'application/json'
+        }
+      }),
+    });
+
+    if (response.ok) break;
+
+    lastErrorText = await response.text();
+
+    // 503 = serviço temporariamente indisponível/sobrecarregado.
+    // 429 = limite temporário de pedidos.
+    // Nestes casos vale a pena repetir automaticamente.
+    if (response.status !== 503 && response.status !== 429) {
+      throw new Error(`Gemini API error (${response.status}): ${lastErrorText.slice(0, 500)}`);
+    }
+
+    if (attempt < maxAttempts) {
+      const delayMs = Math.min(2000 * Math.pow(2, attempt - 1), 20000);
+      console.warn(
+        `Gemini temporariamente indisponível (${response.status}). ` +
+        `Nova tentativa ${attempt + 1}/${maxAttempts} em ${delayMs}ms.`
+      );
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+
+  if (!response || !response.ok) {
+    const status = response?.status ?? 503;
+    throw new Error(
+      `Gemini API error (${status}) após ${maxAttempts} tentativas: ${lastErrorText.slice(0, 500)}`
+    );
   }
 
   const payload = await response.json();

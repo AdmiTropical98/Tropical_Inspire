@@ -40,7 +40,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const normalizeAndValidateInvoiceLinesUnits = (lines: NonNullable<SupplierInvoice['lines']>) => {
         return lines.map((line) => {
-            const normalizedUnit = normalizeInvoiceUnit((line as any).unidade_medida);
+            const normalizedUnit = normalizeInvoiceUnit((line as any).unidade_medida ?? (line as any).unit ?? 'UN');
             if (!normalizedUnit) {
                 throw new Error(`Unidade inválida na linha "${line.description}". Use apenas: ${ALLOWED_INVOICE_UNITS.join(', ')}`);
             }
@@ -165,7 +165,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
             const { data: linkedInvoices, error: linkedInvoicesError } = await supabase
                 .from('supplier_invoices')
-                .select('id,invoice_number,issue_date,total_final,total,total_value,net_value,total_liquido,vat_value,total_iva,pdf_url,created_at,updated_at')
+                .select('id,invoice_number,issue_date,total_final,total,total_value,net_value,total_liquido,vat_value,total_iva,pdf_url,payment_status,created_at,updated_at')
                 .eq('requisition_id', requisitionId);
 
             if (linkedInvoicesError) {
@@ -193,8 +193,9 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
             const estimatedValue = round2(Number((requisitionData as any).approved_value ?? 0) || getEstimatedRequisitionValue(requisitionData));
             const financialStatus = getRequisitionFinancialStatus(totalInvoiced, estimatedValue);
-            const erpStatus = getRequisitionErpStatus(totalInvoiced, estimatedValue);
-            const requisitionStatus = normalizedInvoiceRows.length > 0 ? 'concluida' : 'pendente';
+            const hasPaidInvoice = (linkedInvoices || []).some((invoice: any) => invoice?.payment_status === 'paid');
+            const erpStatus = hasPaidInvoice ? 'closed' : getRequisitionErpStatus(totalInvoiced, estimatedValue);
+            const requisitionStatus = hasPaidInvoice || normalizedInvoiceRows.length > 0 ? 'concluida' : 'pendente';
 
             const { error: updateError } = await supabase
                 .from('requisicoes')
@@ -232,7 +233,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
         const normalizedLines = lines
             .map(line => {
-                const normalizedUnit = normalizeInvoiceUnit((line as any).unidade_medida);
+                const normalizedUnit = normalizeInvoiceUnit((line as any).unidade_medida ?? (line as any).unit ?? 'UN');
                 const quantity = round2(parseVal(line.quantity));
                 const unitPrice = round2(parseVal(line.unit_price));
                 const discountPercentage = Math.max(0, round2(parseVal(line.discount_percentage)));

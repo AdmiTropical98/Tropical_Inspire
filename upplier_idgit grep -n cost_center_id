@@ -1,0 +1,125 @@
+[35msrc/components/InvoiceForm.tsx[m[36m:[m[32m162[m[36m:[m        [1;31mrequisition_id[m: '',
+[35msrc/components/InvoiceForm.tsx[m[36m:[m[32m663[m[36m:[m                [1;31mrequisition_id[m: invoice.[1;31mrequisition_id[m || '',
+[35msrc/components/InvoiceForm.tsx[m[36m:[m[32m726[m[36m:[m            [1;31mrequisition_id[m: prev.[1;31mrequisition_id[m || initialRequisition.id,
+[35msrc/components/InvoiceForm.tsx[m[36m:[m[32m780[m[36m:[m        const activeReqId = formData.[1;31mrequisition_id[m || '';
+[35msrc/components/InvoiceForm.tsx[m[36m:[m[32m801[m[36m:[m    }, [requisitions, formData.supplier_id, formData.[1;31mrequisition_id[m, suppliers, vehicles, getRequisitionStatusLabel]);
+[35msrc/components/InvoiceForm.tsx[m[36m:[m[32m864[m[36m:[m                [1;31mrequisition_id[m: formData.[1;31mrequisition_id[m || undefined,
+[35msrc/components/InvoiceForm.tsx[m[36m:[m[32m1448[m[36m:[m                        value={formData.[1;31mrequisition_id[m}
+[35msrc/components/InvoiceForm.tsx[m[36m:[m[32m1449[m[36m:[m                        onChange={(e) => setFormData(prev => ({ ...prev, [1;31mrequisition_id[m: e.target.value }))}
+[35msrc/contexts/FinancialContext.tsx[m[36m:[m[32m169[m[36m:[m                .eq('[1;31mrequisition_id[m', requisitionId);
+[35msrc/contexts/FinancialContext.tsx[m[36m:[m[32m274[m[36m:[m        [1;31mrequisition_id[m?: string | null;
+[35msrc/contexts/FinancialContext.tsx[m[36m:[m[32m283[m[36m:[m        if (!invoice.[1;31mrequisition_id[m) return;
+[35msrc/contexts/FinancialContext.tsx[m[36m:[m[32m619[m[36m:[m            [1;31mrequisition_id[m: invoiceData.[1;31mrequisition_id[m,
+[35msrc/contexts/FinancialContext.tsx[m[36m:[m[32m639[m[36m:[m            [1;31mrequisition_id[m: invoiceData.[1;31mrequisition_id[m || null,
+[35msrc/contexts/FinancialContext.tsx[m[36m:[m[32m717[m[36m:[m        await syncRequisitionFinancialStatus(invoiceData.[1;31mrequisition_id[m);
+[35msrc/contexts/FinancialContext.tsx[m[36m:[m[32m729[m[36m:[m            [1;31mrequisition_id[m: invoiceData.[1;31mrequisition_id[m,
+[35msrc/contexts/FinancialContext.tsx[m[36m:[m[32m754[m[36m:[m                [1;31mrequisition_id[m: invoiceData.[1;31mrequisition_id[m ?? existingInvoice?.[1;31mrequisition_id[m,
+[35msrc/contexts/FinancialContext.tsx[m[36m:[m[32m788[m[36m:[m                [1;31mrequisition_id[m: invoiceData.[1;31mrequisition_id[m ?? existingInvoice?.[1;31mrequisition_id[m,
+[35msrc/contexts/FinancialContext.tsx[m[36m:[m[32m834[m[36m:[m        const previousRequisitionId = existingInvoice?.[1;31mrequisition_id[m;
+[35msrc/contexts/FinancialContext.tsx[m[36m:[m[32m835[m[36m:[m        const nextRequisitionId = normalizedInvoiceData.[1;31mrequisition_id[m ?? previousRequisitionId;
+[35msrc/contexts/FinancialContext.tsx[m[36m:[m[32m851[m[36m:[m        await syncRequisitionFinancialStatus(existingInvoice?.[1;31mrequisition_id[m);
+[35msrc/contexts/WorkshopContext.tsx[m[36m:[m[32m3601[m[36m:[m                .eq('[1;31mrequisition_id[m', id);
+[35msrc/pages/Contabilidade/FinancialMovements.tsx[m[36m:[m[32m105[m[36m:[m                movement.source_[1;31mrequisition_id[m,
+[35msrc/pages/Contabilidade/FinancialMovements.tsx[m[36m:[m[32m140[m[36m:[m        if (movement.source_[1;31mrequisition_id[m) {
+[35msrc/pages/Requisicoes/RequisitionInvoiceModal.tsx[m[36m:[m[32m39[m[36m:[m            [1;31mrequisition_id[m: requisitionId,
+[35msrc/pages/Requisicoes/index.tsx[m[36m:[m[32m2219[m[36m:[m                                    .filter(invoice => invoice.[1;31mrequisition_id[m === req.id)
+[35msrc/types.ts[m[36m:[m[32m686[m[36m:[m    [1;31mrequisition_id[m?: string;
+[35msrc/types.ts[m[36m:[m[32m808[m[36m:[m    source_[1;31mrequisition_id[m?: string;
+[35msupabase/migrations/20260224_associate_supplier_invoices_requisitions.sql[m[36m:[m[32m5[m[36m:[m    ADD COLUMN IF NOT EXISTS [1;31mrequisition_id[m UUID NULL;
+[35msupabase/migrations/20260224_associate_supplier_invoices_requisitions.sql[m[36m:[m[32m8[m[36m:[m    DROP CONSTRAINT IF EXISTS supplier_invoices_[1;31mrequisition_id[m_fkey;
+[35msupabase/migrations/20260224_associate_supplier_invoices_requisitions.sql[m[36m:[m[32m11[m[36m:[m    ADD CONSTRAINT supplier_invoices_[1;31mrequisition_id[m_fkey
+[35msupabase/migrations/20260224_associate_supplier_invoices_requisitions.sql[m[36m:[m[32m12[m[36m:[m        FOREIGN KEY ([1;31mrequisition_id[m)
+[35msupabase/migrations/20260224_associate_supplier_invoices_requisitions.sql[m[36m:[m[32m16[m[36m:[mCREATE INDEX IF NOT EXISTS idx_supplier_invoices_[1;31mrequisition_id[m
+[35msupabase/migrations/20260224_associate_supplier_invoices_requisitions.sql[m[36m:[m[32m17[m[36m:[m    ON public.supplier_invoices([1;31mrequisition_id[m);
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m22[m[36m:[m    [1;31mrequisition_id[m UUID NULL,
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m40[m[36m:[m    ADD COLUMN IF NOT EXISTS source_[1;31mrequisition_id[m UUID NULL,
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m127[m[36m:[m    ON public.financial_movements(source_[1;31mrequisition_id[m);
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m137[m[36m:[m    DROP CONSTRAINT IF EXISTS financial_movements_source_[1;31mrequisition_id[m_fkey;
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m146[m[36m:[m    ADD CONSTRAINT financial_movements_source_[1;31mrequisition_id[m_fkey
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m147[m[36m:[m        FOREIGN KEY (source_[1;31mrequisition_id[m) REFERENCES public.requisicoes(id) ON DELETE SET NULL;
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m199[m[36m:[m    p_source_[1;31mrequisition_id[m UUID,
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m219[m[36m:[m        source_[1;31mrequisition_id[m,
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m234[m[36m:[m        p_source_[1;31mrequisition_id[m,
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m275[m[36m:[m            rec.source_[1;31mrequisition_id[m,
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m296[m[36m:[mCREATE OR REPLACE FUNCTION public.requisition_estimated_value(p_[1;31mrequisition_id[m UUID)
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m308[m[36m:[m    WHERE r.id = p_[1;31mrequisition_id[m;
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m314[m[36m:[mCREATE OR REPLACE FUNCTION public.sync_requisition_erp_status(p_[1;31mrequisition_id[m UUID)
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m321[m[36m:[m    IF p_[1;31mrequisition_id[m IS NULL THEN
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m328[m[36m:[m    WHERE si.[1;31mrequisition_id[m = p_[1;31mrequisition_id[m;
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m333[m[36m:[m    WHERE r.id = p_[1;31mrequisition_id[m;
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m352[m[36m:[m    WHERE id = p_[1;31mrequisition_id[m;
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m366[m[36m:[m        PERFORM public.sync_requisition_erp_status(OLD.[1;31mrequisition_id[m);
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m376[m[36m:[m    IF NEW.[1;31mrequisition_id[m IS NOT NULL THEN
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m377[m[36m:[m        v_description := CONCAT(v_description, ' (REQ ', NEW.[1;31mrequisition_id[m::text, ')');
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m386[m[36m:[m            NEW.supplier_id, NEW.[1;31mrequisition_id[m
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m393[m[36m:[m            NEW.supplier_id, NEW.[1;31mrequisition_id[m
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m402[m[36m:[m                NEW.supplier_id, NEW.[1;31mrequisition_id[m
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m409[m[36m:[m                NEW.supplier_id, NEW.[1;31mrequisition_id[m
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m414[m[36m:[m    PERFORM public.sync_requisition_erp_status(NEW.[1;31mrequisition_id[m);
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m641[m[36m:[m        PERFORM public.sync_requisition_erp_status(OLD.[1;31mrequisition_id[m);
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m645[m[36m:[m    PERFORM public.sync_requisition_erp_status(NEW.[1;31mrequisition_id[m);
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m646[m[36m:[m    IF TG_OP = 'UPDATE' AND NEW.[1;31mrequisition_id[m IS DISTINCT FROM OLD.[1;31mrequisition_id[m THEN
+[35msupabase/migrations/20260224_financial_ledger_immutable_v2.sql[m[36m:[m[32m647[m[36m:[m        PERFORM public.sync_requisition_erp_status(OLD.[1;31mrequisition_id[m);
+[35msupabase/migrations/20260224_fix_invoice_ledger.sql[m[36m:[m[32m13[m[36m:[m        PERFORM public.sync_requisition_erp_status(OLD.[1;31mrequisition_id[m);
+[35msupabase/migrations/20260224_fix_invoice_ledger.sql[m[36m:[m[32m25[m[36m:[m    IF NEW.[1;31mrequisition_id[m IS NOT NULL THEN
+[35msupabase/migrations/20260224_fix_invoice_ledger.sql[m[36m:[m[32m26[m[36m:[m        v_description := CONCAT(v_description, ' (REQ ', NEW.[1;31mrequisition_id[m::text, ')');
+[35msupabase/migrations/20260224_fix_invoice_ledger.sql[m[36m:[m[32m36[m[36m:[m            NEW.supplier_id, NEW.[1;31mrequisition_id[m
+[35msupabase/migrations/20260224_fix_invoice_ledger.sql[m[36m:[m[32m43[m[36m:[m            NEW.supplier_id, NEW.[1;31mrequisition_id[m
+[35msupabase/migrations/20260224_fix_invoice_ledger.sql[m[36m:[m[32m52[m[36m:[m                NEW.supplier_id, NEW.[1;31mrequisition_id[m
+[35msupabase/migrations/20260224_fix_invoice_ledger.sql[m[36m:[m[32m59[m[36m:[m                NEW.supplier_id, NEW.[1;31mrequisition_id[m
+[35msupabase/migrations/20260224_fix_invoice_ledger.sql[m[36m:[m[32m64[m[36m:[m    PERFORM public.sync_requisition_erp_status(NEW.[1;31mrequisition_id[m);
+[35msupabase/migrations/20260224_recreate_supplier_invoices.sql[m[36m:[m[32m8[m[36m:[m    [1;31mrequisition_id[m UUID REFERENCES public.requisicoes(id) ON DELETE SET NULL,
+[35msupabase/migrations/20260224_recreate_supplier_invoices.sql[m[36m:[m[32m90[m[36m:[m        PERFORM public.sync_requisition_erp_status(OLD.[1;31mrequisition_id[m);
+[35msupabase/migrations/20260224_recreate_supplier_invoices.sql[m[36m:[m[32m102[m[36m:[m    IF NEW.[1;31mrequisition_id[m IS NOT NULL THEN
+[35msupabase/migrations/20260224_recreate_supplier_invoices.sql[m[36m:[m[32m103[m[36m:[m        v_description := CONCAT(v_description, ' (REQ ', NEW.[1;31mrequisition_id[m::text, ')');
+[35msupabase/migrations/20260224_recreate_supplier_invoices.sql[m[36m:[m[32m108[m[36m:[m        PERFORM public.sync_requisition_erp_status(NEW.[1;31mrequisition_id[m);
+[35msupabase/migrations/20260224_recreate_supplier_invoices.sql[m[36m:[m[32m117[m[36m:[m        NEW.supplier_id, NEW.[1;31mrequisition_id[m
+[35msupabase/migrations/20260224_recreate_supplier_invoices.sql[m[36m:[m[32m124[m[36m:[m        NEW.supplier_id, NEW.[1;31mrequisition_id[m
+[35msupabase/migrations/20260224_recreate_supplier_invoices.sql[m[36m:[m[32m133[m[36m:[m            NEW.supplier_id, NEW.[1;31mrequisition_id[m
+[35msupabase/migrations/20260224_recreate_supplier_invoices.sql[m[36m:[m[32m140[m[36m:[m            NEW.supplier_id, NEW.[1;31mrequisition_id[m
+[35msupabase/migrations/20260224_recreate_supplier_invoices.sql[m[36m:[m[32m144[m[36m:[m    PERFORM public.sync_requisition_erp_status(NEW.[1;31mrequisition_id[m);
+[35msupabase/migrations/20260224_super_recovery_script.sql[m[36m:[m[32m22[m[36m:[m    source_[1;31mrequisition_id[m UUID,
+[35msupabase/migrations/20260224_super_recovery_script.sql[m[36m:[m[32m85[m[36m:[m    p_source_[1;31mrequisition_id[m UUID,
+[35msupabase/migrations/20260224_super_recovery_script.sql[m[36m:[m[32m96[m[36m:[m        debit, credit, supplier_id, source_[1;31mrequisition_id[m,
+[35msupabase/migrations/20260224_super_recovery_script.sql[m[36m:[m[32m101[m[36m:[m        p_debit, p_credit, p_supplier_id, p_source_[1;31mrequisition_id[m,
+[35msupabase/migrations/20260224_super_recovery_script.sql[m[36m:[m[32m133[m[36m:[m            rec.credit, rec.debit, rec.supplier_id, rec.source_[1;31mrequisition_id[m,
+[35msupabase/migrations/20260224_super_recovery_script.sql[m[36m:[m[32m151[m[36m:[mCREATE OR REPLACE FUNCTION public.requisition_estimated_value(p_[1;31mrequisition_id[m UUID)
+[35msupabase/migrations/20260224_super_recovery_script.sql[m[36m:[m[32m163[m[36m:[m    WHERE r.id = p_[1;31mrequisition_id[m;
+[35msupabase/migrations/20260224_super_recovery_script.sql[m[36m:[m[32m168[m[36m:[mCREATE OR REPLACE FUNCTION public.sync_requisition_erp_status(p_[1;31mrequisition_id[m UUID)
+[35msupabase/migrations/20260224_super_recovery_script.sql[m[36m:[m[32m175[m[36m:[m    IF p_[1;31mrequisition_id[m IS NULL THEN RETURN; END IF;
+[35msupabase/migrations/20260224_super_recovery_script.sql[m[36m:[m[32m180[m[36m:[m    WHERE si.[1;31mrequisition_id[m = p_[1;31mrequisition_id[m;
+[35msupabase/migrations/20260224_super_recovery_script.sql[m[36m:[m[32m185[m[36m:[m    WHERE r.id = p_[1;31mrequisition_id[m;
+[35msupabase/migrations/20260224_super_recovery_script.sql[m[36m:[m[32m199[m[36m:[m    WHERE id = p_[1;31mrequisition_id[m;
+[35msupabase/migrations/20260224_super_recovery_script.sql[m[36m:[m[32m210[m[36m:[m    [1;31mrequisition_id[m UUID REFERENCES public.requisicoes(id) ON DELETE SET NULL,
+[35msupabase/migrations/20260224_super_recovery_script.sql[m[36m:[m[32m262[m[36m:[m        PERFORM public.sync_requisition_erp_status(OLD.[1;31mrequisition_id[m);
+[35msupabase/migrations/20260224_super_recovery_script.sql[m[36m:[m[32m272[m[36m:[m    IF NEW.[1;31mrequisition_id[m IS NOT NULL THEN
+[35msupabase/migrations/20260224_super_recovery_script.sql[m[36m:[m[32m273[m[36m:[m        v_description := CONCAT(v_description, ' (REQ ', NEW.[1;31mrequisition_id[m::text, ')');
+[35msupabase/migrations/20260224_super_recovery_script.sql[m[36m:[m[32m278[m[36m:[m        PERFORM public.sync_requisition_erp_status(NEW.[1;31mrequisition_id[m);
+[35msupabase/migrations/20260224_super_recovery_script.sql[m[36m:[m[32m286[m[36m:[m        NEW.supplier_id, NEW.[1;31mrequisition_id[m
+[35msupabase/migrations/20260224_super_recovery_script.sql[m[36m:[m[32m293[m[36m:[m        NEW.supplier_id, NEW.[1;31mrequisition_id[m
+[35msupabase/migrations/20260224_super_recovery_script.sql[m[36m:[m[32m301[m[36m:[m            NEW.supplier_id, NEW.[1;31mrequisition_id[m
+[35msupabase/migrations/20260224_super_recovery_script.sql[m[36m:[m[32m308[m[36m:[m            NEW.supplier_id, NEW.[1;31mrequisition_id[m
+[35msupabase/migrations/20260224_super_recovery_script.sql[m[36m:[m[32m312[m[36m:[m    PERFORM public.sync_requisition_erp_status(NEW.[1;31mrequisition_id[m);
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m22[m[36m:[m    source_[1;31mrequisition_id[m UUID,
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m34[m[36m:[m    ADD COLUMN IF NOT EXISTS source_[1;31mrequisition_id[m UUID NULL,
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m93[m[36m:[m    p_source_[1;31mrequisition_id[m UUID,
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m104[m[36m:[m        debit, credit, supplier_id, source_[1;31mrequisition_id[m,
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m109[m[36m:[m        p_debit, p_credit, p_supplier_id, p_source_[1;31mrequisition_id[m,
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m141[m[36m:[m            rec.credit, rec.debit, rec.supplier_id, rec.source_[1;31mrequisition_id[m,
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m166[m[36m:[mCREATE OR REPLACE FUNCTION public.requisition_estimated_value(p_[1;31mrequisition_id[m UUID)
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m178[m[36m:[m    WHERE r.id = p_[1;31mrequisition_id[m;
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m183[m[36m:[mCREATE OR REPLACE FUNCTION public.sync_requisition_erp_status(p_[1;31mrequisition_id[m UUID)
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m190[m[36m:[m    IF p_[1;31mrequisition_id[m IS NULL THEN RETURN; END IF;
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m195[m[36m:[m    WHERE si.[1;31mrequisition_id[m = p_[1;31mrequisition_id[m;
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m200[m[36m:[m    WHERE r.id = p_[1;31mrequisition_id[m;
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m214[m[36m:[m    WHERE id = p_[1;31mrequisition_id[m;
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m229[m[36m:[m    ADD COLUMN IF NOT EXISTS [1;31mrequisition_id[m UUID REFERENCES public.requisicoes(id) ON DELETE SET NULL,
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m284[m[36m:[m        PERFORM public.sync_requisition_erp_status(OLD.[1;31mrequisition_id[m);
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m294[m[36m:[m    IF NEW.[1;31mrequisition_id[m IS NOT NULL THEN
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m295[m[36m:[m        v_description := CONCAT(v_description, ' (REQ ', NEW.[1;31mrequisition_id[m::text, ')');
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m300[m[36m:[m        PERFORM public.sync_requisition_erp_status(NEW.[1;31mrequisition_id[m);
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m308[m[36m:[m        NEW.supplier_id, NEW.[1;31mrequisition_id[m
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m315[m[36m:[m        NEW.supplier_id, NEW.[1;31mrequisition_id[m
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m323[m[36m:[m            NEW.supplier_id, NEW.[1;31mrequisition_id[m
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m330[m[36m:[m            NEW.supplier_id, NEW.[1;31mrequisition_id[m
+[35msupabase/migrations/20260224_super_robust_recovery.sql[m[36m:[m[32m334[m[36m:[m    PERFORM public.sync_requisition_erp_status(NEW.[1;31mrequisition_id[m);
