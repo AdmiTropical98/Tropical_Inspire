@@ -860,46 +860,55 @@ const updateImportRowWithFallback = async (importId: string, data: Record<string
     throw new Error('Unable to update invoice import');
 };
 
-const invokeInvoiceParser = async (importId: string, signedUrl: string, mode: 'full' | 'mobile-summary' = 'full', fileName: string, ocrText?: string): Promise<string | null> => {
+
+const invokeInvoiceParser = async (
+    importId: string,
+    signedUrl: string,
+    mode: 'full' | 'mobile-summary' = 'full',
+    fileName: string,
+    extractedData?: any,
+    ocrText?: string
+): Promise<string | null> => {
     const parseResult = await supabase.functions.invoke('parse-invoice', {
         body: {
             importId,
             fileUrl: signedUrl,
             mode,
             fileName,
-            ocrText
+            qrData: extractedData,
+            ocrText,
         },
     });
+
+    console.log('--- Resposta da Edge Function (parse-invoice) ---');
+    console.log('Dados:', parseResult.data);
+    console.log('Erro Supabase:', parseResult.error);
 
     if (parseResult.data && parseResult.data.error) {
         const errObj = parseResult.data;
-        return `OCR unavailable: [${errObj.step}] ${errObj.error}`;
+        return `OCR unavailable: [${errObj.step || 'parse-invoice'}] ${errObj.error || 'Erro no parser'}`;
     }
 
     if (parseResult.error) {
-        return `OCR unavailable: ${parseResult.error.message || 'FunctionsHttpError'}`;
+        let message = parseResult.error.message || 'FunctionsHttpError';
+
+        try {
+            const parsed = JSON.parse(String(message));
+            if (parsed?.step && parsed?.error) {
+                message = `[${parsed.step}] ${parsed.error}`;
+            }
+        } catch {
+            // Mantém a mensagem original.
+        }
+
+        return `OCR unavailable: ${message}`;
     }
 
-    const fallbackResult = await supabase.functions.invoke('process-invoice-import', {
-        body: {
-            importId,
-        },
-    });
-
-    if (!fallbackResult.error) return null;
-
-    const parseErrorMessage = String((parseResult.error as any)?.message || parseResult.error || 'parse-invoice failed');
-    const fallbackErrorMessage = String((fallbackResult.error as any)?.message || fallbackResult.error || 'process-invoice-import failed');
-    
-    let detailedError = parseErrorMessage;
-    try {
-        if (parseResult.error instanceof Error) detailedError = parseResult.error.message;
-        const errObj = JSON.parse(detailedError);
-        if (errObj.step) detailedError = `[${errObj.step}] ${errObj.error}`;
-    } catch { /* ignore parse error */ }
-
-    return `OCR unavailable: ${detailedError} | fallback: ${fallbackErrorMessage}`;
+    // parse-invoice já grava o resultado em invoice_imports.
+    // Não chamar process-invoice-import aqui.
+    return null;
 };
+
 
 export async function createInvoiceImportFromPdf(file: File, extractedData?: any, mode: 'full' | 'mobile-summary' = 'full'): Promise<InvoiceImport> {
     const fileExt = file.name.split('.').pop() || 'pdf';

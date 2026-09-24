@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { X } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
-import InvoiceForm from '../../components/InvoiceForm';
+import InvoiceForm from '../../components/InvoiceFormV2';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useFinancial } from '../../contexts/FinancialContext';
 import type { SupplierInvoice } from '../../types';
@@ -43,6 +43,30 @@ export default function RequisitionInvoiceModal({
             ? await updateSupplierInvoice(selectedInvoice.id, payload)
             : await addSupplierInvoice(payload);
 
+        // REGRA: só altera o estado da requisição quando a fatura está PAGA.
+        // Mantemos a interface Abertas/Fechadas existente:
+        //   Paga -> status = concluida
+        //   Qualquer outro estado -> não fecha a requisição.
+        const paymentStatus = String(data.payment_status ?? '').trim().toLowerCase();
+        const isPaid = paymentStatus === 'paid' || paymentStatus === 'pago';
+
+        const requisitionUpdate: Record<string, unknown> = {};
+
+        if (isPaid) {
+            requisitionUpdate.status = 'concluida';
+            requisitionUpdate.erp_status = 'closed';
+        }
+
+        const { error: requisitionStatusError } = await supabase
+            .from('requisicoes')
+            .update(requisitionUpdate)
+            .eq('id', requisitionId);
+
+        if (requisitionStatusError) {
+            console.error('Erro ao atualizar estado da requisição após guardar fatura:', requisitionStatusError);
+            throw requisitionStatusError;
+        }
+
         await refreshData();
         onSaved?.(savedInvoiceId);
         return savedInvoiceId;
@@ -57,6 +81,7 @@ export default function RequisitionInvoiceModal({
         invoiceNumber: string;
         issueDate: string;
         totalValue: number;
+        paymentStatus?: SupplierInvoice['payment_status'];
     }) => {
         if (!requisition) return;
 
@@ -100,13 +125,19 @@ export default function RequisitionInvoiceModal({
 
         const nextHistory = [...historyEntries, ...(requisition.invoice_history || [])].slice(0, 60);
 
-        await supabase
+        // O handleSave já atualizou o estado. Aqui apenas garantimos o histórico
+        // e mantemos FATURADA sem voltar a abrir a requisição.
+        const { error } = await supabase
             .from('requisicoes')
             .update({
                 invoice_history: nextHistory,
-                invoice_status: 'FATURADA',
             })
             .eq('id', requisitionId);
+
+        if (error) {
+            console.error('Erro ao guardar histórico da fatura:', error);
+            throw error;
+        }
 
         await refreshData();
     };
@@ -143,8 +174,7 @@ export default function RequisitionInvoiceModal({
                                 <p className={`text-xs font-bold uppercase tracking-[0.24em] ${isMobileNative ? 'text-blue-300' : 'text-blue-600'}`}>Fatura da requisição</p>
                                 <h3 className={`mt-1 text-2xl font-bold ${isMobileNative ? 'text-white' : 'text-slate-900'}`}>Requisição {requisition.numero}</h3>
                                 <p className={`mt-2 max-w-3xl text-sm ${isMobileNative ? 'text-slate-300' : 'text-slate-600'}`}>
-                                    Esta secção substitui o fecho manual: a requisição só fica concluída depois de guardar uma fatura associada.
-                                    Em telemóvel, use a captura direta da câmara no botão "Tirar Fotografia".
+                                    Esta secção substitui o fecho manual: a requisição fica concluída quando a fatura for marcada como paga.
                                 </p>
                             </div>
                             <button

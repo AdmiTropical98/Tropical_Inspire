@@ -408,16 +408,24 @@ export default function InvoiceForm({
     const scoreExtractedPayload = (payload?: InvoiceImportExtractedData | null): number => {
         if (!payload) return -1;
 
-        const validLines = (payload.lines || [])
+        const validLines = (payload.lines || payload.products || [])
             .map((line) => {
                 const description = String(line.description || '').trim();
                 const unidade_medida = normalizeInvoiceUnit(String(line.unidade_medida || ''));
                 const qty = Math.max(0, Number(line.qty) || 0);
                 const unit_price = Math.max(0, Number(line.unit_price) || 0);
+                const discount_percentage = Math.max(0, Number(line.discount_percentage) || 0);
                 const vat_percent = parseRate(Number(line.vat_percent) || 0);
-                const net = round2(qty * unit_price);
-                const vat = round2(net * (vat_percent / 100));
-                return { description, unidade_medida, qty, unit_price, vat_percent, net, vat };
+                const gross = round2(qty * unit_price);
+                const suppliedNet = Math.max(0, Number(line.net_value) || 0);
+                const net = suppliedNet > 0
+                    ? round2(suppliedNet)
+                    : round2(gross - gross * (discount_percentage / 100));
+                const suppliedVat = Math.max(0, Number(line.vat_value) || 0);
+                const vat = suppliedVat > 0
+                    ? round2(suppliedVat)
+                    : round2(net * (vat_percent / 100));
+                return { description, unidade_medida, qty, unit_price, discount_percentage, vat_percent, net, vat };
             })
             .filter((line) => {
                 if (!line.description) return false;
@@ -494,8 +502,20 @@ export default function InvoiceForm({
                 const baseUnitPrice = Math.max(0, Number(line.unit_price) || 0);
                 const unitPrice = round2(baseUnitPrice > 0 ? baseUnitPrice : (inferredLineTotal > 0 ? inferredLineTotal / quantity : 0));
                 const vatPercent = parseRate(Number(line.vat_percent) || 0);
-                const netValue = round2(quantity * unitPrice);
-                const ivaValue = round2(netValue * (vatPercent / 100));
+                const discountPercentage = Math.max(0, round2(Number(line.discount_percentage) || 0));
+                const grossValue = round2(quantity * unitPrice);
+                const suppliedNetValue = Math.max(0, Number(line.net_value) || 0);
+                const netValue = round2(
+                    suppliedNetValue > 0
+                        ? suppliedNetValue
+                        : grossValue - grossValue * (discountPercentage / 100)
+                );
+                const suppliedIvaValue = Math.max(0, Number(line.vat_value ?? line.iva_value) || 0);
+                const ivaValue = round2(
+                    suppliedIvaValue > 0
+                        ? suppliedIvaValue
+                        : netValue * (vatPercent / 100)
+                );
                 const totalValue = round2(netValue + ivaValue);
 
                 return {
@@ -503,7 +523,7 @@ export default function InvoiceForm({
                     unidade_medida: normalizeInvoiceUnit(line.unidade_medida || 'UN') || 'UN',
                     quantity,
                     unit_price: unitPrice,
-                    discount_percentage: 0,
+                    discount_percentage: discountPercentage,
                     net_value: netValue,
                     iva_rate: vatPercent,
                     iva_value: ivaValue,
