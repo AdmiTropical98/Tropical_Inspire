@@ -304,24 +304,47 @@ const extractSummaryTotalsFromCompact = (compact: string): { net: number; vat: n
     return { net, vat, total };
 };
 
-const extractInvoiceNumber = (lines: string[], compact: string, fallbackName: string): string => {
+const extractInvoiceNumber = (lines: string[], compact: string, _fallbackName: string): string => {
+    const normalize = (value: string) =>
+        value.replace(/\s+/g, ' ').replace(/\s*\/\s*/g, '/').trim().toUpperCase();
+
+    // 1. Formatos explicitamente identificados como número de documento/fatura.
+    const labeledPatterns = [
+        /(?:N[º°o.]?\s*(?:DA\s*)?FATURA|N[ÚU]MERO\s+DA\s+FATURA|N[º°o.]?\s*DOCUMENTO|DOCUMENTO\s+N[º°o.]?)\s*[:\-]?\s*([A-Z]{1,6}\s*[\w./-]{2,30})/i,
+        /(?:FATURA|FACTURA)\s*(?:N[º°o.]?)?\s*[:\-]?\s*([A-Z]{0,6}\s*\d[\w./-]{1,30})/i,
+    ];
+
     for (const line of lines) {
-        if (!/fatura|factura|invoice|fta|ft\s/i.test(line)) continue;
+        for (const pattern of labeledPatterns) {
+            const match = line.match(pattern);
+            if (!match?.[1]) continue;
 
-        const prefixed = line.match(/\b(FTA\s*\d{3,}(?:\/\s*\d+)?|\bFT\s+[A-Z0-9\/-]+|\b[A-Z]{1,5}\s+\d{3,}(?:\/\s*\d+)?)\b/i);
-        if (prefixed?.[1]) return prefixed[1].replace(/\s+/g, ' ').trim().toUpperCase();
-
-        const trailing = line.match(/fatura\s*[:#\-]?\s*([A-Z0-9\/-]{3,40})/i);
-        if (trailing?.[1] && /[A-Z0-9]/i.test(trailing[1])) {
-            return trailing[1].replace(/\s+/g, ' ').trim().toUpperCase();
+            const value = normalize(match[1]);
+            // Nunca aceitar uma requisição como número da fatura.
+            if (/^(?:R|REQ|REQUISI[CÇ][AÃ]O)[\s:/-]*\d/i.test(value)) continue;
+            return value;
         }
     }
 
-    const compactPrefixed = compact.match(/\b(FTA\s*\d{3,}(?:\/\d+)?)\b/i)
-        || compact.match(/\b([A-Z]{2,5}\s*\d{3,}(?:\/\d+)?)\b/i);
-    if (compactPrefixed?.[1]) return compactPrefixed[1].replace(/\s+/g, ' ').trim().toUpperCase();
+    // 2. Formatos portugueses habituais: FTA 458126/381, FT 123/456, etc.
+    for (const line of lines) {
+        const match =
+            line.match(/\b(FTA\s*\d{3,}(?:\s*\/\s*\d+)?)\b/i) ||
+            line.match(/\b(FT\s*[A-Z0-9/-]+)\b/i);
 
-    return fallbackName;
+        if (match?.[1]) return normalize(match[1]);
+    }
+
+    // 3. Procurar no texto compacto.
+    const compactMatch =
+        compact.match(/\b(FTA\s*\d{3,}(?:\s*\/\s*\d+)?)\b/i) ||
+        compact.match(/\b(FT\s*[A-Z0-9/-]+)\b/i);
+
+    if (compactMatch?.[1]) return normalize(compactMatch[1]);
+
+    // 4. Nunca usar o nome do ficheiro como número da fatura: isso pode
+    // confundir o número da requisição (ex.: 26-0046) com a fatura.
+    return '';
 };
 
 const inferVatPercentFromTotals = (total: number, vatTotal: number): 0 | 6 | 13 | 23 => {
