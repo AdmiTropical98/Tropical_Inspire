@@ -8,7 +8,7 @@ import {
   UserCheck, Activity,
   Settings2, UserCog as UserCogIcon, LogOut,
   AlertTriangle, ClipboardCheck, Wallet, Camera,
-  Droplet, CreditCard, Map, Network
+  Droplet, CreditCard, Map, Network, Bell, Download
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -50,14 +50,16 @@ import WorkshopAssets from './pages/Workshop/WorkshopAssets';
 import AssignedTools from './pages/Workshop/AssignedTools';
 import LayoutMobile from './components/layout/LayoutMobile';
 import LayoutDesktop from './components/layout/LayoutDesktop';
-import DriverMode from './pages/DriverMode';
+
 import InventoryModule from './pages/Inventario/InventoryModule';
 import OperacoesModule from './pages/Operacoes/OperacoesModule';
 import OperacoesLogin from './pages/Auth/OperacoesLogin';
 import DashboardLanding from './pages/Auth/DashboardLanding';
 import FornecedoresLogin from './pages/FornecedoresERP/FornecedoresLogin';
 import FornecedoresModule from './pages/FornecedoresERP/FornecedoresModule';
-import { isAndroidAuto } from './utils/isAndroidAuto';
+
+import TabletApp from './pages/Tablet/TabletApp';
+import { useDeviceType } from './hooks/useDeviceType';
 
 // Lazy loading backoffice
 const Backoffice = lazy(() => import('./pages/Backoffice/index'));
@@ -73,6 +75,7 @@ const ExploracaoFrota = lazy(() => import('./pages/ExploracaoFrota'));
 const TransportesEva = lazy(() => import('./pages/TransportesEva'));
 const Combustivel = lazy(() => import('./pages/Combustivel'));
 const ViaVerde = lazy(() => import('./pages/ViaVerde'));
+const ModoOficina = lazy(() => import('./pages/ModoOficina/index'));
 
 const LegacySupplierActionRedirect: React.FC = () => {
   const location = useLocation();
@@ -266,6 +269,7 @@ function App() {
   const { unreadCount } = useChat();
   const navigate = useNavigate();
   const location = useLocation();
+  const deviceType = useDeviceType();
   const [viewportWidth, setViewportWidth] = useState(
     typeof window === 'undefined' ? 1440 : window.innerWidth
   );
@@ -279,7 +283,7 @@ function App() {
 
   const isCapacitorNative = Capacitor.isNativePlatform();
   const isCapacitorAndroid = isCapacitorNative && Capacitor.getPlatform() === 'android';
-  const androidAutoMode = isAndroidAuto();
+
   const isMobileViewport = viewportWidth < MOBILE_MAX_WIDTH;
   const isMobileLayout = isCapacitorNative || isMobileViewport;
 
@@ -340,26 +344,7 @@ function App() {
     };
   }, [isCapacitorAndroid]);
 
-  useEffect(() => {
-    const root = document.getElementById('root');
 
-    if (!androidAutoMode) {
-      document.documentElement.classList.remove('android-auto-root');
-      document.body.classList.remove('android-auto-root');
-      root?.classList.remove('android-auto-root');
-      return;
-    }
-
-    document.documentElement.classList.add('android-auto-root');
-    document.body.classList.add('android-auto-root');
-    root?.classList.add('android-auto-root');
-
-    return () => {
-      document.documentElement.classList.remove('android-auto-root');
-      document.body.classList.remove('android-auto-root');
-      root?.classList.remove('android-auto-root');
-    };
-  }, [androidAutoMode]);
 
   // Derive activeTab from current path
   const activeTab = location.pathname.split('/')[1] || 'dashboard';
@@ -378,6 +363,12 @@ function App() {
   const isFullScreenPage = isMapPage;
   const useDesktopLayoutForNativeRouting = isCapacitorAndroid && location.pathname === '/roteirizacao';
 
+  const isOficinaArea =
+    location.pathname === '/oficina' ||
+    location.pathname.startsWith('/oficina/');
+  const isTabletArea =
+    location.pathname === '/tablet' ||
+    location.pathname.startsWith('/tablet/');
   const isColaboradorArea =
     location.pathname === '/colaborador' ||
     location.pathname.startsWith('/colaborador/') ||
@@ -442,8 +433,30 @@ function App() {
       (!isOperationsOnlyRole && (hasAccess(userRole, 'frota', 'ver') || hasAccess(userRole, 'dashboard', 'ver')))
     );
 
-  if (androidAutoMode) {
-    return <DriverMode />;
+
+
+  if (isTabletArea || deviceType === 'tablet') {
+    if (!isAuthenticated) return <Login />;
+    return <TabletApp />;
+  }
+
+  if (isOficinaArea) {
+    if (!isAuthenticated) return <Login />;
+    
+    return (
+      <div className={`app-root min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-amber-500/20 ${isCapacitorAndroid ? 'android-native-shell w-screen max-w-[100vw] m-0 p-0' : 'w-full'}`}>
+        <Suspense fallback={
+          <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
+            <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
+            <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">A iniciar Modo Oficina...</p>
+          </div>
+        }>
+          <Routes>
+            <Route path="/*" element={<ModoOficina />} />
+          </Routes>
+        </Suspense>
+      </div>
+    );
   }
 
   if (isColaboradorArea) {
@@ -945,11 +958,26 @@ function App() {
 
       <section className="frota-main">
         <header className="frota-topbar">
-          <div className="frota-topbar-left">
-            <h1>{currentSectionLabel}</h1>
+          <div className="flex items-center gap-2 text-blue-600 font-bold cursor-pointer hover:text-blue-700 transition-colors">
+            <span className="text-xl">←</span>
+            <span className="text-sm uppercase tracking-wide">{currentSectionLabel}</span>
           </div>
-          <div className="frota-topbar-right">
-            <UserProfileMenu onNavigate={handleNavigate} showName compact />
+          <div className="flex items-center gap-4">
+            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-50 transition-colors shadow-sm">
+              <Download className="w-4 h-4" />
+              Exportar
+            </button>
+            <div className="relative">
+              <button className="p-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-colors shadow-sm">
+                <Bell className="w-5 h-5" />
+              </button>
+              <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
+                3
+              </span>
+            </div>
+            <div className="pl-4 border-l border-slate-200">
+              <UserProfileMenu onNavigate={handleNavigate} showName compact />
+            </div>
           </div>
         </header>
 

@@ -1855,8 +1855,28 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 baselineTotalizer: tankData.baseline_totalizer
             });
 
-            const { data: transData } = await supabase.from('fuel_transactions').select('*');
-            if (transData) setFuelTransactions(transData.map((t: any) => ({
+            // Fetch fuel transactions with pagination to bypass 1000 limit
+            let allTransData: any[] = [];
+            let transOffset = 0;
+            const transPageSize = 1000;
+            let transHasMore = true;
+
+            while (transHasMore) {
+                const { data } = await supabase.from('fuel_transactions')
+                    .select('*')
+                    .order('timestamp', { ascending: false })
+                    .range(transOffset, transOffset + transPageSize - 1);
+                
+                if (data && data.length > 0) {
+                    allTransData = [...allTransData, ...data];
+                    transOffset += transPageSize;
+                    if (data.length < transPageSize) transHasMore = false;
+                } else {
+                    transHasMore = false;
+                }
+            }
+
+            setFuelTransactions(allTransData.map((t: any) => ({
                 ...t,
                 driverId: t.driver_id,
                 vehicleId: resolveVehicleIdFromLegacyRef(t.vehicle_id) || t.vehicle_id,
@@ -1871,8 +1891,40 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 receiptUrl: t.receipt_url
             })));
 
-            const { data: refillData } = await supabase.from('tank_refills').select('*');
-            if (refillData) setTankRefills(refillData.map((r: any) => ({ ...r, litersAdded: r.liters_added, levelBefore: r.level_before, levelAfter: r.level_after, totalSpentSinceLast: r.total_spent_since_last, pumpMeterReading: r.pump_meter_reading, systemExpectedReading: r.system_expected_reading, staffId: r.staff_id, staffName: r.staff_name, pricePerLiter: r.price_per_liter, totalCost: r.total_cost })));
+            // Fetch tank refills with pagination
+            let allRefillsData: any[] = [];
+            let refillsOffset = 0;
+            const refillsPageSize = 500;
+            let refillsHasMore = true;
+
+            while (refillsHasMore) {
+                const { data } = await supabase.from('tank_refills')
+                    .select('*')
+                    .order('timestamp', { ascending: false })
+                    .range(refillsOffset, refillsOffset + refillsPageSize - 1);
+                
+                if (data && data.length > 0) {
+                    allRefillsData = [...allRefillsData, ...data];
+                    refillsOffset += refillsPageSize;
+                    if (data.length < refillsPageSize) refillsHasMore = false;
+                } else {
+                    refillsHasMore = false;
+                }
+            }
+
+            setTankRefills(allRefillsData.map((r: any) => ({ 
+                ...r, 
+                litersAdded: r.liters_added, 
+                levelBefore: r.level_before, 
+                levelAfter: r.level_after, 
+                totalSpentSinceLast: r.total_spent_since_last, 
+                pumpMeterReading: r.pump_meter_reading, 
+                systemExpectedReading: r.system_expected_reading, 
+                staffId: r.staff_id, 
+                staffName: r.staff_name, 
+                pricePerLiter: r.price_per_liter, 
+                totalCost: r.total_cost 
+            })));
 
             // 6. Admin Users (Only if admin)
             const { data: admins } = await supabase.from('admin_users').select('*');
@@ -2510,8 +2562,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             last_refill_date: tank.lastRefillDate,
             average_price: tank.averagePrice,
             baseline_date: tank.baselineDate,
-            baseline_level: tank.baselineLevel,
-            baseline_totalizer: tank.baselineTotalizer
+            baseline_level: tank.baselineLevel
         });
         if (error) {
             console.error("Erro ao atualizar tanque:", error);
@@ -2556,18 +2607,13 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             ? Number(((transaction.liters / (transaction.km - lastTxForCons.km)) * 100).toFixed(2))
             : undefined;
 
-        // If explicitly confirmed AND NOT EXTERNAL, calculate tank updates immediately
+        // If explicitly confirmed AND NOT EXTERNAL, calculate tank updates
+        pumpCounterAfter = undefined;
+        let newLevel: number | undefined = undefined;
         if (finalStatus === 'confirmed' && !transaction.isExternal) {
             const currentTotalizer = fuelTank.pumpTotalizer || 0;
             pumpCounterAfter = currentTotalizer + transaction.liters;
-            const newLevel = Math.max(0, fuelTank.currentLevel - transaction.liters);
-
-            // Update Tank immediately
-            await updateFuelTank({
-                ...fuelTank,
-                currentLevel: newLevel,
-                pumpTotalizer: pumpCounterAfter
-            });
+            newLevel = Math.max(0, fuelTank.currentLevel - transaction.liters);
         }
 
         const transactionToSave: FuelTransaction = {
@@ -2587,7 +2633,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
         const { error: insertError } = await supabase.from('fuel_transactions').insert({
             id: transactionToSave.id,
-            driver_id: transactionToSave.driverId,
+            driver_id: isUuid(transactionToSave.driverId) ? transactionToSave.driverId : null,
             vehicle_id: isUuid(transactionToSave.vehicleId) ? transactionToSave.vehicleId : null,
             liters: transactionToSave.liters,
             km: transactionToSave.km,
@@ -2606,6 +2652,15 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
         if (insertError) {
             throw new Error(`Erro na base de dados: ${insertError.message}`);
+        }
+
+        // Update Tank immediately AFTER successful insert
+        if (finalStatus === 'confirmed' && !transaction.isExternal && pumpCounterAfter !== undefined && newLevel !== undefined) {
+            await updateFuelTank({
+                ...fuelTank,
+                currentLevel: newLevel,
+                pumpTotalizer: pumpCounterAfter
+            });
         }
 
         setFuelTransactions(prev => [transactionToSave, ...prev]);

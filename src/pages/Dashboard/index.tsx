@@ -1,15 +1,18 @@
 import ApprovalsModal from './modals/ApprovalsModal';
-import PageHeader from '../../components/common/PageHeader';
 import { useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import { useWorkshop } from '../../contexts/WorkshopContext';
-import KPICard from './widgets/KPICard';
 import FleetStatusChart from './widgets/FleetStatusChart';
 import RevenueChart from './widgets/RevenueChart';
 import ActivityTable from './widgets/ActivityTable';
 import QuickActions from './widgets/QuickActions';
+
+// Novos componentes Frota UI
+import { FrotaPageHeader } from '../../components/ui/frota/FrotaPageHeader';
+import { FrotaKPI } from '../../components/ui/frota/FrotaKPI';
+import { FrotaCard } from '../../components/ui/frota/FrotaCard';
 
 import {
     User,
@@ -19,13 +22,11 @@ import {
     Activity,
 } from 'lucide-react';
 
-
 export default function Dashboard({
     setActiveTab
 }: {
     setActiveTab: (tab: any) => void;
 }) {
-
     const { userRole, currentUser } = useAuth();
     const { hasAccess } = usePermissions();
     const { notifications, motoristas, servicos, viaturas } = useWorkshop();
@@ -62,167 +63,125 @@ export default function Dashboard({
     const hour = new Date().getHours();
     const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
 
-    // --- Modals ---
     const [showApprovalsModal, setShowApprovalsModal] = useState(false);
     const isAndroidNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
 
     return (
-        <div className="frota-page frota-page--dashboard android-native-dashboard w-full min-w-0 space-y-6 animate-in fade-in duration-700">
-            {/* ... Modal ... */}
+        <div className="w-full min-w-0 flex flex-col space-y-6 animate-in fade-in duration-700">
             {hasAccess(userRole, 'equipa-oficina') && (
                 <ApprovalsModal isOpen={showApprovalsModal} onClose={() => setShowApprovalsModal(false)} />
             )}
 
-            {isAndroidNative && (
-                <section className="android-native-dashboard-brand">
-                    <div className="android-native-dashboard-brand-head">
-                        <img src="LOGO.png?v=3" alt="Algartempo Frota" className="android-native-dashboard-brand-logo" />
-                        <div>
-                            <p className="android-native-dashboard-brand-kicker">Aplicação Operacional</p>
-                            <h2 className="android-native-dashboard-brand-title">Centro de Comando</h2>
-                        </div>
-                    </div>
-
-                    <button
-                        onClick={() => setActiveTab('requisicoes')}
-                        className="android-native-dashboard-brand-cta"
-                    >
-                        Novo Serviço
-                    </button>
-                </section>
-            )}
-
-            <PageHeader
-                title={<span className="flex items-center gap-3">
-                    <span className="text-slate-500">{greeting},</span>
-                    <span className="text-slate-900">{currentUser?.nome?.split(' ')[0] || 'Gestor'}</span>
-                </span>}
-                subtitle="Visão operacional do sistema com leitura rápida e consistente."
-                icon={Activity}
+            <FrotaPageHeader
+                title={`${greeting}, ${currentUser?.nome?.split(' ')[0] || 'Gestor'}`}
+                subtitle="Visão global e controlo operacional da frota."
+                icon={<Activity className="w-6 h-6" />}
                 actions={
-                    <div className="flex items-center gap-3 bg-slate-50 p-2 pr-4 rounded-xl border border-slate-200 shadow-sm">
-                        <div className="p-2 bg-blue-50 rounded-lg">
-                            <Calendar className="w-5 h-5 text-blue-600" />
+                    <div className="flex items-center gap-3 bg-white p-2 pr-4 rounded-xl border border-slate-200/80 shadow-sm">
+                        <div className="p-2 bg-slate-50 rounded-lg">
+                            <Calendar className="w-5 h-5 text-slate-500" />
                         </div>
                         <div className="text-sm">
-                            <p className="text-slate-900 font-bold">{new Date().toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'short' })}</p>
+                            <p className="text-slate-900 font-bold tracking-tight">
+                                {new Date().toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'short' })}
+                            </p>
                         </div>
                     </div>
                 }
             />
 
-            <div className="frota-page-body p-3 md:p-8 space-y-5 md:space-y-8">
-
-                {/* DASHBOARD GRID */}
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-6 auto-rows-min">
-
-                    {/* 1. KPIs Row */}
+            {/* DASHBOARD GRID */}
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 md:gap-6 auto-rows-min">
+                
+                {/* 1. KPIs Row */}
+                <div className="xl:col-span-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                     {hasAccess(userRole, 'requisicoes') && (
-                        <div className="w-full min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-0">
-                            <KPICard
-                                title="Serviços Ativos"
-                                value={activeServices}
-                                icon={Activity}
-                                color="blue"
-                                trend={todayServices > 0 ? `+${todayServices} hoje` : undefined}
-                                trendType="up"
-                                subtext="em tempo real"
-                            />
-                        </div>
+                        <FrotaKPI
+                            title="Serviços Ativos"
+                            value={activeServices}
+                            icon={<Activity className="w-5 h-5" />}
+                            trend={todayServices}
+                            trendLabel="hoje"
+                            trendType="good"
+                        />
                     )}
 
                     {hasAccess(userRole, 'viaturas') && (
-                        <div className="w-full min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-75">
-                            <KPICard
-                                title="Frota Disponível"
-                                value={`${availableVehicles}`}
-                                subtext={`/ ${totalVehicles}`}
-                                icon={Bus}
-                                color="emerald"
-                                trendType="neutral"
-                            />
-                        </div>
+                        <FrotaKPI
+                            title="Frota Disponível"
+                            value={`${availableVehicles} / ${totalVehicles}`}
+                            icon={<Bus className="w-5 h-5" />}
+                        />
                     )}
 
                     {hasAccess(userRole, 'motoristas') && (
-                        <div className="w-full min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
-                            <KPICard
-                                title="Motoristas Livres"
-                                value={activeDrivers}
-                                subtext={`/ ${totalDrivers}`}
-                                icon={User}
-                                color="indigo"
-                                trendType="neutral"
-                            />
-                        </div>
-                    )}
-
-                    {/* Approvals / Alerts */}
-                    <div className="w-full min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
-                        {userRole === 'admin' && pendingRegistrations > 0 ? (
-                            <div className="bg-white border border-amber-200 rounded-2xl p-6 h-full flex flex-col justify-between shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)]">
-                                <div>
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className="p-3 rounded-xl bg-amber-50 text-amber-600">
-                                            <User className="w-6 h-6" />
-                                        </div>
-                                        <span className="bg-amber-50 text-amber-700 text-xs font-bold px-2 py-1 rounded-full border border-amber-200">Ação Necessária</span>
-                                    </div>
-                                    <h3 className="text-slate-900 font-bold text-lg mt-2">Aprovações Pendentes</h3>
-                                    <p className="text-slate-600 text-sm mt-1">{pendingRegistrations} novos utilizadores</p>
-                                </div>
-                                <button
-                                    onClick={() => setShowApprovalsModal(true)}
-                                    className="w-full py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-sm font-bold shadow-lg shadow-amber-900/20 transition-all mt-4"
-                                >
-                                    Rever Agora
-                                </button>
-                            </div>
-                        ) : (
-                            <KPICard
-                                title="Alertas Urgentes"
-                                value={urgentRequests}
-                                icon={AlertTriangle}
-                                color="red"
-                                trendType={urgentRequests > 0 ? "down" : "neutral"}
-                            />
-                        )}
-                    </div>
-
-                    {/* 2. Charts & Widgets Row */}
-
-                    {/* Quick Actions - 1 Col */}
-                    <div className="w-full min-w-0 xl:col-span-1 h-full min-h-[220px] md:min-h-[300px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
-                        <QuickActions
-                            onNewService={() => setActiveTab('requisicoes')}
-                            onNewClient={() => setActiveTab('clientes')}
-                            onNewVehicle={() => setActiveTab('viaturas')}
+                        <FrotaKPI
+                            title="Motoristas Livres"
+                            value={`${activeDrivers} / ${totalDrivers}`}
+                            icon={<User className="w-5 h-5" />}
                         />
-                    </div>
-
-                    {/* Fleet Status Chart - 1 Col */}
-                    {hasAccess(userRole, 'viaturas') && (
-                        <div className="w-full min-w-0 xl:col-span-1 h-full min-h-[220px] md:min-h-[300px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
-                            <FleetStatusChart
-                                total={totalVehicles}
-                                available={availableVehicles}
-                                maintenance={maintenanceVehicles}
-                                active={activeVehicles}
-                            />
-                        </div>
                     )}
 
-                    {/* Revenue Chart - 2 Cols */}
-                    <div className="w-full min-w-0 xl:col-span-2 h-full min-h-[220px] md:min-h-[300px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400">
-                        <RevenueChart services={servicos} />
-                    </div>
-
-                    {/* 3. Activity Table - Full Width */}
-                    <div className="w-full min-w-0 col-span-1 xl:col-span-3 h-full min-h-[260px] md:min-h-[400px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-500">
-                        <ActivityTable items={activityItems} />
-                    </div>
-
+                    {userRole === 'admin' && pendingRegistrations > 0 ? (
+                        <div className="bg-amber-500 border border-amber-600 rounded-2xl p-5 shadow-sm flex flex-col justify-between relative overflow-hidden text-white">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="p-2.5 bg-amber-400/30 rounded-xl">
+                                    <User className="w-5 h-5 text-white" />
+                                </div>
+                                <span className="bg-white/20 text-white text-[10px] font-bold px-2 py-1 rounded-md border border-white/20 uppercase tracking-wider">Ação</span>
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-black tracking-tight">{pendingRegistrations}</h3>
+                                <p className="text-sm font-medium text-amber-100 mt-1">Aprovações Pendentes</p>
+                            </div>
+                            <button
+                                onClick={() => setShowApprovalsModal(true)}
+                                className="absolute inset-0 w-full h-full cursor-pointer opacity-0"
+                            />
+                        </div>
+                    ) : (
+                        <FrotaKPI
+                            title="Alertas Urgentes"
+                            value={urgentRequests}
+                            icon={<AlertTriangle className="w-5 h-5" />}
+                            trendType="bad"
+                        />
+                    )}
                 </div>
+
+                {/* 2. Charts & Widgets Row */}
+                
+                {/* Fleet Status Chart */}
+                {hasAccess(userRole, 'viaturas') && (
+                    <FrotaCard noPadding className="w-full min-w-0 xl:col-span-1 min-h-[300px]">
+                        <FleetStatusChart
+                            total={totalVehicles}
+                            available={availableVehicles}
+                            maintenance={maintenanceVehicles}
+                            active={activeVehicles}
+                        />
+                    </FrotaCard>
+                )}
+
+                {/* Revenue Chart */}
+                <FrotaCard noPadding className="w-full min-w-0 xl:col-span-2 min-h-[300px]">
+                    <RevenueChart services={servicos} />
+                </FrotaCard>
+
+                {/* Quick Actions */}
+                <FrotaCard noPadding className="w-full min-w-0 xl:col-span-1 min-h-[300px]">
+                    <QuickActions
+                        onNewService={() => setActiveTab('requisicoes')}
+                        onNewClient={() => setActiveTab('clientes')}
+                        onNewVehicle={() => setActiveTab('viaturas')}
+                    />
+                </FrotaCard>
+
+                {/* 3. Activity Table - Full Width */}
+                <FrotaCard noPadding className="w-full min-w-0 xl:col-span-4 min-h-[400px]">
+                    <ActivityTable items={activityItems} />
+                </FrotaCard>
+
             </div>
         </div>
     );

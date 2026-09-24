@@ -36,8 +36,14 @@ const formatCurrency = (value: number) => new Intl.NumberFormat('pt-PT', {
 
 const rowAmount = (row: ClientHistoryRow) => Number(row.custo ?? row.approved_value ?? 0);
 
-export default function ClientProfile() {
-  const { clientId } = useParams();
+interface ClientProfileProps {
+  id?: string;
+  isDrawer?: boolean;
+}
+
+export default function ClientProfile({ id, isDrawer }: ClientProfileProps) {
+  const params = useParams();
+  const clientId = id || params.clientId;
   const [loading, setLoading] = useState(true);
   const [client, setClient] = useState<ClientInfo | null>(null);
   const [history, setHistory] = useState<ClientHistoryRow[]>([]);
@@ -133,12 +139,14 @@ export default function ClientProfile() {
           <h1 className="text-2xl font-black text-slate-900">Perfil Financeiro do Cliente</h1>
           <p className="text-sm text-slate-400">{client.nome} • NIF {client.nif || '-'}</p>
         </div>
-        <Link
-          to="/clientes"
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-4 py-2 text-sm text-slate-900 hover:bg-slate-700"
-        >
-          <ArrowLeft className="h-4 w-4" /> Voltar
-        </Link>
+        {!isDrawer && (
+          <Link
+            to="/clientes"
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-4 py-2 text-sm text-slate-900 hover:bg-slate-700"
+          >
+            <ArrowLeft className="h-4 w-4" /> Voltar
+          </Link>
+        )}
       </div>
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-3">

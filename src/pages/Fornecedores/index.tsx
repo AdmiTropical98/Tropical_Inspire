@@ -6,6 +6,8 @@ import { useTranslation } from '../../hooks/useTranslation';
 import PageHeader from '../../components/common/PageHeader';
 import { Building2 as BuildingIcon } from 'lucide-react';
 import type { Fornecedor } from '../../types';
+import { FrotaDrawer } from '../../components/ui/frota/FrotaDrawer';
+import SupplierProfile from './SupplierProfile';
 
 export default function Fornecedores() {
     const { fornecedores, addFornecedor, updateFornecedor, deleteFornecedor, requisicoes } = useWorkshop();
@@ -13,6 +15,7 @@ export default function Fornecedores() {
     const [showForm, setShowForm] = useState(false);
     const [filter, setFilter] = useState('');
     const [editingSupplier, setEditingSupplier] = useState<Fornecedor | null>(null);
+    const [selectedDrawerSupplierId, setSelectedDrawerSupplierId] = useState<string | null>(null);
     const [isSavingEdit, setIsSavingEdit] = useState(false);
 
     const [formData, setFormData] = useState<Omit<Fornecedor, 'id'>>({
@@ -274,12 +277,12 @@ export default function Fornecedores() {
                                             <Pencil className="h-3.5 w-3.5" />
                                             Editar
                                         </button>
-                                        <Link
-                                            to={`/fornecedores/${fornecedor.id}`}
-                                            className="inline-flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-300 hover:bg-blue-500/20"
+                                        <button
+                                            onClick={() => setSelectedDrawerSupplierId(fornecedor.id)}
+                                            className="inline-flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-500/20 transition-colors"
                                         >
                                             Ver perfil financeiro
-                                        </Link>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -391,6 +394,16 @@ export default function Fornecedores() {
                     </div>
                 </div>
             )}
+
+            <FrotaDrawer
+                isOpen={!!selectedDrawerSupplierId}
+                onClose={() => setSelectedDrawerSupplierId(null)}
+                size="full"
+            >
+                {selectedDrawerSupplierId && (
+                    <SupplierProfile id={selectedDrawerSupplierId} isDrawer={true} />
+                )}
+            </FrotaDrawer>
         </div>
     );
 }

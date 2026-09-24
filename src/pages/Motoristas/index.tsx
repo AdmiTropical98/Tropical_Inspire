@@ -5,6 +5,7 @@ import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { Motorista } from '../../types';
 import DriverProfile from './DriverProfile';
+import { FrotaDrawer } from '../../components/ui/frota/FrotaDrawer';
 import UserPermissionsModal from '../Permissoes/UserPermissionsModal';
 
 export default function Motoristas() {
@@ -174,12 +175,18 @@ export default function Motoristas() {
 
     return (
         <div className="frota-page frota-page--motoristas space-y-8 fade-in">
-            {selectedDriver && (
-                <DriverProfile
-                    motorista={selectedDriver}
-                    onClose={() => setSelectedDriver(null)}
-                />
-            )}
+            <FrotaDrawer
+                isOpen={!!selectedDriver}
+                onClose={() => setSelectedDriver(null)}
+                size="full"
+            >
+                {selectedDriver && (
+                    <DriverProfile
+                        motorista={selectedDriver}
+                        onClose={() => setSelectedDriver(null)}
+                    />
+                )}
+            </FrotaDrawer>
 
             {permissionUser && (
                 <UserPermissionsModal

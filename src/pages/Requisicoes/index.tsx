@@ -23,6 +23,9 @@ import RequisitionInvoiceSection from './RequisitionInvoiceSection';
 import { emailService } from '../../services/emailService';
 import { useFinancial } from '../../contexts/FinancialContext';
 import { supabase } from '../../lib/supabase';
+import { FrotaPageHeader } from '../../components/ui/frota/FrotaPageHeader';
+import { FrotaKPI } from '../../components/ui/frota/FrotaKPI';
+import { FrotaCard } from '../../components/ui/frota/FrotaCard';
 
 type BulkPreviewRow = {
     lineNumber: number;
@@ -696,9 +699,67 @@ export default function Requisicoes() {
     const handleGridPaste = (e: React.ClipboardEvent) => {
         const text = e.clipboardData.getData('text/plain');
         if (!text.trim()) return;
+        e.preventDefault();
+
+        // ── Detetar se é mensagem de texto corrido (WhatsApp / SMS) ──────────────
+        // Uma mensagem estruturada tem tabulações ou ponto-e-vírgula como delimitadores.
+        // Se não tiver, tratamos como mensagem livre.
+        const hasStructuredDelimiter = text.includes('\t') || /;/.test(text);
+
+        if (!hasStructuredDelimiter) {
+            // Parser de mensagem livre (WhatsApp / chat)
+            // Exemplos suportados:
+            //   "18UX63 FIAAL. Filtros de ar e óleo. Requisição R26/0158"
+            //   "18UX63 - Filtros, pastilhas. Req 26/0158"
+
+            // 1) Nº de requisição: "Requisição R26/0158", "Req 26/0158", ou apenas "R26/0158" / "26/0158"
+            const reqMatch =
+                text.match(/[Rr]equisi[çc][aã]o\s+(R?\d+\/\d+)/i) ||
+                text.match(/[Rr]eq\.?\s+(R?\d+\/\d+)/i) ||
+                text.match(/\b(R\d+\/\d+)\b/) ||
+                text.match(/\b(\d{2,}\/\d{3,})\b/);
+            const numero = reqMatch ? reqMatch[1].replace(/^R/i, '') : '';
+
+            // 2) Matrícula: padrão português XX-XX-XX ou sem hífens (ex. 18UX63, AB1234)
+            const plateMatch = text.match(/\b([A-Z]{2}\d{2}[A-Z]{2}|\d{2}[A-Z]{2}\d{2}|\d{2}\d{2}[A-Z]{2}|[A-Z]{2}\d{4}|[A-Z0-9]{5,8})\b/);
+            const viatura = plateMatch ? plateMatch[1] : '';
+
+            // 3) Descrição: remover matrícula e nº de requisição do texto, limpar pontuação extra
+            let descricao = text
+                .replace(/[Rr]equisi[çc][aã]o\s+R?\d+\/\d+/gi, '')
+                .replace(/[Rr]eq\.?\s+R?\d+\/\d+/gi, '')
+                .replace(/\bR\d+\/\d+\b/g, '')
+                .replace(/\b\d{2,}\/\d{3,}\b/g, '')
+                .replace(viatura ? new RegExp(`\\b${viatura}\\b`, 'gi') : /(?!x)x/, '')
+                .replace(/\s{2,}/g, ' ')
+                .replace(/^[\s.\-,]+|[\s.\-,]+$/g, '')
+                .trim();
+
+            const newRow: EditableBulkRow = {
+                id: crypto.randomUUID(),
+                numero,
+                data: new Date().toLocaleDateString('pt-PT'),
+                viatura,
+                departamento: '',
+                descricao,
+                quantidade: '1',
+                valor: '',
+                observacoes: text.trim(), // mensagem original nas observações
+                errors: [],
+                warnings: [],
+                status: 'idle' as const
+            };
+
+            setBulkGridRows(prev => {
+                const base = prev.filter(r => r.descricao.trim() || r.numero.trim());
+                return [...base, newRow];
+            });
+            return;
+        }
+
+        // ── Lógica original: texto estruturado (Excel / CSV) ─────────────────────
         const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
         if (lines.length === 0) return;
-        e.preventDefault();
 
         const newRows: EditableBulkRow[] = lines.map(line => {
             const delimiter = line.includes('\t') ? '\t' : line.includes(';') ? ';' : '|';
@@ -1888,45 +1949,37 @@ export default function Requisicoes() {
         return parseInt(numB) - parseInt(numA);
     });
 
-    return (
-        <div className="frota-page frota-page--requisicoes min-h-screen bg-[#f8fafc] p-4 md:p-8">
-            <div className="frota-page-body max-w-[1600px] mx-auto space-y-8">
-                {/* Header Section */}
-                <div className="frota-page-header flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-3">
-                            <div className="p-3 bg-blue-600 rounded-2xl shadow-lg shadow-blue-200">
-                                <ClipboardCheck className="w-8 h-8 text-white" />
-                            </div>
-                            <div>
-                                <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                                    Gestão de Requisições
-                                </h1>
-                                <p className="text-slate-500 font-medium flex items-center gap-2">
-                                    Controlo e acompanhamento de pedidos de material
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+// Fix imports
+// import { FrotaPageHeader } from '../../components/ui/frota/FrotaPageHeader';
+// I'll run another replace to add imports
 
-                    <div className="frota-page-toolbar flex items-center gap-3">
+    return (
+        <div className="frota-page frota-page--requisicoes w-full min-w-0 flex flex-col space-y-6 animate-in fade-in duration-500">
+            <FrotaPageHeader
+                title="Gestão de Requisições"
+                subtitle="Controlo e acompanhamento de pedidos de material"
+                icon={<ClipboardCheck className="w-6 h-6" />}
+                actions={
+                    <div className="flex items-center gap-3">
                         <button
                             onClick={() => refreshData()}
-                            className={`p-3 rounded-2xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all ${isRefreshing ? 'animate-spin' : ''}`}
+                            className={`p-3 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all shadow-sm ${isRefreshing ? 'animate-spin' : ''}`}
                             title="Atualizar dados"
                         >
                             <RotateCcw className="w-5 h-5" />
                         </button>
                         <button
                             onClick={() => setActiveTab('create')}
-                            className="flex items-center gap-2 px-6 py-3.5 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-blue-200"
+                            className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-sm"
                         >
                             <Plus className="w-5 h-5" />
                             Nova Requisição
                         </button>
                     </div>
-                </div>
+                }
+            />
 
+            <div className="px-4 md:px-8 space-y-8">
                 {/* Main Navigation Tabs */}
                 <div className="frota-segmented-tabs flex p-1.5 bg-slate-100/80 rounded-[2rem] w-fit backdrop-blur-sm border border-slate-200/50">
                     <button
@@ -1966,76 +2019,38 @@ export default function Requisicoes() {
                 { activeTab === 'overview' && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* Content ... */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <div
-                                className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-500/20 p-6 rounded-[2rem] relative overflow-hidden group hover:border-amber-500/40 transition-all cursor-pointer"
-                                onClick={() => { setActiveTab('list'); setListFilter('pendentes'); }}
-                            >
-                                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                                    <Clock className="w-24 h-24 text-amber-500" />
-                                </div>
-                                <div className="relative z-10">
-                                    <h3 className="text-amber-700 text-xs font-bold uppercase tracking-wider mb-2">Pendentes</h3>
-                                    <p className="text-4xl font-black text-slate-900 mb-4">{stats.pending}</p>
-                                    <div className="flex items-center gap-2 text-amber-700 text-xs font-bold px-3 py-1.5 bg-amber-500/10 w-fit rounded-lg border border-amber-500/20">
-                                        <AlertCircle className="w-3.5 h-3.5" />
-                                        A aguardar aprovação
-                                    </div>
-                                </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div onClick={() => { setActiveTab('list'); setListFilter('pendentes'); }} className="cursor-pointer">
+                                <FrotaKPI
+                                    title="Pendentes"
+                                    value={stats.pending}
+                                    icon={<Clock className="w-5 h-5" />}
+                                    color="amber"
+                                    trendType="neutral"
+                                    subtext="A aguardar aprovação"
+                                />
                             </div>
 
-                            <div
-                                className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border border-emerald-500/20 p-6 rounded-[2rem] relative overflow-hidden group hover:border-emerald-500/40 transition-all cursor-pointer"
-                                onClick={() => { setActiveTab('list'); setListFilter('historico'); }}
-                            >
-                                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                                    <CheckCircle className="w-24 h-24 text-emerald-500" />
-                                </div>
-                                <div className="relative z-10">
-                                    <h3 className="text-emerald-700 text-xs font-bold uppercase tracking-wider mb-2">Concluídas</h3>
-                                    <p className="text-4xl font-black text-slate-900 mb-4">{stats.completed}</p>
-                                    <div className="flex items-center gap-2 text-emerald-700 text-xs font-bold px-3 py-1.5 bg-emerald-500/10 w-fit rounded-lg border border-emerald-500/20">
-                                        <TrendingUp className="w-3.5 h-3.5" />
-                                        Processadas com sucesso
-                                    </div>
-                                </div>
+                            <div onClick={() => { setActiveTab('list'); setListFilter('historico'); }} className="cursor-pointer">
+                                <FrotaKPI
+                                    title="Concluídas"
+                                    value={stats.completed}
+                                    icon={<CheckCircle className="w-5 h-5" />}
+                                    color="emerald"
+                                    trendType="neutral"
+                                    subtext="Processadas com sucesso"
+                                />
                             </div>
 
-                            <div
-                                className="bg-gradient-to-br from-blue-500/10 to-indigo-600/5 border border-blue-500/20 p-6 rounded-[2rem] relative overflow-hidden group hover:border-blue-500/40 transition-all cursor-pointer"
-                                onClick={() => { setActiveTab('list'); }}
-                            >
-                                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                                    <Package className="w-24 h-24 text-blue-500" />
-                                </div>
-                                <div className="relative z-10">
-                                    <h3 className="text-blue-700 text-xs font-bold uppercase tracking-wider mb-2">Total</h3>
-                                    <p className="text-4xl font-black text-slate-900 mb-4">{stats.total}</p>
-                                    <div className="flex items-center gap-2 text-blue-700 text-xs font-bold px-3 py-1.5 bg-blue-500/10 w-fit rounded-lg border border-blue-500/20">
-                                        <Calendar className="w-3.5 h-3.5" />
-                                        Requisições criadas
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="bg-white/90 border border-slate-200/70 p-6 rounded-[2rem] flex flex-col justify-center gap-4 relative overflow-hidden">
-                                <div className="absolute inset-0 bg-blue-500/5 opacity-50"></div>
-                                <button
-                                    onClick={() => setActiveTab('create')}
-                                    className="relative w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-md font-bold shadow-xl shadow-blue-900/20 transition-all flex items-center justify-center gap-3 group active:scale-95"
-                                >
-                                    <div className="bg-white/20 p-1 rounded-lg">
-                                        <Plus className="w-5 h-5" />
-                                    </div>
-                                    Criar Nova
-                                    <ArrowRight className="w-5 h-5 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                                </button>
-                                <button
-                                    onClick={() => { setActiveTab('list'); setListFilter('pendentes'); }}
-                                    className="relative w-full py-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-2xl text-md font-bold border border-slate-200 hover:border-slate-300 transition-all active:scale-95"
-                                >
-                                    Ver Pendentes
-                                </button>
+                            <div onClick={() => { setActiveTab('list'); }} className="cursor-pointer">
+                                <FrotaKPI
+                                    title="Total de Requisições"
+                                    value={stats.total}
+                                    icon={<Package className="w-5 h-5" />}
+                                    color="blue"
+                                    trendType="neutral"
+                                    subtext="Requisições criadas"
+                                />
                             </div>
                         </div>
 
@@ -2582,7 +2597,8 @@ export default function Requisicoes() {
                                     {/* Tip bar */}
                                     <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-50 border border-blue-100 text-blue-700 text-xs font-medium">
                                         <AlertCircle className="w-4 h-4 shrink-0" />
-                                        <span>Copie linhas do Excel e faça <kbd className="px-1.5 py-0.5 bg-white border border-blue-200 rounded font-mono text-[11px]">Ctrl+V</kbd> na tabela. Colunas: Nº Req | Data | Departamento | Descrição | Valor | Observações</span>
+                                        <span>Copie linhas do Excel e faça <kbd className="px-1.5 py-0.5 bg-white border border-blue-200 rounded font-mono text-[11px]">Ctrl+V</kbd> na tabela. Colunas: Nº Req | Data | Departamento | Descrição | Valor | Observações<br />
+                                        <span className="text-green-700 font-semibold">💬 Também pode colar mensagens do WhatsApp — a matrícula, nº de requisição e descrição são detetados automaticamente.</span></span>
                                     </div>
 
                                     {/* Excel-like grid */}

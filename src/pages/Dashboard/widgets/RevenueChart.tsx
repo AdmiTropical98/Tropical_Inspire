@@ -42,7 +42,7 @@ export default function RevenueChart({ services = [] }: RevenueChartProps) {
     };
 
     return (
-        <div className="relative bg-white border border-slate-200 rounded-3xl p-6 h-full flex flex-col shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)] overflow-hidden group">
+        <div className="relative h-full flex flex-col overflow-hidden group p-5 sm:p-6 bg-white">
             {/* Background Details */}
             <div className="absolute inset-0 bg-[linear-gradient(rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.08)_1px,transparent_1px)] bg-[size:20px_20px] opacity-60 pointer-events-none" />
 

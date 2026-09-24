@@ -171,6 +171,13 @@ export default function DashboardLanding() {
           gap: '14px',
         }}
       >
+        <button
+          onClick={() => navigate('/tablet')}
+          className="absolute top-6 right-6 z-50 flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2 text-sm font-bold text-white backdrop-blur-md transition-all hover:bg-white/20 border border-white/20"
+        >
+          <Waypoints className="h-4 w-4" />
+          Modo Tablet
+        </button>
         <div
           className="relative overflow-hidden rounded-[35px]"
           style={{

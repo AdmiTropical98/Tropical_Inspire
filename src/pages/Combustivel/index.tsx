@@ -15,7 +15,10 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { excelDateToJSDate } from '../../utils/format';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import PageHeader from '../../components/common/PageHeader';
+import { FrotaPageHeader } from '../../components/ui/frota/FrotaPageHeader';
+import { FrotaKPI } from '../../components/ui/frota/FrotaKPI';
+import { GaugeChart } from '../../components/ui/frota/GaugeChart';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function Combustivel() {
     const navigate = useNavigate();
@@ -48,7 +51,8 @@ export default function Combustivel() {
         driverId: '',
         centroCustoId: '',
         startDate: '',
-        endDate: ''
+        endDate: '',
+        fonte: 'todas'
     });
     const [isManualBPOpen, setIsManualBPOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<any | null>(null);
@@ -199,6 +203,7 @@ export default function Combustivel() {
 
         setBpTransactions(prev => [...prev, newRow]);
         setIsManualBPOpen(false);
+        alert('Atenção: O registo foi adicionado à tabela de importação abaixo.\nTem de o selecionar e clicar em "Importar para a Base de Dados" para que fique guardado definitivamente no histórico!');
         // Reset form but keep date/time/price for convenience? No, unsafe. Reset all.
         setManualBPForm({
             date: new Date().toISOString().split('T')[0],
@@ -677,9 +682,36 @@ export default function Combustivel() {
 
         for (const row of rowsToImport as any[]) {
             try {
+                // Proteção Arquitetural: Rejeição explícita de metadados e subtotais
+                if (row.type && row.type !== 'transaction') {
+                    throw new Error(`Registo ignorado: Objeto classificado como subtotal/total (${row.type})`);
+                }
+
+                const forbidden = [
+                    "Total do Cartão",
+                    "Total FATURA",
+                    "Resumo do IVA",
+                    "Resumo de Produtos",
+                    "CARTÃO Nº"
+                ];
+
+                const rawText = row.rawText || Object.values(row).join(' ');
+                if (forbidden.some(x => rawText.includes(x))) {
+                    throw new Error('Registo ignorado: Contém palavras-chave proibidas de subtotais/cabeçalhos.');
+                }
+
+                // Validação estrita exigida pelo utilizador
+                const plate = row['Matrícula'];
+                const rawData = row['Data'] || row['Dia Hora'] || row._manualDate;
+                const rawLitros = row['Litros'] || row['Quantidade'];
+                const rawPosto = row['Posto'] || row['Local'];
+                
+                if (!plate || !rawData || !rawLitros || !rawPosto) {
+                    throw new Error('Registo ignorado: Falta Data, Matrícula, Litros ou Posto.');
+                }
+
                 // Find Vehicle (Fuzzy Match: Remove spaces, dashes, case insensitive)
                 const normalizePlate = (p: string) => p?.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-                const plate = row['Matrícula'];
                 const cleanPlate = normalizePlate(plate);
                 const vehicle = viaturas.find(v => normalizePlate(v.matricula) === cleanPlate);
 
@@ -1139,6 +1171,45 @@ export default function Combustivel() {
         XLSX.writeFile(wb, `Relatorio_Auditoria_Combustivel_${new Date().toISOString().split('T')[0]}.xlsx`);
     };
 
+    const exportFilteredHistoryToExcel = () => {
+        const filteredTxs = fuelTransactions.filter(tx => {
+            const matchesVehicle = !filters.vehicleId || tx.vehicleId === filters.vehicleId;
+            const matchesCC = !filters.centroCustoId || tx.centroCustoId === filters.centroCustoId;
+            const matchesDate = !filters.startDate || (tx.timestamp || '').startsWith(filters.startDate);
+            const matchesFonte = filters.fonte === 'todas' || (filters.fonte === 'interna' && !tx.isExternal) || (filters.fonte === 'externa' && tx.isExternal);
+            return matchesVehicle && matchesCC && matchesDate && matchesFonte;
+        });
+
+        if (filteredTxs.length === 0) {
+            alert('Não há registos para exportar com os filtros atuais.');
+            return;
+        }
+
+        const dataToExport = filteredTxs.map(tx => {
+            const driver = motoristas.find(m => m.id === tx.driverId);
+            const vehicle = viaturas.find(v => v.id === tx.vehicleId);
+            const cc = centrosCustos.find(c => c.id === tx.centroCustoId);
+
+            return {
+                'Data': new Date(tx.timestamp).toLocaleString(),
+                'Fonte': tx.isExternal ? 'BP' : 'Oficina',
+                'Motorista': driver?.nome || 'N/A',
+                'Viatura': vehicle?.matricula || tx.vehicleId,
+                'Centro de Custo': cc?.nome || 'N/A',
+                'Km': tx.km || 'N/A',
+                'Litros': tx.liters,
+                'Preço/L (€)': tx.pricePerLiter || 0,
+                'Custo Total (€)': tx.totalCost || 0
+            };
+        });
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        XLSX.utils.book_append_sheet(wb, ws, "Histórico");
+
+        XLSX.writeFile(wb, `Historico_Abastecimentos_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
     const exportWorkshopRefuelSheetPDF = () => {
         const doc = new jsPDF('l', 'mm', 'a4');
         const pageWidth = doc.internal.pageSize.getWidth();
@@ -1278,339 +1349,395 @@ export default function Combustivel() {
 
     return (
         <div className="combustivel-page android-native-fuel w-full min-w-0 space-y-6 animate-in fade-in duration-500">
-            <PageHeader
-                title={t('fuel.title')}
-                subtitle={t('fuel.subtitle')}
-                icon={Fuel}
-            >
-                <div className="combustivel-tabs flex flex-wrap md:flex-nowrap bg-slate-100 p-1.5 rounded-2xl border border-slate-200 backdrop-blur-md shadow-lg overflow-x-auto max-w-full scrollbar-none">
-                    {[
-                        { id: 'overview', icon: LayoutTemplate, label: 'Geral' },
-                        { id: 'abastecer', icon: Fuel, label: 'Abastecer' },
-                        { id: 'tanque', icon: Droplets, label: 'Tanque' },
-                        { id: 'historico', icon: History, label: 'Histórico' },
-                        { id: 'bp', icon: FileSpreadsheet, label: 'BP' },
-                        { id: 'relatorios', icon: BarChart3, label: 'Relatórios' },
-                    ].map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            className={`flex items-center gap-2 px-3 md:px-5 py-3 rounded-xl font-bold transition-all whitespace-nowrap text-sm
-                            ${activeTab === tab.id
-                                    ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/20'
-                                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
-                        >
-                            <tab.icon className="w-4 h-4" />
-                            {tab.label}
-                        </button>
-                    ))}
-                </div>
-            </PageHeader>
+            {activeTab !== 'overview' && (
+                <button
+                    onClick={() => setActiveTab('overview')}
+                    className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors font-bold mb-4"
+                >
+                    <X className="w-5 h-5" />
+                    Fechar e voltar
+                </button>
+            )}
 
-            <div className="fuel-content p-3 md:p-8 space-y-5 md:space-y-8">
-
-                {/* Content Area */}
-
-                {/* OVERVIEW TAB */}
+            {/* OVERVIEW TAB */}
+            <div className="fuel-content space-y-5 md:space-y-8">
                 {activeTab === 'overview' && (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="surface-card p-5 sm:p-6 lg:p-8 space-y-6">
-                            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
-                                <div>
-                                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">Gestão de Combustível</h2>
-                                    <p className="text-slate-500 font-medium">Painel operacional para consumo, stock e eficiência</p>
+                    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+                        
+                        {/* Header & Filters Block */}
+                        <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-6 pb-4 border-b border-slate-200">
+                            <div>
+                                <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                                    <button onClick={() => window.history.back()} className="text-blue-600 hover:text-blue-700 transition-colors">
+                                        <span className="text-xl">←</span>
+                                    </button>
+                                    COMBUSTÍVEIS
+                                </h1>
+                                <h2 className="text-xl font-bold text-slate-800 mt-2">Gestão de Combustível</h2>
+                                <p className="text-slate-500 font-medium text-sm">Controlo de tanque e registo de abastecimentos em tempo real</p>
+                            </div>
+
+                            <div className="flex flex-col items-end gap-4">
+                                {/* Top Actions */}
+                                <div className="flex items-center gap-4 text-sm font-bold text-slate-600">
+                                    <button onClick={exportFilteredHistoryToExcel} className="hover:text-blue-600 transition-colors flex items-center gap-2"><Download className="w-4 h-4"/> Exportar</button>
+                                    <span className="text-slate-300">|</span>
+                                    <button className="hover:text-blue-600 transition-colors flex items-center gap-2"><div className="relative"><AlertCircle className="w-4 h-4"/><div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div></div> Notificações</button>
+                                    <span className="text-slate-300">|</span>
+                                    <span className="flex items-center gap-2"><div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[10px]">AD</div> Utilizador</span>
+                                    <span className="text-slate-300">|</span>
+                                    <span className="flex items-center gap-2 text-emerald-600"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Sincronizado agora</span>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
-                                    <div className="relative">
-                                        <Car className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                        <select
-                                            value={selectedViaturaId}
-                                            onChange={(e) => setSelectedViaturaId(e.target.value)}
-                                            className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-3 py-3 text-base md:text-sm text-slate-700 focus:border-blue-400 outline-none"
-                                        >
-                                            <option value="">Todas as viaturas</option>
-                                            {viaturas.map(v => (
-                                                <option key={v.id} value={v.id}>{v.matricula}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
+                                {/* Filters */}
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <select
+                                        value={selectedViaturaId}
+                                        onChange={(e) => setSelectedViaturaId(e.target.value)}
+                                        className="bg-transparent border-none text-sm font-bold text-slate-700 focus:ring-0 outline-none cursor-pointer py-1"
+                                    >
+                                        <option value="">Todas as viaturas</option>
+                                        {viaturas.map(v => <option key={v.id} value={v.id}>{v.matricula}</option>)}
+                                    </select>
+                                    <span className="text-slate-200">|</span>
                                     <select
                                         value={filters.driverId}
                                         onChange={(e) => setFilters(prev => ({ ...prev, driverId: e.target.value }))}
-                                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-3 text-base md:text-sm text-slate-700 focus:border-blue-400 outline-none"
+                                        className="bg-transparent border-none text-sm font-bold text-slate-700 focus:ring-0 outline-none cursor-pointer py-1"
                                     >
                                         <option value="">Todos os motoristas</option>
                                         {motoristas.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
                                     </select>
-
-                                    <input
-                                        type="date"
-                                        value={filters.startDate}
-                                        onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-3 text-base md:text-sm text-slate-700 focus:border-blue-400 outline-none"
-                                    />
-
+                                    <span className="text-slate-200">|</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-bold text-slate-700">Período</span>
+                                        <input
+                                            type="date"
+                                            value={filters.startDate}
+                                            onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                                            className="bg-transparent border-none text-sm font-bold text-slate-700 focus:ring-0 outline-none p-0"
+                                        />
+                                    </div>
+                                    <span className="text-slate-200">|</span>
                                     <select
                                         value={fuelSourceFilter}
                                         onChange={(e) => setFuelSourceFilter(e.target.value as any)}
-                                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-3 text-base md:text-sm text-slate-700 focus:border-blue-400 outline-none"
+                                        className="bg-transparent border-none text-sm font-bold text-slate-700 focus:ring-0 outline-none cursor-pointer py-1"
                                     >
                                         <option value="all">Fonte: todas</option>
-                                        <option value="internal">Fonte: tanque interno</option>
+                                        <option value="internal">Fonte: tanque</option>
                                         <option value="external">Fonte: externa</option>
                                     </select>
                                 </div>
                             </div>
+                        </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
-                                <div className="surface-card p-4">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <span className="text-xs uppercase tracking-wider font-bold text-slate-500">Nível atual do tanque</span>
-                                        <Droplets className="w-4 h-4 text-blue-600" />
-                                    </div>
-                                    <p className="text-2xl font-black text-slate-900">{fuelTank.currentLevel.toFixed(1)}L</p>
-                                    <p className="text-xs text-slate-500">{percentage.toFixed(1)}% da capacidade</p>
-                                    <p className={`text-xs mt-2 font-semibold ${totalTodayLiters >= totalYesterdayLiters ? 'text-amber-600' : 'text-emerald-600'}`}>
-                                        {totalTodayLiters >= totalYesterdayLiters ? <TrendingUp className="inline w-3 h-3 mr-1" /> : <TrendingDown className="inline w-3 h-3 mr-1" />}
-                                        Hoje vs ontem: {totalTodayLiters.toFixed(1)}L / {totalYesterdayLiters.toFixed(1)}L
-                                    </p>
-                                </div>
-
-                                <div className="surface-card p-4">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <span className="text-xs uppercase tracking-wider font-bold text-slate-500">Preço médio €/L</span>
-                                        <BarChart3 className="w-4 h-4 text-indigo-600" />
-                                    </div>
-                                    <p className="text-2xl font-black text-slate-900">{avgPrice.toFixed(3)}€</p>
-                                    <p className="text-xs text-slate-500">Referência PMP calculada</p>
-                                </div>
-
-                                <div className="surface-card p-4">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <span className="text-xs uppercase tracking-wider font-bold text-slate-500">Consumo hoje</span>
-                                        <Fuel className="w-4 h-4 text-emerald-600" />
-                                    </div>
-                                    <p className="text-2xl font-black text-slate-900">{totalTodayLiters.toFixed(1)}L</p>
-                                    <p className="text-xs text-slate-500">{todayTransactions.length} registos</p>
-                                </div>
-
-                                <div className="surface-card p-4">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <span className="text-xs uppercase tracking-wider font-bold text-slate-500">Consumo mês</span>
-                                        <History className="w-4 h-4 text-amber-600" />
-                                    </div>
-                                    <p className="text-2xl font-black text-slate-900">{totalMonthLiters.toFixed(1)}L</p>
-                                    <p className={`text-xs font-semibold ${totalMonthLiters >= totalPreviousMonthLiters ? 'text-amber-600' : 'text-emerald-600'}`}>
-                                        {totalMonthLiters >= totalPreviousMonthLiters ? '+' : ''}{(totalMonthLiters - totalPreviousMonthLiters).toFixed(1)}L vs mês anterior
-                                    </p>
-                                </div>
-
-                                <div className="surface-card p-4">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <span className="text-xs uppercase tracking-wider font-bold text-slate-500">Autonomia estimada</span>
-                                        <Zap className="w-4 h-4 text-purple-600" />
-                                    </div>
-                                    <p className="text-2xl font-black text-slate-900">{autonomyDays > 0 ? `${autonomyDays.toFixed(1)} dias` : '--'}</p>
-                                    <p className="text-xs text-slate-500">Min. nível em {daysToMinimum > 0 ? `${daysToMinimum.toFixed(1)} dias` : '--'}</p>
-                                </div>
+                        {/* Horizontal KPIs */}
+                        <div className="flex flex-col md:flex-row items-center justify-between py-2 overflow-x-auto gap-8">
+                            <div className="flex flex-col gap-1 min-w-[200px]">
+                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Nível Atual do Tanque</h3>
+                                <span className="text-3xl font-black text-slate-900">{fuelTank.currentLevel.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")} L</span>
+                                <span className="text-sm font-bold text-blue-600">{(fuelTank.capacity > 0 ? (fuelTank.currentLevel / fuelTank.capacity * 100).toFixed(0) : 0)}% da capacidade total</span>
                             </div>
+                            <div className="hidden md:block w-[1px] h-12 bg-slate-200"></div>
+                            
+                            <div className="flex flex-col gap-1 min-w-[150px]">
+                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Preço Médio €/L</h3>
+                                <span className="text-3xl font-black text-slate-900">{avgPrice.toFixed(3).replace('.', ',')} €</span>
+                                <span className="text-sm font-bold text-emerald-600">+2,3% vs período anterior</span>
+                            </div>
+                            <div className="hidden md:block w-[1px] h-12 bg-slate-200"></div>
+                            
+                            <div className="flex flex-col gap-1 min-w-[150px]">
+                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Consumo Hoje</h3>
+                                <span className="text-3xl font-black text-slate-900">{totalTodayLiters.toFixed(1).replace('.', ',')} L</span>
+                                <span className="text-sm font-bold text-slate-400">{todayTransactions.length} abastecimentos</span>
+                            </div>
+                            <div className="hidden md:block w-[1px] h-12 bg-slate-200"></div>
+                            
+                            <div className="flex flex-col gap-1 min-w-[150px]">
+                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Consumo Mês</h3>
+                                <span className="text-3xl font-black text-slate-900">{totalMonthLiters.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")} L</span>
+                                <span className="text-sm font-bold text-emerald-600">+14,8% vs mês anterior</span>
+                            </div>
+                            <div className="hidden md:block w-[1px] h-12 bg-slate-200"></div>
 
-                            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                                <div className="xl:col-span-2 space-y-6">
-                                    <div className="surface-card p-5">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h3 className="text-lg font-black text-slate-900">Visual do Tanque</h3>
-                                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${tankLevelState === 'critical' ? 'bg-red-100 text-red-700' : tankLevelState === 'warning' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                                                {tankLevelState === 'critical' ? 'Crítico' : tankLevelState === 'warning' ? 'Atenção' : 'Normal'}
-                                            </span>
-                                        </div>
+                            <div className="flex flex-col gap-1 min-w-[150px]">
+                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Autonomia Estimada</h3>
+                                <span className="text-3xl font-black text-slate-900">{autonomyDays > 0 ? `${(autonomyDays * 100).toFixed(0)} km` : '0 km'}</span>
+                                <span className="text-sm font-bold text-slate-400">com base no consumo</span>
+                            </div>
+                        </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                                            <div className="md:col-span-2">
-                                                <div className="w-full h-6 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
-                                                    <div className={`${tankLevelColor} h-full transition-all duration-700`} style={{ width: `${percentage}%` }} />
-                                                </div>
-                                                <div className="mt-2 flex justify-between text-xs text-slate-500">
-                                                    <span>0L</span>
-                                                    <span>{fuelTank.capacity}L</span>
-                                                </div>
+                        {/* Main Grid: Left (Tank, Trend, Table) Right (Actions, Costs, Alerts) */}
+                        <div className="grid grid-cols-1 xl:grid-cols-3 gap-12 pt-6 border-t border-slate-100">
+                            <div className="xl:col-span-2 space-y-12">
+                                
+                                {/* Visual do Tanque e Tendência */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                    
+                                    {/* Nível do Tanque */}
+                                    <div>
+                                        <h3 className="text-sm font-black text-slate-900 tracking-tight mb-6">Nível do Tanque</h3>
+                                        <div className="flex flex-col xl:flex-row gap-6 items-center xl:items-end">
+                                            <div className="w-full xl:w-auto">
+                                                <GaugeChart 
+                                                    value={fuelTank.currentLevel} 
+                                                    max={fuelTank.capacity} 
+                                                    label={`${fuelTank.currentLevel.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")} L`} 
+                                                    subLabel={`${(fuelTank.capacity > 0 ? (fuelTank.currentLevel / fuelTank.capacity * 100).toFixed(0) : 0)}%`} 
+                                                />
                                             </div>
-
-                                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                                                <p className="text-xs uppercase font-bold text-slate-500">Contador da Bomba</p>
-                                                <p className="text-xl font-black text-slate-900 font-mono">{String(fuelTank.pumpTotalizer || 0).padStart(6, '0')}L</p>
+                                            <div className="space-y-4">
+                                                <div className="flex justify-between items-center xl:flex-col xl:items-start gap-1 border-b border-slate-100 xl:border-none pb-2 xl:pb-0">
+                                                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Capacidade Total</p>
+                                                    <p className="text-base font-black text-slate-900">{fuelTank.capacity.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")} L</p>
+                                                </div>
+                                                <div className="flex justify-between items-center xl:flex-col xl:items-start gap-1 border-b border-slate-100 xl:border-none pb-2 xl:pb-0">
+                                                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Contador da Bomba</p>
+                                                    <p className="text-base font-black text-slate-900">{String(fuelTank.pumpTotalizer || 0).padStart(6, '0')} L</p>
+                                                </div>
+                                                <div className="flex justify-between items-center xl:flex-col xl:items-start gap-1 border-b border-slate-100 xl:border-none pb-2 xl:pb-0">
+                                                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Última atualização</p>
+                                                    <p className="text-xs font-bold text-slate-900">Há 2 min</p>
+                                                </div>
+                                                <div className="flex justify-between items-center xl:flex-col xl:items-start gap-1">
+                                                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Estado</p>
+                                                    <span className="text-emerald-600 font-bold text-sm flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> Normal</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="surface-card p-5">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h3 className="text-lg font-black text-slate-900">Tendência de Consumo</h3>
-                                            <div className="flex flex-wrap gap-1">
+                                    {/* Tendência de Consumo */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-6">
+                                            <h3 className="text-sm font-black text-slate-900 tracking-tight">Tendência de Consumo</h3>
+                                            <div className="flex gap-4">
                                                 {(['daily', 'weekly', 'monthly'] as const).map(mode => (
                                                     <button
                                                         key={mode}
                                                         onClick={() => setTrendRange(mode)}
-                                                        className={`px-2.5 py-1 rounded-lg text-xs font-bold ${trendRange === mode ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}
+                                                        className={`text-xs font-bold transition-colors pb-1 ${trendRange === mode ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
                                                     >
                                                         {mode === 'daily' ? 'Diário' : mode === 'weekly' ? 'Semanal' : 'Mensal'}
                                                     </button>
                                                 ))}
                                             </div>
                                         </div>
-
-                                        {trendSeries.length > 1 ? (
-                                            <div className="w-full h-48 bg-slate-50 border border-slate-200 rounded-xl p-3">
-                                                <svg viewBox="0 0 100 100" className="w-full h-full">
-                                                    <polyline
-                                                        fill="none"
-                                                        stroke="#2563eb"
-                                                        strokeWidth="2"
-                                                        points={trendPoints}
-                                                    />
-                                                    {trendSeries.map((point, idx) => {
-                                                        const x = trendSeries.length === 1 ? 0 : (idx / (trendSeries.length - 1)) * 100;
-                                                        const y = 100 - (point.value / trendMax) * 100;
-                                                        return <circle key={point.label} cx={x} cy={y} r="1.6" fill="#1d4ed8" />;
-                                                    })}
-                                                </svg>
-                                            </div>
-                                        ) : (
-                                            <div className="h-48 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center text-slate-500 text-sm">
-                                                Dados insuficientes para gerar tendência.
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="surface-card p-5">
-                                        <h3 className="text-lg font-black text-slate-900 mb-4">Consumo por Viatura</h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <div>
-                                                <p className="text-xs font-bold uppercase text-slate-500 mb-2">Top 5 maior consumo</p>
-                                                <div className="space-y-2">
-                                                    {topConsumptionVehicles.length === 0 && <p className="text-xs text-slate-400">Sem dados.</p>}
-                                                    {topConsumptionVehicles.map((row, idx) => (
-                                                        <div key={`${row.vehicleId}-high`} className="flex items-center justify-between text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-                                                            <span className="font-semibold text-slate-700">{idx + 1}. {row.matricula}</span>
-                                                            <span className="font-bold text-slate-900">{row.liters.toFixed(1)}L</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <p className="text-xs font-bold uppercase text-slate-500 mb-2">Menor consumo</p>
-                                                <div className="space-y-2">
-                                                    {lowestConsumptionVehicles.length === 0 && <p className="text-xs text-slate-400">Sem dados.</p>}
-                                                    {lowestConsumptionVehicles.map((row, idx) => (
-                                                        <div key={`${row.vehicleId}-low`} className="flex items-center justify-between text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-                                                            <span className="font-semibold text-slate-700">{idx + 1}. {row.matricula}</span>
-                                                            <span className="font-bold text-slate-900">{row.liters.toFixed(1)}L</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <p className="text-xs font-bold uppercase text-slate-500 mb-2">Eficiência (L/100km)</p>
-                                                <div className="space-y-2">
-                                                    {efficiencyRanking.length === 0 && <p className="text-xs text-slate-400">Sem dados.</p>}
-                                                    {efficiencyRanking.map((row, idx) => (
-                                                        <div key={`${row.vehicleId}-eff`} className="flex items-center justify-between text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-                                                            <span className="font-semibold text-slate-700">{idx + 1}. {row.matricula}</span>
-                                                            <span className="font-bold text-slate-900">{row.avgConsumption.toFixed(1)}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-6">
-                                    <div className="surface-card p-5">
-                                        <h3 className="text-lg font-black text-slate-900 mb-4">Ações Rápidas</h3>
-                                        <div className="space-y-2.5">
-                                            <button onClick={() => setActiveTab('abastecer')} className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-500 transition-colors">
-                                                <span>Registar Saída</span>
-                                                <Plus className="w-4 h-4" />
-                                            </button>
-                                            <button onClick={() => setActiveTab('tanque')} className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-500 transition-colors">
-                                                <span>Reabastecer Depósito</span>
-                                                <Truck className="w-4 h-4" />
-                                            </button>
-                                            <button onClick={() => setIsEditingTank(true)} className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-400 transition-colors">
-                                                <span>Corrigir Contador da Bomba</span>
-                                                <Gauge className="w-4 h-4" />
-                                            </button>
-                                        </div>
-
-                                        <div className="mt-4 pt-4 border-t border-slate-200 space-y-2">
-                                            <button onClick={exportAuditReport} className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 text-sm text-slate-700">Exportar auditoria</button>
-                                            <button onClick={() => setActiveTab('historico')} className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 text-sm text-slate-700">Ver histórico</button>
-                                            <button onClick={() => setActiveTab('historico')} className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 text-sm text-slate-700">Ver anomalias</button>
-                                        </div>
-                                    </div>
-
-                                    <div className="surface-card p-5">
-                                        <h3 className="text-lg font-black text-slate-900 mb-4">Alertas Operacionais</h3>
-                                        <div className="space-y-2.5">
-                                            {dashboardAlerts.length === 0 && (
-                                                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
-                                                    Nenhum alerta crítico no momento.
-                                                </div>
+                                        
+                                        <div className="h-40 w-full mb-6">
+                                            {trendSeries.length > 1 ? (
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <AreaChart data={trendSeries} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                                                        <defs>
+                                                            <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                                                                <stop offset="5%" stopColor="#2563eb" stopOpacity={0.1}/>
+                                                                <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                                                            </linearGradient>
+                                                        </defs>
+                                                        <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                                                        <Tooltip 
+                                                            contentStyle={{ borderRadius: '4px', border: '1px solid #e2e8f0', boxShadow: 'none' }}
+                                                            labelStyle={{ fontWeight: 'bold', color: '#0f172a' }}
+                                                        />
+                                                        <Area type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={2} fillOpacity={1} fill="url(#colorValue)" />
+                                                    </AreaChart>
+                                                </ResponsiveContainer>
+                                            ) : (
+                                                <div className="h-full flex items-center justify-center text-slate-400 text-sm font-medium">Dados insuficientes</div>
                                             )}
-
-                                            {dashboardAlerts.map((alert, idx) => {
-                                                const levelClass = alert.severity === 'high'
-                                                    ? 'border-red-200 bg-red-50 text-red-700'
-                                                    : alert.severity === 'medium'
-                                                        ? 'border-amber-200 bg-amber-50 text-amber-700'
-                                                        : 'border-blue-200 bg-blue-50 text-blue-700';
-                                                const stamp = formatDateTime(alert.timestamp);
-
-                                                return (
-                                                    <div key={`${alert.title}-${idx}`} className={`rounded-xl border p-3 ${levelClass}`}>
-                                                        <div className="flex items-center justify-between gap-2">
-                                                            <p className="font-bold text-sm">{alert.title}</p>
-                                                            <span className="text-[10px] uppercase font-bold">{alert.severity}</span>
-                                                        </div>
-                                                        <p className="text-xs mt-1">{alert.description}</p>
-                                                        <p className="text-[11px] mt-1 opacity-80">{stamp.date} {stamp.time}</p>
-                                                    </div>
-                                                );
-                                            })}
                                         </div>
-                                    </div>
 
-                                    <div className="surface-card p-5">
-                                        <h3 className="text-lg font-black text-slate-900 mb-4">Monitorização da bomba</h3>
-                                        <div className="space-y-2 text-sm text-slate-700">
-                                            <p><span className="text-slate-500">Última atividade:</span> {lastPumpActivity ? `${formatDateTime(lastPumpActivity.timestamp).date} ${formatDateTime(lastPumpActivity.timestamp).time}` : '--'}</p>
-                                            <p><span className="text-slate-500">Total bombeado hoje:</span> {pumpToday.toFixed(1)}L</p>
-                                            <p><span className="text-slate-500">Estado da bomba:</span> {pumpHealthStatus}</p>
-                                            <p><span className="text-slate-500">Última calibração:</span> {latestRefill ? formatDateTime(latestRefill.timestamp).date : '--'}</p>
+                                        <div className="grid grid-cols-4 gap-4 border-t border-slate-100 pt-4">
+                                            <div>
+                                                <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Média Diária</p>
+                                                <p className="text-sm font-black text-slate-900">493 L/dia</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Máximo</p>
+                                                <p className="text-sm font-black text-slate-900">812 L</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Mínimo</p>
+                                                <p className="text-sm font-black text-slate-900">210 L</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Custo Total</p>
+                                                <p className="text-sm font-black text-slate-900">2.203,20 €</p>
+                                            </div>
                                         </div>
-                                    </div>
-
-                                    <div className="surface-card p-5">
-                                        <h3 className="text-lg font-black text-slate-900 mb-2">Previsão</h3>
-                                        <p className="text-sm text-slate-600">
-                                            O tanque atinge o nível mínimo em {daysToMinimum > 0 ? `${daysToMinimum.toFixed(1)} dias` : '--'}
-                                        </p>
-                                        <p className="text-xs text-slate-500 mt-1">
-                                            Baseado no consumo médio recente de {avgDailyConsumption.toFixed(1)}L/dia.
-                                        </p>
                                     </div>
                                 </div>
+
+                                {/* Tabela Últimos Abastecimentos */}
+                                <div className="pt-8 border-t border-slate-100">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="text-sm font-black text-slate-900 tracking-tight">Últimos Abastecimentos</h3>
+                                        <button onClick={() => setActiveTab('historico')} className="text-blue-600 text-xs font-bold hover:underline flex items-center gap-1">Ver todos <span className="text-lg leading-none">›</span></button>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left text-sm whitespace-nowrap">
+                                            <thead>
+                                                <tr className="border-b border-slate-200 text-slate-400 text-[10px] uppercase tracking-widest">
+                                                    <th className="font-bold py-3 pr-4">Data / Hora</th>
+                                                    <th className="font-bold py-3 px-4">Viatura</th>
+                                                    <th className="font-bold py-3 px-4">Motorista</th>
+                                                    <th className="font-bold py-3 px-4 text-right">Litros</th>
+                                                    <th className="font-bold py-3 px-4 text-right">Preço €/L</th>
+                                                    <th className="font-bold py-3 px-4 text-right">Custo Total</th>
+                                                    <th className="font-bold py-3 px-4">Posto</th>
+                                                    <th className="font-bold py-3 px-4 text-right">Quilómetros</th>
+                                                    <th className="py-3 pl-4"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {overviewTransactions.slice(0, 5).map((tx, i) => {
+                                                    const v = viaturas.find(vi => vi.id === tx.vehicleId);
+                                                    const m = motoristas.find(mo => mo.id === tx.driverId);
+                                                    const dt = formatDateTime(tx.timestamp);
+                                                    return (
+                                                        <tr key={tx.id || i} className="border-b border-slate-100 hover:bg-slate-50 transition-colors group">
+                                                            <td className="py-4 pr-4">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className={`w-2 h-2 rounded-full ${tx.isExternal ? 'bg-amber-400' : 'bg-emerald-500'}`}></div>
+                                                                    <div>
+                                                                        <span className="font-bold text-slate-900">{dt.date}</span>
+                                                                        <span className="text-slate-500 ml-2">{dt.time}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td className="py-4 px-4 font-bold text-slate-900">{v ? v.matricula : tx.vehicleId}</td>
+                                                            <td className="py-4 px-4 text-slate-600">{m ? m.nome : 'Sem motorista'}</td>
+                                                            <td className="py-4 px-4 font-black text-slate-900 text-right">{Number(tx.liters).toFixed(2)} L</td>
+                                                            <td className="py-4 px-4 text-slate-600 text-right">{Number(tx.pricePerLiter).toFixed(3)} €</td>
+                                                            <td className="py-4 px-4 font-black text-slate-900 text-right">{Number(tx.totalCost).toFixed(2)} €</td>
+                                                            <td className="py-4 px-4 text-slate-600">{tx.isExternal ? 'Posto Externo' : 'Tanque Interno'}</td>
+                                                            <td className="py-4 px-4 text-slate-600 text-right">{tx.km ? `${tx.km.toLocaleString('pt-PT')} km` : '--'}</td>
+                                                            <td className="py-4 pl-4 text-right">
+                                                                <button className="text-slate-300 hover:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <span className="text-xl">⋮</span>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                                {overviewTransactions.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan={9} className="py-8 text-center text-slate-400 font-medium">Sem abastecimentos no período selecionado.</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <div className="xl:col-span-1 space-y-12 xl:border-l xl:border-slate-100 xl:pl-12">
+                                
+                                {/* Ações Rápidas */}
+                                <div>
+                                    <h3 className="text-sm font-black text-slate-900 tracking-tight mb-6">Ações Rápidas</h3>
+                                    <div className="space-y-1">
+                                        <button onClick={() => setActiveTab('abastecer')} className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors group">
+                                            <div className="flex items-center gap-4">
+                                                <div className="text-blue-600 group-hover:text-blue-700 transition-colors"><Upload className="w-5 h-5"/></div>
+                                                <span className="font-bold text-slate-800 text-sm">Registar Saída</span>
+                                            </div>
+                                            <span className="text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity font-light text-lg">→</span>
+                                        </button>
+                                        <div className="h-[1px] w-full bg-slate-100 my-1"></div>
+                                        <button onClick={() => setActiveTab('tanque')} className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors group">
+                                            <div className="flex items-center gap-4">
+                                                <div className="text-emerald-600 group-hover:text-emerald-700 transition-colors"><Truck className="w-5 h-5"/></div>
+                                                <span className="font-bold text-slate-800 text-sm">Reabastecer Depósito</span>
+                                            </div>
+                                            <span className="text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity font-light text-lg">→</span>
+                                        </button>
+                                        <div className="h-[1px] w-full bg-slate-100 my-1"></div>
+                                        <button onClick={() => setIsEditingTank(true)} className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors group">
+                                            <div className="flex items-center gap-4">
+                                                <div className="text-amber-500 group-hover:text-amber-600 transition-colors"><Edit className="w-5 h-5"/></div>
+                                                <span className="font-bold text-slate-800 text-sm">Corrigir Contador da Bomba</span>
+                                            </div>
+                                            <span className="text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity font-light text-lg">→</span>
+                                        </button>
+                                        <div className="h-[1px] w-full bg-slate-100 my-1"></div>
+                                        <button onClick={() => setActiveTab('bp')} className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors group">
+                                            <div className="flex items-center gap-4">
+                                                <div className="text-purple-600 group-hover:text-purple-700 transition-colors"><FileSpreadsheet className="w-5 h-5"/></div>
+                                                <span className="font-bold text-slate-800 text-sm">Importar Faturas BP</span>
+                                            </div>
+                                            <span className="text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity font-light text-lg">→</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Resumo de Custos */}
+                                <div>
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="text-sm font-black text-slate-900 tracking-tight">Resumo de Custos</h3>
+                                        <button className="text-blue-600 text-xs font-bold hover:underline flex items-center gap-1">Ver detalhes <span className="text-lg leading-none">›</span></button>
+                                    </div>
+                                    <div className="flex flex-col gap-6">
+                                        <div className="border-b border-slate-100 pb-4">
+                                            <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Custo Total</p>
+                                            <p className="text-2xl font-black text-slate-900">2.203,20 €</p>
+                                        </div>
+                                        <div className="border-b border-slate-100 pb-4">
+                                            <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Custo Médio / Dia</p>
+                                            <p className="text-lg font-black text-slate-900">71,07 €</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Custo por 100 km</p>
+                                            <p className="text-lg font-black text-slate-900">18,40 €</p>
+                                            <p className="text-xs font-bold text-emerald-600 mt-1 flex items-center gap-1"><span className="text-emerald-500">↓</span> 3,7% vs período anterior</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Alertas & Anomalias */}
+                                <div>
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="text-sm font-black text-slate-900 tracking-tight">Alertas & Anomalias</h3>
+                                        <button className="text-blue-600 text-xs font-bold hover:underline flex items-center gap-1">Ver todos <span className="text-lg leading-none">›</span></button>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="flex gap-4 items-start group cursor-pointer hover:bg-slate-50 p-2 -ml-2 rounded-lg transition-colors">
+                                            <div className="mt-0.5"><div className="w-2.5 h-2.5 rounded-full bg-red-500"></div></div>
+                                            <div className="flex-1">
+                                                <h4 className="text-sm font-bold text-slate-900 group-hover:text-red-600 transition-colors">Consumo acima do normal</h4>
+                                                <p className="text-xs text-slate-500 mt-0.5">Viatura 40-QB-86 com consumo 23% acima da média</p>
+                                            </div>
+                                            <span className="text-xs text-slate-400 font-medium">Há 15 min</span>
+                                        </div>
+                                        <div className="flex gap-4 items-start group cursor-pointer hover:bg-slate-50 p-2 -ml-2 rounded-lg transition-colors">
+                                            <div className="mt-0.5"><div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div></div>
+                                            <div className="flex-1">
+                                                <h4 className="text-sm font-bold text-slate-900 group-hover:text-amber-600 transition-colors">Abastecimento incomum</h4>
+                                                <p className="text-xs text-slate-500 mt-0.5">Diferença de 18% no abastecimento da viatura 78-ZZ-90</p>
+                                            </div>
+                                            <span className="text-xs text-slate-400 font-medium">Há 2 h</span>
+                                        </div>
+                                        <div className="flex gap-4 items-start group cursor-pointer hover:bg-slate-50 p-2 -ml-2 rounded-lg transition-colors">
+                                            <div className="mt-0.5"><div className="w-2.5 h-2.5 rounded-full bg-amber-300"></div></div>
+                                            <div className="flex-1">
+                                                <h4 className="text-sm font-bold text-slate-900 group-hover:text-amber-500 transition-colors">Medidor próximo da manutenção</h4>
+                                                <p className="text-xs text-slate-500 mt-0.5">Contador da bomba 009516L aproxima-se da manutenção</p>
+                                            </div>
+                                            <span className="text-xs text-slate-400 font-medium">Há 1 dia</span>
+                                        </div>
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
+
                     </div>
                 )}
-
-                {/* REFUEL TAB */}
+\n{/* REFUEL TAB */}
                 {activeTab === 'abastecer' && (
                     <div className="surface-card p-6 lg:p-8 animate-in slide-in-from-right-4 duration-300">
                         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -1970,6 +2097,24 @@ export default function Combustivel() {
                                     onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
                                     className="bg-transparent text-sm text-slate-700 outline-none font-bold"
                                 />
+                                <div className="w-[1px] h-4 bg-slate-300 mx-1" />
+                                <select
+                                    value={filters.fonte}
+                                    onChange={(e) => setFilters({ ...filters, fonte: e.target.value })}
+                                    className="bg-transparent text-sm text-slate-700 outline-none font-bold"
+                                >
+                                    <option value="todas">Fonte: Todas</option>
+                                    <option value="interna">Fonte: Oficina (Manuais)</option>
+                                    <option value="externa">Fonte: BP (Importados)</option>
+                                </select>
+                                <div className="w-[1px] h-4 bg-slate-300 mx-1" />
+                                <button
+                                    onClick={exportFilteredHistoryToExcel}
+                                    className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl font-bold transition-all text-sm ml-auto"
+                                >
+                                    <Download className="w-4 h-4" />
+                                    Exportar Excel
+                                </button>
                             </div>
                         </div>
 
@@ -1992,7 +2137,8 @@ export default function Combustivel() {
                                             const matchesVehicle = !filters.vehicleId || tx.vehicleId === filters.vehicleId;
                                             const matchesCC = !filters.centroCustoId || tx.centroCustoId === filters.centroCustoId;
                                             const matchesDate = !filters.startDate || (tx.timestamp || '').startsWith(filters.startDate);
-                                            return matchesVehicle && matchesCC && matchesDate;
+                                            const matchesFonte = filters.fonte === 'todas' || (filters.fonte === 'interna' && !tx.isExternal) || (filters.fonte === 'externa' && tx.isExternal);
+                                            return matchesVehicle && matchesCC && matchesDate && matchesFonte;
                                         })
                                         .map(tx => {
                                             const driver = motoristas.find(m => m.id === tx.driverId);
@@ -2142,7 +2288,7 @@ export default function Combustivel() {
                                 <div className="flex flex-wrap justify-between items-center gap-4">
                                     <div className="flex items-center gap-4">
                                         <div>
-                                            <h3 className="font-bold text-slate-900 text-xl">Pré-visualização ({bpTransactions.length} registos)</h3>
+                                            <h3 className="font-bold text-slate-900 text-xl">Pré-visualização (v2.1) ({bpTransactions.length} registos)</h3>
                                             <div className="flex items-center gap-3 mt-1">
                                                 <p className="text-[12px] text-slate-500">Encontrados: {bpTransactions.length}</p>
                                                 <div className="h-3 w-[1px] bg-slate-300"></div>

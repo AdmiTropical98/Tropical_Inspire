@@ -38,7 +38,7 @@ export default function QuickActions({ onNewService, onNewClient, onNewVehicle }
     ];
 
     return (
-        <div className="bg-white/90 border border-slate-200/70 rounded-2xl p-4 md:p-6 h-full flex flex-col" style={{ boxShadow: '0 4px 20px -6px rgba(15,23,42,0.10)' }}>
+        <div className="h-full flex flex-col p-5 sm:p-6 bg-white">
             <h3 className="text-slate-500 font-bold text-xs uppercase tracking-widest mb-4 md:mb-6 opacity-80">Acesso Rápido</h3>
             <div className="flex flex-col gap-3 h-full">
                 {actions.filter(a => a.show).map((action, idx) => (
